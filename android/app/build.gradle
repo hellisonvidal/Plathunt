@@ -1,5 +1,8 @@
 apply plugin: 'com.android.application'
 
+// Número do build do GitHub Actions (BUILD_NUMBER); 1 em builds locais.
+def buildNumber = (System.getenv("BUILD_NUMBER") ?: "1") as Integer
+
 android {
     namespace = "com.hellisonvidal.perseus"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,9 +10,8 @@ android {
         applicationId "com.hellisonvidal.perseus"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Número do build do GitHub Actions (BUILD_NUMBER); 1 em builds locais.
-        versionCode (System.getenv("BUILD_NUMBER") ?: "1").toInteger()
-        versionName "1.0.${System.getenv("BUILD_NUMBER") ?: "1"}"
+        versionCode buildNumber
+        versionName "1.0.${buildNumber}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
