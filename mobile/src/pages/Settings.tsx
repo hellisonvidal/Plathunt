@@ -118,6 +118,12 @@ export function SettingsPage() {
             }}
           />
           <Toggle
+            label="Traduzir troféus automaticamente"
+            hint="Traduz para o idioma acima os nomes e descrições que a Sony não traduziu (tradutor do Google)"
+            checked={settings.autoTranslate}
+            onChange={(autoTranslate) => updateSettings({ autoTranslate })}
+          />
+          <Toggle
             label="Revelar troféus secretos"
             hint="Mostra nome e descrição de troféus ocultos ainda bloqueados (pode conter spoilers)"
             checked={settings.revealSecrets}

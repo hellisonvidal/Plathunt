@@ -35,7 +35,7 @@ A engrenagem no topo das abas abre as Configurações:
 - **Conta**: sair / trocar de conta PSN.
 - **Atualizações**: versão instalada e "Verificar atualizações", que compara com a última Release do GitHub. "Baixar e instalar" baixa o APK dentro do app, com barra de progresso (`AppUpdaterPlugin.java`, só aceita endereços do GitHub), e abre o instalador do Android. Na primeira vez, o Android pede para permitir que o app instale atualizações.
 - **Atividades**: período de 7, 30 ou 90 dias.
-- **Troféus e jogos**: idioma dos nomes vindos da PSN (português, inglês ou espanhol) e opção de revelar troféus secretos.
+- **Troféus e jogos**: idioma dos nomes vindos da PSN (português, inglês ou espanhol), **tradução automática dos troféus** (ligada por padrão) e opção de revelar troféus secretos. Muitos jogos não têm os troféus traduzidos pela Sony, e aí a PSN manda o texto original, em geral em inglês. Com a tradução automática, nomes e descrições são traduzidos para o idioma escolhido pelo tradutor público do Google, direto do celular. A tradução fica salva no aparelho, então cada jogo é traduzido uma vez só; se o tradutor falhar, aparece o texto original. O botão "Dicas no YouTube" continua buscando pelo nome original do troféu, que acha mais vídeos.
 - **Aparência**: 5 temas: PlayStation (padrão), Claro, Preto OLED, Grafite e Carmesim. O contraste do texto foi verificado (WCAG ≥ 4.5:1) em todos.
 - **Geral**: aba em que o app abre.
 - **Dados**: atualizar tudo da PSN agora e apagar as curtidas.
