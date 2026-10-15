@@ -30,30 +30,52 @@ export function normalizeName(name: string): string {
     .replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
+/** Categoria da lista de "jogados" ("ps5_native_game", "ps4_game"…) → plataforma. */
+export function platformFromCategory(category: string | undefined | null): string | null {
+  if (!category) return null;
+  if (/^ps5/i.test(category)) return "PS5";
+  if (/^ps4/i.test(category)) return "PS4";
+  return null;
+}
+
+const earnedTotal = (t: Title) => t.earned.bronze + t.earned.silver + t.earned.gold + t.earned.platinum;
+
 /**
  * A PSN não liga a lista de troféus (npCommunicationId) à de tempo de jogo
- * (titleId), então casamos pelo nome. Jogos de PS3/Vita não têm tempo.
+ * (titleId), então casamos pelo nome. Cada registro de tempo vai para UMA só
+ * versão do jogo (ex.: PS4 e PS5 têm listas de troféus separadas): a da mesma
+ * plataforma e, em empate, a com mais troféus. Assim o tempo não é contado em
+ * dobro. Jogos de PS3/Vita não têm tempo.
  */
 export function matchPlaytime(titles: Title[], played: PlayedGame[]): Map<string, number> {
-  const byName = new Map<string, number>();
-  for (const p of played) {
-    const key = normalizeName(p.name);
-    if (key) byName.set(key, (byName.get(key) ?? 0) + p.playSeconds);
-  }
-  const out = new Map<string, number>();
+  const byName = new Map<string, Title[]>();
   for (const t of titles) {
     const key = normalizeName(t.name);
     if (!key) continue;
-    let secs = byName.get(key);
-    if (secs === undefined && key.length >= 6) {
-      for (const [k, v] of byName) {
-        if (k.length >= 6 && (k.startsWith(key) || key.startsWith(k))) {
-          secs = v;
-          break;
-        }
-      }
+    byName.set(key, [...(byName.get(key) ?? []), t]);
+  }
+
+  const candidatesFor = (key: string): Title[] => {
+    const exact = byName.get(key);
+    if (exact) return exact;
+    if (key.length < 6) return [];
+    for (const [k, ts] of byName) {
+      if (k.length >= 6 && (k.startsWith(key) || key.startsWith(k))) return ts;
     }
-    if (secs) out.set(t.id, secs);
+    return [];
+  };
+
+  const out = new Map<string, number>();
+  for (const p of played) {
+    if (p.playSeconds <= 0) continue;
+    const key = normalizeName(p.name);
+    if (!key) continue;
+    const candidates = candidatesFor(key);
+    if (!candidates.length) continue;
+    const score = (t: Title) =>
+      (p.platform && parsePlatforms(t.platform).includes(p.platform) ? 1_000_000 : 0) + earnedTotal(t);
+    const best = candidates.reduce((a, b) => (score(b) > score(a) ? b : a));
+    out.set(best.id, (out.get(best.id) ?? 0) + p.playSeconds);
   }
   return out;
 }
@@ -88,7 +110,7 @@ const rank = (p: string) => (PLATFORM_ORDER.indexOf(p) + 1 || 99);
 
 /** Só jogos em que o jogador conquistou pelo menos um troféu. */
 export function withEarnedTrophies(titles: Title[]): Title[] {
-  return titles.filter((t) => t.earned.bronze + t.earned.silver + t.earned.gold + t.earned.platinum > 0);
+  return titles.filter((t) => earnedTotal(t) > 0);
 }
 
 export function filterByPlatform(titles: Title[], platform: string | null): Title[] {

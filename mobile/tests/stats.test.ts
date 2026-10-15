@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  platformFromCategory,
   computeStats,
   filterByPlatform,
   withEarnedTrophies,
@@ -45,13 +46,48 @@ describe("matchPlaytime", () => {
       title("C", "Uncharted 2: Among Thieves™", "PS3", 100, c(1, 0, 0, 0)),
     ];
     const played = [
-      { titleId: "1", name: "God of War Ragnarök", imageUrl: null, playSeconds: 100, lastPlayed: null },
-      { titleId: "2", name: "Marvel’s Spider-Man 2 PS5", imageUrl: null, playSeconds: 200, lastPlayed: null },
+      { titleId: "1", name: "God of War Ragnarök", imageUrl: null, playSeconds: 100, lastPlayed: null, platform: "PS5" },
+      { titleId: "2", name: "Marvel’s Spider-Man 2 PS5", imageUrl: null, playSeconds: 200, lastPlayed: null, platform: "PS5" },
     ];
     const m = matchPlaytime(titles, played);
     expect(m.get("A")).toBe(100);
     expect(m.get("B")).toBe(200);
     expect(m.has("C")).toBe(false);
+  });
+});
+
+describe("matchPlaytime com várias versões do mesmo jogo", () => {
+  const ps4 = title("GOW4", "God of War Ragnarök", "PS4", 10, c(0, 0, 1, 3));
+  const ps5 = title("GOW5", "God of War Ragnarök", "PS5", 90, c(1, 6, 12, 17));
+  const played = (seconds: number, platform: string | null) => ({
+    titleId: "x",
+    name: "God of War Ragnarök",
+    imageUrl: null,
+    playSeconds: seconds,
+    lastPlayed: null,
+    platform,
+  });
+
+  it("não repete o tempo nas duas versões: vai para a da mesma plataforma", () => {
+    const m = matchPlaytime([ps4, ps5], [played(7200, "PS5")]);
+    expect(m.get("GOW5")).toBe(7200);
+    expect(m.has("GOW4")).toBe(false);
+  });
+
+  it("cada versão recebe o tempo da sua plataforma", () => {
+    const m = matchPlaytime([ps4, ps5], [played(7200, "PS5"), played(1800, "PS4")]);
+    expect(m.get("GOW5")).toBe(7200);
+    expect(m.get("GOW4")).toBe(1800);
+  });
+
+  it("sem plataforma conhecida, vai para a versão com mais troféus", () => {
+    const m = matchPlaytime([ps4, ps5], [played(600, null)]);
+    expect([...m.entries()]).toEqual([["GOW5", 600]]);
+  });
+
+  it("o tempo total é a soma dos registros, sem duplicar", () => {
+    const m = matchPlaytime([ps4, ps5], [played(7200, "PS5"), played(1800, "PS4")]);
+    expect([...m.values()].reduce((a, b) => a + b, 0)).toBe(9000);
   });
 });
 
@@ -68,6 +104,15 @@ describe("plataformas", () => {
     const ts = [title("A", "a", "PS4,PSVITA", 0, c(0, 0, 0, 0)), title("B", "b", "PS5", 0, c(0, 0, 0, 0))];
     expect(filterByPlatform(ts, "PS Vita").map((t) => t.id)).toEqual(["A"]);
     expect(filterByPlatform(ts, null)).toHaveLength(2);
+  });
+});
+
+describe("platformFromCategory", () => {
+  it("lê a plataforma da categoria da PSN", () => {
+    expect(platformFromCategory("ps5_native_game")).toBe("PS5");
+    expect(platformFromCategory("ps4_game")).toBe("PS4");
+    expect(platformFromCategory("unknown")).toBeNull();
+    expect(platformFromCategory(undefined)).toBeNull();
   });
 });
 

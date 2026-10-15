@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { imageCandidates } from "../lib/images";
+
 const TROPHY_STYLES: Record<string, { label: string; color: string }> = {
   platinum: { label: "Platina", color: "text-platinum" },
   gold: { label: "Ouro", color: "text-gold" },
@@ -17,18 +20,55 @@ export function TrophyBadge({ type, count }: { type: string; count?: number }) {
   );
 }
 
-export function Avatar({ src, name, size = 40 }: { src?: string | null; name: string; size?: number }) {
-  if (!src) {
-    return (
-      <span
-        className="inline-flex shrink-0 items-center justify-center rounded-full bg-surface-2 font-semibold text-muted"
-        style={{ width: size, height: size }}
-      >
-        {name.slice(0, 1).toUpperCase()}
-      </span>
-    );
+/**
+ * Imagem remota da PSN com tentativas: https primeiro, depois o endereço
+ * original; se nada carregar, mostra `fallback`.
+ */
+export function RemoteImage({
+  src,
+  fallback,
+  ...props
+}: Omit<React.ImgHTMLAttributes<HTMLImageElement>, "src"> & { src: string | null | undefined; fallback: React.ReactNode }) {
+  const candidates = imageCandidates(src);
+  const [attempt, setAttempt] = useState(0);
+  const [lastSrc, setLastSrc] = useState(src);
+  // Recomeça as tentativas quando o endereço muda (ex.: dados atualizados).
+  if (lastSrc !== src) {
+    setLastSrc(src);
+    setAttempt(0);
   }
-  return <img src={src} alt={name} width={size} height={size} className="shrink-0 rounded-full bg-surface-2" />;
+  if (attempt >= candidates.length) return <>{fallback}</>;
+  return (
+    <img
+      {...props}
+      src={candidates[attempt]}
+      referrerPolicy="no-referrer"
+      loading="lazy"
+      onError={() => setAttempt((a) => a + 1)}
+    />
+  );
+}
+
+export function Avatar({ src, name, size = 40 }: { src?: string | null; name: string; size?: number }) {
+  const initial = (
+    <span
+      className="inline-flex shrink-0 items-center justify-center rounded-full bg-surface-2 font-semibold text-muted"
+      style={{ width: size, height: size }}
+    >
+      {name.slice(0, 1).toUpperCase()}
+    </span>
+  );
+  return (
+    <RemoteImage
+      src={src}
+      fallback={initial}
+      alt={name}
+      width={size}
+      height={size}
+      className="shrink-0 rounded-full bg-surface-2 object-cover"
+      style={{ width: size, height: size }}
+    />
+  );
 }
 
 export function ProgressBar({ value }: { value: number }) {
@@ -81,15 +121,21 @@ export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => v
 }
 
 export function GameIcon({ src, size = 56 }: { src: string | null; size?: number }) {
-  if (!src) {
-    return (
-      <span
-        className="flex shrink-0 items-center justify-center rounded-lg bg-surface-2 text-xl"
-        style={{ width: size, height: size }}
-      >
-        🎮
-      </span>
-    );
-  }
-  return <img src={src} alt="" className="shrink-0 rounded-lg object-cover" style={{ width: size, height: size }} />;
+  const placeholder = (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-lg bg-surface-2 text-xl"
+      style={{ width: size, height: size }}
+    >
+      🎮
+    </span>
+  );
+  return (
+    <RemoteImage
+      src={src}
+      fallback={placeholder}
+      alt=""
+      className="shrink-0 rounded-lg object-cover"
+      style={{ width: size, height: size }}
+    />
+  );
 }

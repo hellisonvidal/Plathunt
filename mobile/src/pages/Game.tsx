@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
-import { ErrorBox, GameIcon, ProgressBar, Spinner, TrophyBadge, rarityLabel } from "../components/ui";
+import { ErrorBox, GameIcon, ProgressBar, RemoteImage, Spinner, TrophyBadge, rarityLabel } from "../components/ui";
 import type { GroupSection } from "../lib/stats";
 import { useSettings } from "../lib/settings";
 import { formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
@@ -136,13 +136,16 @@ function GroupList({
   const percent = total ? Math.round((section.earned / total) * 100) : 0;
   const header = (
     <>
-      {section.group.iconUrl ? (
-        <img src={section.group.iconUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
-      ) : (
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-lg">
-          {section.isBase ? "🎮" : "🧩"}
-        </span>
-      )}
+      <RemoteImage
+        src={section.group.iconUrl}
+        alt=""
+        className="h-12 w-12 shrink-0 rounded-lg object-cover"
+        fallback={
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-lg">
+            {section.isBase ? "🎮" : "🧩"}
+          </span>
+        }
+      />
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-ps-blue-2">
           {section.isBase ? "Jogo base" : "DLC"}
@@ -212,13 +215,16 @@ function TrophyItem({ trophy: t }: { trophy: TrophyRow }) {
   const rarity = rarityLabel(t.rate);
   return (
     <li className={`flex gap-3 rounded-xl border border-line bg-surface p-3 ${locked ? "opacity-60" : ""}`}>
-      {t.iconUrl && !secret ? (
-        <img src={t.iconUrl} alt="" className={`h-12 w-12 shrink-0 rounded-lg ${locked ? "grayscale" : ""}`} />
-      ) : (
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-2">
-          {secret ? "?" : locked ? "🔒" : "🏆"}
-        </span>
-      )}
+      <RemoteImage
+        src={secret ? null : t.iconUrl}
+        alt=""
+        className={`h-12 w-12 shrink-0 rounded-lg ${locked ? "grayscale" : ""}`}
+        fallback={
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-2">
+            {secret ? "?" : locked ? "🔒" : "🏆"}
+          </span>
+        }
+      />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{secret ? "Troféu secreto" : t.name}</span>

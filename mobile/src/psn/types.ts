@@ -27,6 +27,8 @@ export interface PlayedGame {
   imageUrl: string | null;
   /** Tempo de jogo em segundos. */
   playSeconds: number;
+  /** "PS5", "PS4" ou null (da categoria da PSN: ps5_native_game, ps4_game…). */
+  platform: string | null;
   lastPlayed: string | null;
 }
 

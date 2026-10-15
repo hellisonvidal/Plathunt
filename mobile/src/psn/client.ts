@@ -12,7 +12,7 @@ import {
 } from "psn-api";
 import { cached, createLimiter, mapLimit } from "../lib/cache";
 import { getSettings } from "../lib/settings";
-import { parseDuration } from "../lib/stats";
+import { parseDuration, platformFromCategory } from "../lib/stats";
 import { feedItemsFromTrophies, mergeTrophies, pickFeedSources, sortFeed, type FeedSource } from "../lib/feed";
 import { getAccessToken } from "./auth";
 import type { FeedItem, PlayedGame, Profile, PsnClient, Title } from "./types";
@@ -144,6 +144,7 @@ export function createPsnClient(): PsnClient {
                   name: t.localizedName || t.name,
                   imageUrl: t.localizedImageUrl || t.imageUrl || null,
                   playSeconds: parseDuration(t.playDuration),
+                  platform: platformFromCategory(t.category),
                   lastPlayed: t.lastPlayedDateTime ?? null,
                 })),
               );
