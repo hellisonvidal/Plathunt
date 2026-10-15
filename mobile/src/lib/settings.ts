@@ -12,7 +12,7 @@ export interface Settings {
   /** Mostrar nome e descrição de troféus secretos ainda bloqueados. */
   revealSecrets: boolean;
   /** Tema de cores (Configurações → Aparência). */
-  theme: "playstation" | "light" | "oled" | "graphite" | "crimson";
+  theme: "playstation" | "light" | "oled" | "green" | "crimson" | "purple";
   /** Aba em que o app abre. */
   startTab: "/" | "/stats" | "/friends" | "/activity" | "/ranking";
 }
@@ -34,6 +34,8 @@ export function getSettings(): Settings {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Record<string, unknown>;
     // Só as chaves conhecidas: opções removidas (ex.: plano do PS Plus) somem do que fica salvo.
     const known = Object.keys(DEFAULT_SETTINGS).filter((k) => k in saved);
+    // O tema "Grafite" virou "Verde △".
+    if (saved.theme === "graphite") saved.theme = "green";
     return { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) };
   } catch {
     return DEFAULT_SETTINGS;
