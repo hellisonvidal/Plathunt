@@ -1,4 +1,4 @@
-# Trophy Mania
+# PlayStation Trophy Mania
 
 Gerenciador de troféus da PlayStation: acompanhe seus troféus e veja as conquistas dos seus amigos da PSN.
 
@@ -8,10 +8,14 @@ O repositório tem duas versões:
 |---|---|---|
 | Precisa de servidor? | **Não.** Fala direto com a PSN pelo celular | Sim (Node + PostgreSQL) |
 | Login PSN | A tela da PlayStation abre sozinha ao iniciar | Colar o código NPSSO |
-| Seus troféus, jogos e raridade | ✅ | ✅ |
-| Feed com troféus dos amigos | ✅ (lido direto da PSN) | ✅ (amigos que usam o app) |
+| Perfil: avatar PSN, nível, jogos com tempo de jogo | ✅ | — (sem tempo de jogo) |
+| Troféus por jogo base e DLC, filtro conquistados/bloqueados | ✅ | — |
+| Estatísticas por plataforma, comparação com amigos | ✅ | — |
+| Amigos: avatar, nível, plataformas, conquistas | ✅ | ✅ |
+| Atividades com troféus dos amigos | ✅ (lido direto da PSN) | ✅ (amigos que usam o app) |
+| Curtidas com emoji (padrão e PlayStation △ ○ ✕ □) | ✅ salvas no celular; os amigos não veem | ✅ compartilhadas |
 | Ranking de platinas | ✅ | ✅ |
-| Reações com emoji, parabéns e notificações | — (precisam de um servidor compartilhado) | ✅ |
+| Parabéns e notificações | — (precisam de um servidor compartilhado) | ✅ |
 
 ## App Android (sem servidor)
 
@@ -22,6 +26,16 @@ O repositório tem duas versões:
 3. No celular, abra o APK e permita "instalar apps de fontes desconhecidas".
 
 O APK é gerado sozinho a cada mudança no app. Não é preciso configurar nada.
+
+### Abas
+
+1. **Perfil**: avatar PSN, nível e progresso, troféus e a lista de jogos com tempo de jogo (busca e ordenação por recentes, progresso ou tempo). Em cada jogo, os troféus vêm separados em **jogo base** e **DLCs**, com filtro Todos / Conquistados / Bloqueados.
+2. **Estatísticas**: jogos, platinas, jogos 100%, conclusão média, troféus e tempo de jogo, com gráficos por tipo de troféu, plataforma e jogos mais jogados. Filtro pelas plataformas que têm troféus e comparação com qualquer amigo.
+3. **Amigos**: avatar, nível e progresso, plataformas em que jogam e conquistas de cada amigo da PSN.
+4. **Atividades**: troféus seus e dos amigos dos últimos 30 dias, com curtidas por emoji.
+5. **Ranking de platinas**: você e seus amigos por platinas, nível ou total de troféus.
+
+O tempo de jogo vem da lista de "jogados" da PSN, que só registra PS4 e PS5. Como a PSN não liga essa lista à de troféus, o app casa os dois pelo nome do jogo.
 
 ### Como funciona
 

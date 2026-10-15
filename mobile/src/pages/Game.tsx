@@ -1,34 +1,52 @@
+import { useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, GameIcon, ProgressBar, Spinner, TrophyBadge, rarityLabel } from "../components/ui";
+import { formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
-import type { Title } from "../psn/types";
+import type { Title, TrophyRow } from "../psn/types";
 
 const TYPE_ORDER: Record<string, number> = { platinum: 0, gold: 1, silver: 2, bronze: 3 };
+type Filter = "todos" | "conquistados" | "bloqueados";
 
 export function GamePage() {
   const { client } = useApp();
   const { accountId = "me", gameId = "" } = useParams();
   const [params] = useSearchParams();
   const service: Title["service"] = params.get("service") === "trophy" ? "trophy" : "trophy2";
+  const [filter, setFilter] = useState<Filter>("todos");
 
   const { data, error, loading, refresh } = useData(
     async (force) => {
-      const [titles, trophies, owner] = await Promise.all([
+      const game = { id: gameId, service };
+      const [titles, trophies, groups, played, owner] = await Promise.all([
         client.titles(accountId, force),
-        client.gameTrophies(accountId, { id: gameId, service }, force),
+        client.gameTrophies(accountId, game, force),
+        client.trophyGroups(game).catch(() => []),
+        client.playedGames(accountId, force),
         accountId === "me" ? null : client.profile(accountId),
       ]);
-      return { title: titles.find((t) => t.id === gameId) ?? null, trophies, owner };
+      const title = titles.find((t) => t.id === gameId) ?? null;
+      const playSeconds = title && played ? (matchPlaytime([title], played).get(title.id) ?? 0) : 0;
+      return { title, trophies, groups, owner, playSeconds };
     },
     [client, accountId, gameId, service],
   );
 
-  const trophies = [...(data?.trophies ?? [])].sort(
-    (a, b) => Number(b.earned) - Number(a.earned) || TYPE_ORDER[a.type] - TYPE_ORDER[b.type],
-  );
-  const earnedCount = trophies.filter((t) => t.earned).length;
+  const all = data?.trophies ?? [];
+  const earnedCount = all.filter((t) => t.earned).length;
+  const visible = all
+    .filter((t) => (filter === "conquistados" ? t.earned : filter === "bloqueados" ? !t.earned : true))
+    .sort((a, b) => Number(b.earned) - Number(a.earned) || TYPE_ORDER[a.type] - TYPE_ORDER[b.type] || a.id - b.id);
+  // As seções contam sempre todos os troféus do grupo; o filtro só esconde linhas.
+  const sections = data ? groupTrophies(all, data.groups) : [];
+
+  const FILTERS: { key: Filter; label: string; count: number }[] = [
+    { key: "todos", label: "Todos", count: all.length },
+    { key: "conquistados", label: "Conquistados", count: earnedCount },
+    { key: "bloqueados", label: "Bloqueados", count: all.length - earnedCount },
+  ];
 
   return (
     <>
@@ -40,61 +58,104 @@ export function GamePage() {
         {data && (
           <>
             <header className="flex gap-4">
-              <GameIcon src={data.title?.iconUrl ?? null} size={80} />
+              <GameIcon src={data.title?.iconUrl ?? null} size={84} />
               <div className="min-w-0 flex-1">
-                <h2 className="text-xl font-bold">{data.title?.name}</h2>
-                <p className="text-sm text-muted">
-                  {data.title?.platform}
-                  {data.owner && ` · progresso de ${data.owner.onlineId}`}
+                <h2 className="text-xl font-bold leading-tight">{data.title?.name}</h2>
+                <p className="mt-0.5 text-sm text-muted">
+                  {data.title?.platform.replace("PSVITA", "PS Vita")}
+                  {data.playSeconds > 0 && ` · ⏱ ${formatDuration(data.playSeconds)}`}
+                  {data.owner && ` · ${data.owner.onlineId}`}
                 </p>
                 <div className="mt-2 flex items-center gap-2">
                   <ProgressBar value={data.title?.progress ?? 0} />
                   <span className="text-sm text-muted">{data.title?.progress ?? 0}%</span>
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  {earnedCount} de {trophies.length} troféus
+                  {earnedCount} de {all.length} troféus
                 </p>
               </div>
             </header>
 
-            <ul className="space-y-2">
-              {trophies.map((t) => {
-                const locked = !t.earned;
-                const secret = t.hidden && locked;
-                const rarity = rarityLabel(t.rate);
-                return (
-                  <li
-                    key={t.id}
-                    className={`flex gap-3 rounded-xl border border-line bg-surface p-3 ${locked ? "opacity-60" : ""}`}
-                  >
-                    {t.iconUrl && !secret ? (
-                      <img src={t.iconUrl} alt="" className={`h-12 w-12 shrink-0 rounded-lg ${locked ? "grayscale" : ""}`} />
-                    ) : (
-                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-2">
-                        {secret ? "?" : "🏆"}
-                      </span>
+            <div role="tablist" className="grid grid-cols-3 gap-1 rounded-full bg-surface p-1 text-sm">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  role="tab"
+                  aria-selected={filter === f.key}
+                  onClick={() => setFilter(f.key)}
+                  className={`rounded-full py-1.5 ${filter === f.key ? "bg-ps-blue font-semibold" : "text-muted"}`}
+                >
+                  {f.label} <span className="opacity-70">{f.count}</span>
+                </button>
+              ))}
+            </div>
+
+            {sections.map((section) => {
+              const rows = visible.filter((t) => section.trophies.includes(t));
+              return (
+                <section key={section.group.id} className="space-y-2">
+                  <div className="flex items-center gap-3 pt-2">
+                    {section.group.iconUrl && (
+                      <img src={section.group.iconUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
                     )}
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{secret ? "Troféu secreto" : t.name}</span>
-                        <TrophyBadge type={t.type} />
-                      </div>
-                      {!secret && t.detail && <p className="text-sm text-muted">{t.detail}</p>}
-                      {(t.earnedAt || rarity) && (
-                        <p className="mt-1 text-xs text-ps-blue-2">
-                          {t.earnedAt && `Conquistado em ${new Date(t.earnedAt).toLocaleDateString("pt-BR")}`}
-                          {t.earnedAt && rarity && " · "}
-                          {rarity}
-                        </p>
-                      )}
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-ps-blue-2">
+                        {section.isBase ? "Jogo base" : "DLC"}
+                      </p>
+                      <h3 className="truncate font-semibold">{section.group.name}</h3>
                     </div>
-                  </li>
-                );
-              })}
-            </ul>
+                    <span className="text-sm text-muted">
+                      {section.earned}/{section.trophies.length}
+                    </span>
+                  </div>
+                  {rows.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-line p-3 text-center text-xs text-muted">
+                      {filter === "conquistados" ? "Nenhum troféu conquistado aqui ainda." : "Tudo conquistado aqui! 🏆"}
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {rows.map((t) => (
+                        <TrophyItem key={t.id} trophy={t} />
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
           </>
         )}
       </div>
     </>
+  );
+}
+
+function TrophyItem({ trophy: t }: { trophy: TrophyRow }) {
+  const locked = !t.earned;
+  const secret = t.hidden && locked;
+  const rarity = rarityLabel(t.rate);
+  return (
+    <li className={`flex gap-3 rounded-xl border border-line bg-surface p-3 ${locked ? "opacity-60" : ""}`}>
+      {t.iconUrl && !secret ? (
+        <img src={t.iconUrl} alt="" className={`h-12 w-12 shrink-0 rounded-lg ${locked ? "grayscale" : ""}`} />
+      ) : (
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-2">
+          {secret ? "?" : locked ? "🔒" : "🏆"}
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-medium">{secret ? "Troféu secreto" : t.name}</span>
+          <TrophyBadge type={t.type} />
+        </div>
+        {!secret && t.detail && <p className="text-sm text-muted">{t.detail}</p>}
+        {(t.earnedAt || rarity) && (
+          <p className="mt-1 text-xs text-ps-blue-2">
+            {t.earnedAt && `Conquistado em ${new Date(t.earnedAt).toLocaleDateString("pt-BR")}`}
+            {t.earnedAt && rarity && " · "}
+            {rarity}
+          </p>
+        )}
+      </div>
+    </li>
   );
 }

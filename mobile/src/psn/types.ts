@@ -15,7 +15,27 @@ export interface Profile {
   isPlus: boolean;
   /** null quando o perfil de troféus é privado. */
   level: number | null;
+  /** % para o próximo nível. */
+  levelProgress: number | null;
   earned: Counts | null;
+}
+
+/** Jogo da lista de "jogados" da PSN (PS4/PS5), com tempo de jogo. */
+export interface PlayedGame {
+  titleId: string;
+  name: string;
+  imageUrl: string | null;
+  /** Tempo de jogo em segundos. */
+  playSeconds: number;
+  lastPlayed: string | null;
+}
+
+/** Grupo de troféus: "default" é o jogo base; "001", "002"… são DLCs. */
+export interface TrophyGroup {
+  id: string;
+  name: string;
+  iconUrl: string | null;
+  defined: Counts;
 }
 
 export interface Title {
@@ -28,6 +48,7 @@ export interface Title {
   earned: Counts;
   defined: Counts;
   lastUpdated: string;
+  hasGroups: boolean;
 }
 
 export interface TrophyRow {
@@ -56,7 +77,13 @@ export interface FeedItem {
 /** Tudo que as telas precisam. Há uma implementação real (PSN) e uma de demonstração. */
 export interface PsnClient {
   me(force?: boolean): Promise<Profile>;
+  /** Lista completa de jogos com troféus. */
   titles(accountId: string, force?: boolean): Promise<Title[]>;
+  /** Só os 100 jogos mais recentes (mais leve, para a lista de amigos). */
+  recentTitles(accountId: string, force?: boolean): Promise<Title[]>;
+  /** Jogos jogados com tempo de jogo; null se o perfil não permitir. */
+  playedGames(accountId: string, force?: boolean): Promise<PlayedGame[] | null>;
+  trophyGroups(game: { id: string; service: Title["service"] }): Promise<TrophyGroup[]>;
   gameTrophies(accountId: string, game: { id: string; service: Title["service"] }, force?: boolean): Promise<TrophyRow[]>;
   friends(force?: boolean): Promise<Profile[]>;
   profile(accountId: string, force?: boolean): Promise<Profile>;

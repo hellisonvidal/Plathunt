@@ -4,7 +4,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // direto com a PSN. Não há servidor.
 const config: CapacitorConfig = {
   appId: "com.hellisonvidal.perseus",
-  appName: "Trophy Mania",
+  appName: "PlayStation Trophy Mania",
   webDir: "mobile/dist",
   backgroundColor: "#0b0f1a",
   plugins: {

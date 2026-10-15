@@ -54,6 +54,22 @@ export function clearCache() {
   } catch {}
 }
 
+/** Limita quantas tarefas rodam ao mesmo tempo (para não estourar o rate limit da PSN). */
+export function createLimiter(max: number) {
+  let active = 0;
+  const queue: (() => void)[] = [];
+  return async function run<T>(task: () => Promise<T>): Promise<T> {
+    if (active >= max) await new Promise<void>((resolve) => queue.push(resolve));
+    active++;
+    try {
+      return await task();
+    } finally {
+      active--;
+      queue.shift()?.();
+    }
+  };
+}
+
 /** Executa `fn` em cada item com no máximo `limit` chamadas simultâneas. */
 export async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);

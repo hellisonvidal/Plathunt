@@ -1,6 +1,8 @@
 import {
   getProfileFromAccountId,
   getTitleTrophies,
+  getTitleTrophyGroups,
+  getUserPlayedGames,
   getUserFriendsAccountIds,
   getUserTitles,
   getUserTrophiesEarnedForTitle,
@@ -8,10 +10,11 @@ import {
   type AuthorizationPayload,
   type TrophyTitle,
 } from "psn-api";
-import { cached, mapLimit } from "../lib/cache";
+import { cached, createLimiter, mapLimit } from "../lib/cache";
+import { parseDuration } from "../lib/stats";
 import { feedItemsFromTrophies, mergeTrophies, pickFeedSources, sortFeed, type FeedSource } from "../lib/feed";
 import { getAccessToken } from "./auth";
-import type { FeedItem, Profile, PsnClient, Title } from "./types";
+import type { FeedItem, PlayedGame, Profile, PsnClient, Title } from "./types";
 
 const HEADERS = { "Accept-Language": "pt-BR" } as const;
 const MIN = 60_000;
@@ -42,11 +45,15 @@ function toTitle(t: TrophyTitle): Title {
     earned: t.earnedTrophies,
     defined: t.definedTrophies,
     lastUpdated: t.lastUpdatedDateTime,
+    hasGroups: t.hasTrophyGroups,
   };
 }
 
 /** Cliente real: conversa direto com a API da PSN a partir do celular. */
 export function createPsnClient(): PsnClient {
+  // Telas que disparam uma chamada por amigo passam por aqui.
+  const limited = createLimiter(CONCURRENCY);
+
   async function loadProfile(accountId: string): Promise<Profile> {
     const a = await auth();
     const profile = await getProfileFromAccountId(a, accountId);
@@ -63,6 +70,7 @@ export function createPsnClient(): PsnClient {
       aboutMe: profile.aboutMe || null,
       isPlus: profile.isPlus,
       level: summary ? Number(summary.trophyLevel) || 1 : null,
+      levelProgress: summary?.progress ?? null,
       earned: summary?.earnedTrophies ?? null,
     };
   }
@@ -103,6 +111,66 @@ export function createPsnClient(): PsnClient {
         },
         force,
       );
+    },
+
+    async recentTitles(accountId, force) {
+      return cached(
+        `recent:${accountId}`,
+        30 * MIN,
+        () =>
+          limited(async () => {
+            const res = await getUserTitles(await auth(), accountId, { limit: 100, headerOverrides: HEADERS });
+            return res.trophyTitles.map(toTitle);
+          }),
+        force,
+      );
+    },
+
+    async playedGames(accountId, force) {
+      return cached(
+        `played:${accountId}`,
+        30 * MIN,
+        async () => {
+          try {
+            const a = await auth();
+            const all: PlayedGame[] = [];
+            for (let page = 0, offset = 0; page < 5; page++) {
+              const res = await getUserPlayedGames(a, accountId, { limit: 200, offset });
+              all.push(
+                ...res.titles.map((t) => ({
+                  titleId: t.titleId,
+                  name: t.localizedName || t.name,
+                  imageUrl: t.localizedImageUrl || t.imageUrl || null,
+                  playSeconds: parseDuration(t.playDuration),
+                  lastPlayed: t.lastPlayedDateTime ?? null,
+                })),
+              );
+              if (!res.nextOffset || res.titles.length === 0) break;
+              offset = res.nextOffset;
+            }
+            return all;
+          } catch {
+            // Perfil que não compartilha os jogos jogados.
+            return null;
+          }
+        },
+        force,
+      );
+    },
+
+    async trophyGroups(game) {
+      return cached(`groups:${game.id}`, 24 * 60 * MIN, async () => {
+        const res = await getTitleTrophyGroups(await auth(), game.id, {
+          npServiceName: game.service,
+          headerOverrides: HEADERS,
+        });
+        return res.trophyGroups.map((g) => ({
+          id: g.trophyGroupId,
+          name: g.trophyGroupName,
+          iconUrl: g.trophyGroupIconUrl ?? null,
+          defined: g.definedTrophies,
+        }));
+      });
     },
 
     async gameTrophies(accountId, game, force) {

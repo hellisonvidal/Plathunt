@@ -1,15 +1,17 @@
 import { createContext, useContext, useMemo, useState } from "react";
-import { HashRouter, NavLink, Route, Routes } from "react-router-dom";
+import { HashRouter, Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
 import { createDemoClient } from "./psn/demo";
 import type { PsnClient } from "./psn/types";
-import { FeedPage } from "./pages/Feed";
+import { ControllerIcon, FriendsIcon, ProfileIcon, RankingIcon, StatsIcon } from "./components/icons";
+import { ActivityPage } from "./pages/Activity";
 import { FriendsPage } from "./pages/Friends";
 import { GamePage } from "./pages/Game";
 import { LoginPage } from "./pages/Login";
 import { ProfilePage } from "./pages/Profile";
-import { TrophiesPage } from "./pages/Trophies";
+import { RankingPage } from "./pages/Ranking";
+import { StatsPage } from "./pages/Stats";
 
 type Mode = "psn" | "demo";
 const MODE_KEY = "tm.mode";
@@ -82,9 +84,12 @@ export function App() {
             </div>
           )}
           <Routes>
-            <Route path="/" element={<FeedPage />} />
-            <Route path="/trophies" element={<TrophiesPage />} />
+            <Route path="/" element={<ProfilePage />} />
+            <Route path="/stats" element={<StatsPage />} />
             <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/activity" element={<ActivityPage />} />
+            <Route path="/ranking" element={<RankingPage />} />
+            <Route path="/u/me" element={<Navigate to="/" replace />} />
             <Route path="/u/:accountId" element={<ProfilePage />} />
             <Route path="/game/:accountId/:gameId" element={<GamePage />} />
           </Routes>
@@ -96,10 +101,11 @@ export function App() {
 }
 
 const TABS = [
-  { to: "/", icon: "⚡", label: "Atividade" },
-  { to: "/trophies", icon: "🏆", label: "Troféus" },
-  { to: "/friends", icon: "👥", label: "Amigos" },
-  { to: "/u/me", icon: "👤", label: "Perfil" },
+  { to: "/", icon: <ProfileIcon />, label: "Perfil" },
+  { to: "/stats", icon: <StatsIcon />, label: "Estatísticas" },
+  { to: "/friends", icon: <FriendsIcon />, label: "Amigos" },
+  { to: "/activity", icon: <ControllerIcon />, label: "Atividades" },
+  { to: "/ranking", icon: <RankingIcon />, label: "Ranking" },
 ];
 
 function TabBar() {
@@ -112,10 +118,10 @@ function TabBar() {
             to={t.to}
             end={t.to === "/"}
             className={({ isActive }) =>
-              `flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] ${isActive ? "text-ps-blue-2" : "text-muted"}`
+              `flex flex-1 flex-col items-center gap-1 pb-2 pt-2.5 text-[10px] ${isActive ? "text-ps-blue-2" : "text-muted"}`
             }
           >
-            <span className="text-lg leading-none">{t.icon}</span>
+            <span className="flex h-6 items-center">{t.icon}</span>
             {t.label}
           </NavLink>
         ))}

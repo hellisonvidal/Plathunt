@@ -63,7 +63,8 @@ export function LoginPage({
   return (
     <div className="safe-top mx-auto flex min-h-screen max-w-md flex-col px-6 pb-10 pt-16">
       <img src="./icon.png" alt="" className="h-20 w-20 rounded-2xl" />
-      <h1 className="mt-5 text-3xl font-bold tracking-tight">Trophy Mania</h1>
+      <p className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-ps-blue-2">PlayStation</p>
+      <h1 className="text-3xl font-bold tracking-tight">Trophy Mania</h1>
       <p className="mt-2 text-muted">Seus troféus da PlayStation e as conquistas dos seus amigos, no celular.</p>
 
       {notice && <p className="mt-6 rounded-xl border border-gold/40 bg-gold/10 p-3 text-sm">{notice}</p>}
@@ -136,7 +137,7 @@ export function LoginPage({
       )}
 
       <p className="mt-auto pt-10 text-xs leading-relaxed text-muted">
-        🔒 Sem servidor: seus dados vão direto do celular para a PSN e ficam só no aparelho. O Trophy Mania não é
+        🔒 Sem servidor: seus dados vão direto do celular para a PSN e ficam só no aparelho. O PlayStation Trophy Mania não é
         afiliado à Sony Interactive Entertainment.
       </p>
     </div>

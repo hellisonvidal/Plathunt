@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
+import { ReactionBar } from "../components/Reactions";
 import { Avatar, ErrorBox, Spinner, TrophyBadge, rarityLabel, timeAgo } from "../components/ui";
 import { FEED_WINDOW_DAYS } from "../lib/feed";
 import { useData } from "../lib/useData";
@@ -15,7 +16,7 @@ const FILTERS = {
 } as const;
 type FilterKey = keyof typeof FILTERS;
 
-export function FeedPage() {
+export function ActivityPage() {
   const { client } = useApp();
   const { data, error, loading, refresh } = useData((force) => client.feed(force), [client]);
   const [filter, setFilter] = useState<FilterKey>("todos");
@@ -28,7 +29,7 @@ export function FeedPage() {
 
   return (
     <>
-      <PageHeader title="Atividade" onRefresh={refresh} refreshing={loading} />
+      <PageHeader title="Atividades" onRefresh={refresh} refreshing={loading} />
       <div className="space-y-4 px-4 pt-4">
         <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm">
           {(Object.keys(FILTERS) as FilterKey[]).map((k) => (
@@ -56,6 +57,12 @@ export function FeedPage() {
         {items.map((item) => (
           <FeedCard key={item.key} item={item} />
         ))}
+
+        {data && items.length > 0 && (
+          <p className="pb-2 text-center text-[11px] text-muted">
+            Suas curtidas ficam salvas neste celular.
+          </p>
+        )}
       </div>
     </>
   );
@@ -73,12 +80,12 @@ function FeedCard({ item }: { item: FeedItem }) {
       }`}
     >
       <header className="flex items-center gap-3">
-        <Link to={`/u/${item.owner.isMe ? "me" : item.owner.accountId}`}>
+        <Link to={item.owner.isMe ? "/" : `/u/${item.owner.accountId}`}>
           <Avatar src={item.owner.avatarUrl} name={item.owner.onlineId} />
         </Link>
         <div className="min-w-0 flex-1 text-sm">
           <p>
-            <Link to={`/u/${item.owner.isMe ? "me" : item.owner.accountId}`} className="font-semibold">
+            <Link to={item.owner.isMe ? "/" : `/u/${item.owner.accountId}`} className="font-semibold">
               {item.owner.isMe ? "Você" : item.owner.onlineId}
             </Link>{" "}
             {isPlatinum ? "platinou" : "conquistou um troféu em"}{" "}
@@ -103,6 +110,8 @@ function FeedCard({ item }: { item: FeedItem }) {
           {rarity && <p className="mt-1 text-xs text-ps-blue-2">{rarity}</p>}
         </div>
       </Link>
+
+      <ReactionBar itemKey={item.key} />
     </article>
   );
 }
