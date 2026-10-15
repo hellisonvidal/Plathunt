@@ -1,23 +1,16 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-// Endereço do servidor publicado (ex.: https://perseus.onrender.com).
-// Definido na hora do build: CAP_SERVER_URL=https://... npx cap sync android
-const serverUrl = process.env.CAP_SERVER_URL;
-
+// O app Android é autocontido: a interface (mobile/) vai dentro do APK e fala
+// direto com a PSN. Não há servidor.
 const config: CapacitorConfig = {
   appId: "com.hellisonvidal.perseus",
-  appName: "Perseus",
-  webDir: "mobile/www",
+  appName: "Trophy Mania",
+  webDir: "mobile/dist",
   backgroundColor: "#0b0f1a",
-  server: serverUrl
-    ? {
-        url: serverUrl,
-        // Mantém a navegação dentro do app só para o próprio servidor.
-        allowNavigation: [new URL(serverUrl).host],
-      }
-    : undefined,
-  android: {
-    allowMixedContent: false,
+  plugins: {
+    // Faz o fetch() passar pela pilha HTTP nativa: a API da PSN não aceita
+    // chamadas de navegador (CORS), mas aceita as do app.
+    CapacitorHttp: { enabled: true },
   },
 };
 

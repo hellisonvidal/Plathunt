@@ -2,7 +2,7 @@
   "name": "perseus",
   "version": "0.1.0",
   "private": true,
-  "description": "Gerenciador de troféus PlayStation com feed social, parabéns e reações com emoji.",
+  "description": "Gerenciador de trof\u00e9us PlayStation com feed social, parab\u00e9ns e rea\u00e7\u00f5es com emoji.",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -13,7 +13,8 @@
     "db:seed": "node prisma/seed.mjs",
     "demo:login": "node prisma/demo-login.mjs",
     "db:migrate": "prisma migrate dev",
-    "start:prod": "prisma migrate deploy && next start"
+    "start:prod": "prisma migrate deploy && next start",
+    "android:build": "npm run build --prefix mobile && npx cap sync android"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

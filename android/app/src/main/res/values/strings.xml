@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Perseus</string>
-    <string name="title_activity_main">Perseus</string>
+    <string name="app_name">Trophy Mania</string>
+    <string name="title_activity_main">Trophy Mania</string>
     <string name="package_name">com.hellisonvidal.perseus</string>
     <string name="custom_url_scheme">com.hellisonvidal.perseus</string>
 </resources>
