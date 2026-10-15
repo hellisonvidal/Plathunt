@@ -7,6 +7,8 @@ export interface Settings {
   language: "pt-BR" | "en-US" | "es-ES";
   /** Período das Atividades, em dias. */
   feedDays: 7 | 30 | 90;
+  /** Traduzir nomes e descrições de troféus que a Sony não traduziu. */
+  autoTranslate: boolean;
   /** Mostrar nome e descrição de troféus secretos ainda bloqueados. */
   revealSecrets: boolean;
   /** Tema de cores (Configurações → Aparência). */
@@ -19,6 +21,7 @@ export const DEFAULT_SETTINGS: Settings = {
   language: "pt-BR",
   feedDays: 30,
   revealSecrets: false,
+  autoTranslate: true,
   startTab: "/",
   theme: "playstation",
 };

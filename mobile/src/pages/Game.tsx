@@ -245,9 +245,10 @@ function TrophyItem({ trophy: t, gameName }: { trophy: TrophyRow; gameName: stri
           )}
         </div>
       </div>
-      {/* Abre no app do YouTube (ou no navegador) a busca por um vídeo de dicas. */}
+      {/* Abre no app do YouTube (ou no navegador) a busca por um vídeo de dicas.
+          Usa o nome original do troféu: a tradução automática acha menos vídeos. */}
       <a
-        href={trophyGuideUrl(gameName, t.name, language)}
+        href={trophyGuideUrl(gameName, t.originalName ?? t.name, language)}
         target="_blank"
         rel="noreferrer"
         className="ml-15 mt-2 inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"

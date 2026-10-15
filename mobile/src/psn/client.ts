@@ -13,6 +13,7 @@ import {
 import { cached, createLimiter, mapLimit } from "../lib/cache";
 import { getSettings } from "../lib/settings";
 import { parseDuration, platformFromCategory } from "../lib/stats";
+import { translateTexts } from "../lib/translate";
 import { feedItemsFromTrophies, mergeTrophies, pickFeedSources, sortFeed, type FeedSource } from "../lib/feed";
 import { getAccessToken } from "./auth";
 import type { FeedItem, PlayedGame, Profile, PsnClient, Title } from "./types";
@@ -26,6 +27,28 @@ const FRIENDS_PAGE = 1000;
 const FEED_FRIENDS = 60;
 const MAX_FEED_SOURCES = 20;
 const CONCURRENCY = 5;
+
+type TrophyMeta = (Awaited<ReturnType<typeof getTitleTrophies>>["trophies"][number] & { originalName?: string })[];
+
+/**
+ * Nomes e descrições dos troféus no idioma das Configurações, mesmo quando a
+ * Sony não tem tradução (a PSN devolve o texto original, em geral em inglês).
+ * A tradução fica em cache; se o tradutor falhar, mostra o texto original.
+ */
+async function translatedMeta(gameId: string, meta: TrophyMeta): Promise<TrophyMeta> {
+  const { autoTranslate, language } = getSettings();
+  if (!autoTranslate) return meta;
+  return cached(`meta-tr:${language}:${gameId}`, 30 * 24 * 60 * MIN, async () => {
+    const texts = meta.flatMap((t) => [t.trophyName ?? "", t.trophyDetail ?? ""]);
+    const tr = await translateTexts(texts, language);
+    return meta.map((t, i) => ({
+      ...t,
+      trophyName: t.trophyName ? tr[2 * i] : t.trophyName,
+      originalName: t.trophyName,
+      trophyDetail: t.trophyDetail ? tr[2 * i + 1] : t.trophyDetail,
+    }));
+  }).catch(() => meta);
+}
 
 async function auth(): Promise<AuthorizationPayload> {
   return { accessToken: await getAccessToken() };
@@ -186,13 +209,14 @@ export function createPsnClient(): PsnClient {
         const res = await getTitleTrophies(await auth(), game.id, "all", opts);
         return res.trophies;
       });
+      const shown = await translatedMeta(game.id, meta);
       const earned = await cached(
         `earned:${accountId}:${game.id}`,
         5 * MIN,
         async () => (await getUserTrophiesEarnedForTitle(await auth(), accountId, game.id, "all", opts)).trophies,
         force,
       );
-      return mergeTrophies(meta, earned);
+      return mergeTrophies(shown, earned);
     },
 
     async friendIds(force) {

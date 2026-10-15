@@ -58,6 +58,8 @@ export interface TrophyRow {
   type: TrophyType;
   name: string;
   detail: string | null;
+  /** Nome original da PSN, quando `name` foi traduzido pelo app. */
+  originalName?: string;
   iconUrl: string | null;
   hidden: boolean;
   groupId: string;

@@ -61,3 +61,15 @@ describe("feedItemsFromTrophies + sortFeed", () => {
     expect(sorted.map((i) => i.key)).toEqual(["f1:G:0", "f1:G:2"]);
   });
 });
+
+describe("mergeTrophies com tradução", () => {
+  it("guarda o nome original quando o nome foi traduzido", () => {
+    const meta = [
+      { trophyId: 0, trophyType: "bronze" as const, trophyName: "Pai e Filho", originalName: "Father and Son", trophyHidden: false },
+      { trophyId: 1, trophyType: "gold" as const, trophyName: "Platina", originalName: "Platina", trophyHidden: false },
+    ];
+    const rows = mergeTrophies(meta, []);
+    expect(rows[0]).toMatchObject({ name: "Pai e Filho", originalName: "Father and Son" });
+    expect(rows[1].originalName).toBeUndefined();
+  });
+});

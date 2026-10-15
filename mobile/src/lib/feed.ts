@@ -60,6 +60,8 @@ export interface RawTrophyMeta {
   trophyType: TrophyType;
   trophyName?: string;
   trophyDetail?: string;
+  /** Nome como veio da PSN, quando o app traduziu `trophyName`. */
+  originalName?: string;
   trophyIconUrl?: string;
   trophyHidden: boolean;
   trophyGroupId?: string;
@@ -83,6 +85,7 @@ export function mergeTrophies(meta: RawTrophyMeta[], earned: RawTrophyEarned[]):
       type: m.trophyType,
       name: m.trophyName ?? "Troféu oculto",
       detail: m.trophyDetail ?? null,
+      ...(m.originalName && m.originalName !== m.trophyName ? { originalName: m.originalName } : {}),
       iconUrl: m.trophyIconUrl ?? null,
       hidden: m.trophyHidden,
       groupId: m.trophyGroupId ?? "default",
