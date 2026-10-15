@@ -1,12 +1,12 @@
 // Perseus — modelo de dados.
-// SQLite em desenvolvimento; troque o provider para "postgresql" em produção.
+// PostgreSQL (local e no servidor hospedado).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

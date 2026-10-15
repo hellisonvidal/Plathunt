@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { LoginForm } from "./LoginForm";
+import { ManualLoginSteps, NativeLoginButton } from "./NativeLogin";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ expired?: string }> }) {
   if (await getCurrentUser()) redirect("/");
@@ -22,41 +23,44 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       )}
 
       <section className="mt-8 rounded-2xl border border-line bg-surface p-5">
-        <h2 className="font-semibold">Entrar com a PSN</h2>
-        <ol className="mt-4 space-y-4 text-sm">
-          <li className="flex gap-3">
-            <Step n={1} />
-            <div>
-              Faça login na sua conta PSN em{" "}
-              <a href="https://www.playstation.com/" target="_blank" rel="noreferrer" className="text-ps-blue-2 underline">
-                playstation.com
-              </a>
-              .
-            </div>
-          </li>
-          <li className="flex gap-3">
-            <Step n={2} />
-            <div>
-              No mesmo navegador, abra{" "}
-              <a
-                href="https://ca.account.sony.com/api/v1/ssocookie"
-                target="_blank"
-                rel="noreferrer"
-                className="text-ps-blue-2 underline"
-              >
-                este link da Sony
-              </a>{" "}
-              e copie todo o texto que aparecer.
-            </div>
-          </li>
-          <li className="flex gap-3">
-            <Step n={3} />
-            <div className="min-w-0 flex-1">
-              Cole aqui:
-              <LoginForm />
-            </div>
-          </li>
-        </ol>
+        <h2 className="mb-4 font-semibold">Conecte sua conta PlayStation</h2>
+        <NativeLoginButton />
+        <ManualLoginSteps>
+          <ol className="mt-4 space-y-4 text-sm">
+            <li className="flex gap-3">
+              <Step n={1} />
+              <div>
+                Faça login na sua conta PSN em{" "}
+                <a href="https://www.playstation.com/" target="_blank" rel="noreferrer" className="text-ps-blue-2 underline">
+                  playstation.com
+                </a>
+                .
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <Step n={2} />
+              <div>
+                No mesmo navegador, abra{" "}
+                <a
+                  href="https://ca.account.sony.com/api/v1/ssocookie"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-ps-blue-2 underline"
+                >
+                  este link da Sony
+                </a>{" "}
+                e copie todo o texto que aparecer.
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <Step n={3} />
+              <div className="min-w-0 flex-1">
+                Cole aqui:
+                <LoginForm />
+              </div>
+            </li>
+          </ol>
+        </ManualLoginSteps>
       </section>
 
       <p className="mt-4 text-xs leading-relaxed text-muted">
