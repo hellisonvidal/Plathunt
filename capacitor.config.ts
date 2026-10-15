@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   appId: "com.hellisonvidal.perseus",
   appName: "PlayStation Trophy Mania",
   webDir: "mobile/dist",
-  backgroundColor: "#0b0f1a",
+  backgroundColor: "#050a14",
   android: {
     // Alguns avatares da PSN só existem em http://. O app tenta https antes
     // (mobile/src/lib/images.ts); isto permite o endereço original como reserva.
