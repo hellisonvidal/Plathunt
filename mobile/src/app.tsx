@@ -13,7 +13,7 @@ import { GamePage } from "./pages/Game";
 import { LoginPage } from "./pages/Login";
 import { ProfilePage } from "./pages/Profile";
 import { RankingPage } from "./pages/Ranking";
-import { SettingsPage } from "./pages/Settings";
+import { SettingsPage, ThemesPage } from "./pages/Settings";
 import { StatsPage } from "./pages/Stats";
 import { persistRemove, persistSet } from "./lib/persist";
 
@@ -96,6 +96,7 @@ export function App() {
             <Route path="/activity" element={<ActivityPage />} />
             <Route path="/ranking" element={<RankingPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/themes" element={<ThemesPage />} />
             <Route path="/u/me" element={<Navigate to="/" replace />} />
             <Route path="/u/:accountId" element={<ProfilePage />} />
             <Route path="/game/:accountId/:gameId" element={<GamePage />} />

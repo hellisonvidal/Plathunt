@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
 import { Avatar, ProgressBar } from "../components/ui";
@@ -64,19 +65,7 @@ export function SettingsPage() {
         </Section>
 
         <Section title="Aparência">
-          <div className="space-y-2 p-4">
-            <p className="text-sm">Tema</p>
-            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tema">
-              {THEMES.map((t) => (
-                <ThemeCard
-                  key={t.value}
-                  theme={t}
-                  selected={settings.theme === t.value}
-                  onSelect={() => updateSettings({ theme: t.value })}
-                />
-              ))}
-            </div>
-          </div>
+          <ThemesButton current={settings.theme} />
         </Section>
 
         <Section title="Atualizações">
@@ -176,6 +165,66 @@ export function SettingsPage() {
 }
 
 /** Cartão de tema com uma miniatura das cores (fundo, cartão e destaque). */
+/** Botão das Configurações que abre a tela de temas, mostrando o tema atual. */
+function ThemesButton({ current }: { current: Settings["theme"] }) {
+  const navigate = useNavigate();
+  const theme = THEMES.find((t) => t.value === current) ?? THEMES[0];
+  return (
+    <button
+      onClick={() => navigate("/settings/themes")}
+      className="flex w-full items-center gap-3 p-4 text-left active:bg-surface-2"
+    >
+      <ThemeSwatch theme={theme} className="h-10 w-14 shrink-0" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm">Temas</span>
+        <span className="mt-0.5 block text-xs text-muted">
+          {theme.label} · {THEMES.length} temas de jogos de PlayStation
+        </span>
+      </span>
+      <span className="text-muted">›</span>
+    </button>
+  );
+}
+
+/** Tela de temas (Configurações → Temas). A escolha vale na hora. */
+export function ThemesPage() {
+  const settings = useSettings();
+  return (
+    <>
+      <PageHeader title="Temas" back />
+      <div className="px-4 pb-8 pt-4">
+        <p className="mb-3 text-sm text-muted">
+          Cada tema usa as cores do personagem principal de um jogo de PlayStation.
+        </p>
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tema">
+          {THEMES.map((t) => (
+            <ThemeCard
+              key={t.value}
+              theme={t}
+              selected={settings.theme === t.value}
+              onSelect={() => updateSettings({ theme: t.value })}
+            />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+/** Miniatura das cores de um tema: fundo, cartões e destaque. */
+function ThemeSwatch({ theme, className = "" }: { theme: (typeof THEMES)[number]; className?: string }) {
+  const [bg, card, accent] = theme.swatch;
+  return (
+    <span className={`flex flex-col justify-end gap-1 rounded-lg p-1.5 ${className}`} style={{ background: bg }}>
+      <span className="block h-2 w-3/4 rounded-sm" style={{ background: card }} />
+      <span className="flex items-center gap-1">
+        <span className="block h-2 flex-1 rounded-sm" style={{ background: card }} />
+        <span className="block h-3 w-6 rounded-sm" style={{ background: accent }} />
+      </span>
+    </span>
+  );
+}
+
 function ThemeCard({
   theme,
   selected,
@@ -185,7 +234,6 @@ function ThemeCard({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const [bg, card, accent] = theme.swatch;
   return (
     <button
       role="radio"
@@ -193,13 +241,7 @@ function ThemeCard({
       onClick={onSelect}
       className={`rounded-xl border-2 p-2 text-left ${selected ? "border-ps-blue-2" : "border-line"}`}
     >
-      <span className="flex h-14 flex-col justify-end gap-1 rounded-lg p-1.5" style={{ background: bg }}>
-        <span className="block h-2 w-3/4 rounded-sm" style={{ background: card }} />
-        <span className="flex items-center gap-1">
-          <span className="block h-2 flex-1 rounded-sm" style={{ background: card }} />
-          <span className="block h-3 w-6 rounded-sm" style={{ background: accent }} />
-        </span>
-      </span>
+      <ThemeSwatch theme={theme} className="h-14" />
       <span className="mt-1.5 flex items-center justify-between gap-1">
         <span className="text-sm font-semibold">{theme.label}</span>
         {selected && <span className="text-ps-blue-2">✓</span>}
