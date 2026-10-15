@@ -48,6 +48,17 @@ const earnedTotal = (t: Title) => t.earned.bronze + t.earned.silver + t.earned.g
  * dobro. Jogos de PS3/Vita não têm tempo.
  */
 export function matchPlaytime(titles: Title[], played: PlayedGame[]): Map<string, number> {
+  return new Map([...matchPlayed(titles, played)].map(([id, info]) => [id, info.seconds]));
+}
+
+export interface PlayInfo {
+  seconds: number;
+  /** Plataforma em que o jogo foi jogado (a do registro com mais tempo), se a PSN informar. */
+  platform: string | null;
+}
+
+/** Como `matchPlaytime`, mas também diz em qual plataforma cada jogo foi jogado. */
+export function matchPlayed(titles: Title[], played: PlayedGame[]): Map<string, PlayInfo> {
   const byName = new Map<string, Title[]>();
   for (const t of titles) {
     const key = normalizeName(t.name);
@@ -65,7 +76,7 @@ export function matchPlaytime(titles: Title[], played: PlayedGame[]): Map<string
     return [];
   };
 
-  const out = new Map<string, number>();
+  const out = new Map<string, PlayInfo & { best: number }>();
   for (const p of played) {
     if (p.playSeconds <= 0) continue;
     const key = normalizeName(p.name);
@@ -75,9 +86,15 @@ export function matchPlaytime(titles: Title[], played: PlayedGame[]): Map<string
     const score = (t: Title) =>
       (p.platform && parsePlatforms(t.platform).includes(p.platform) ? 1_000_000 : 0) + earnedTotal(t);
     const best = candidates.reduce((a, b) => (score(b) > score(a) ? b : a));
-    out.set(best.id, (out.get(best.id) ?? 0) + p.playSeconds);
+    const prev = out.get(best.id) ?? { seconds: 0, platform: null, best: 0 };
+    const leads = p.playSeconds > prev.best;
+    out.set(best.id, {
+      seconds: prev.seconds + p.playSeconds,
+      platform: leads ? (p.platform ?? prev.platform) : prev.platform,
+      best: Math.max(prev.best, p.playSeconds),
+    });
   }
-  return out;
+  return new Map([...out].map(([id, { seconds, platform }]) => [id, { seconds, platform }]));
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -101,21 +118,37 @@ export function parsePlatforms(raw: string): string[] {
   return [...new Set(out)];
 }
 
-/** Plataformas que aparecem na lista de troféus, na ordem PS5 → PC. */
-export function platformsOf(titles: Title[]): string[] {
-  const set = new Set(titles.flatMap((t) => parsePlatforms(t.platform)));
+const rank = (p: string) => (PLATFORM_ORDER.indexOf(p) + 1 || 99);
+
+/** Plataforma em que cada jogo foi jogado, por id (vem da lista de "jogados"). */
+export type PlayedOn = Map<string, string | null>;
+
+/**
+ * Uma lista de troféus pode valer para várias plataformas (ex.: "PS4,PSVITA"),
+ * mas isso não quer dizer que o jogador jogou em todas. Cada jogo conta em UMA
+ * plataforma: a registrada no tempo de jogo, se houver; senão a principal da
+ * lista (PS5 › PS4 › PS3 › PS Vita).
+ */
+export function primaryPlatform(t: Title, playedOn?: string | null): string {
+  const platforms = parsePlatforms(t.platform);
+  if (playedOn && platforms.includes(playedOn)) return playedOn;
+  return [...platforms].sort((a, b) => rank(a) - rank(b))[0] ?? t.platform;
+}
+
+/** Plataformas em que há jogos (uma por jogo), na ordem PS5 → PC. */
+export function platformsOf(titles: Title[], playedOn?: PlayedOn): string[] {
+  const set = new Set(titles.map((t) => primaryPlatform(t, playedOn?.get(t.id))));
   return [...set].sort((a, b) => rank(a) - rank(b));
 }
-const rank = (p: string) => (PLATFORM_ORDER.indexOf(p) + 1 || 99);
 
 /** Só jogos em que o jogador conquistou pelo menos um troféu. */
 export function withEarnedTrophies(titles: Title[]): Title[] {
   return titles.filter((t) => earnedTotal(t) > 0);
 }
 
-export function filterByPlatform(titles: Title[], platform: string | null): Title[] {
+export function filterByPlatform(titles: Title[], platform: string | null, playedOn?: PlayedOn): Title[] {
   if (!platform) return titles;
-  return titles.filter((t) => parsePlatforms(t.platform).includes(platform));
+  return titles.filter((t) => primaryPlatform(t, playedOn?.get(t.id)) === platform);
 }
 
 export interface GameStats {
@@ -132,7 +165,7 @@ export interface GameStats {
   topPlayed: { title: Title; seconds: number }[];
 }
 
-export function computeStats(titles: Title[], playtime: Map<string, number>): GameStats {
+export function computeStats(titles: Title[], playtime: Map<string, number>, playedOn?: PlayedOn): GameStats {
   const trophies = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
   let progressSum = 0;
   let completed = 0;
@@ -152,7 +185,8 @@ export function computeStats(titles: Title[], playtime: Map<string, number>): Ga
       playSeconds += secs;
       gamesWithPlaytime++;
     }
-    for (const p of parsePlatforms(t.platform)) platformCount.set(p, (platformCount.get(p) ?? 0) + 1);
+    const p = primaryPlatform(t, playedOn?.get(t.id));
+    platformCount.set(p, (platformCount.get(p) ?? 0) + 1);
   }
 
   return {

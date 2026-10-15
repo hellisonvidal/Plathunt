@@ -4,7 +4,17 @@ import { useApp } from "../app";
 import { GroupedBars, Legend, StatTile, type Series } from "../components/charts";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, Spinner, TrophyBadge } from "../components/ui";
-import { computeStats, filterByPlatform, formatDuration, matchPlaytime, platformsOf, withEarnedTrophies } from "../lib/stats";
+import {
+  computeStats,
+  filterByPlatform,
+  formatDuration,
+  matchPlayed,
+  platformsOf,
+  withEarnedTrophies,
+  type PlayedOn,
+  type PlayInfo,
+  PLATFORM_ORDER,
+} from "../lib/stats";
 import { useData } from "../lib/useData";
 import type { Title } from "../psn/types";
 
@@ -23,7 +33,7 @@ export function StatsPage() {
         client.playedGames("me", force),
         client.friends(force),
       ]);
-      return { me, titles, playtime: matchPlaytime(titles, played ?? []), friends };
+      return { me, titles, ...playMaps(matchPlayed(titles, played ?? [])), friends };
     },
     [client],
   );
@@ -35,7 +45,7 @@ export function StatsPage() {
         client.titles(friendId, force).catch(() => null),
         client.playedGames(friendId, force),
       ]);
-      return titles ? { titles, playtime: matchPlaytime(titles, played ?? []), hasPlaytime: !!played } : { titles: null };
+      return titles ? { titles, ...playMaps(matchPlayed(titles, played ?? [])) } : { titles: null };
     },
     [client, friendId],
   );
@@ -46,14 +56,22 @@ export function StatsPage() {
 
   // Plataformas com troféus (suas e, se estiver comparando, do amigo).
   // Jogos sem nenhum troféu conquistado ficam de fora das estatísticas.
-  const platforms = data ? platformsOf(withEarnedTrophies([...data.titles, ...(friendTitles ?? [])])) : [];
+  // Cada jogo conta em uma só plataforma (a jogada ou a principal da lista).
+  const friendPlay = theirs.data && "playedOn" in theirs.data ? theirs.data : null;
+  const platforms = data
+    ? [
+        ...new Set([
+          ...platformsOf(withEarnedTrophies(data.titles), data.playedOn),
+          ...(friendTitles ? platformsOf(withEarnedTrophies(friendTitles), friendPlay?.playedOn) : []),
+        ]),
+      ].sort((a, b) => PLATFORM_RANK(a) - PLATFORM_RANK(b))
+    : [];
 
-  const stats = (titles: Title[], playtime: Map<string, number>) =>
-    computeStats(filterByPlatform(withEarnedTrophies(titles), platform), playtime);
-  const meStats = data ? stats(data.titles, data.playtime) : null;
+  const stats = (titles: Title[], playtime: Map<string, number>, playedOn: PlayedOn) =>
+    computeStats(filterByPlatform(withEarnedTrophies(titles), platform, playedOn), playtime, playedOn);
+  const meStats = data ? stats(data.titles, data.playtime, data.playedOn) : null;
   const frStats =
-    friend && friendTitles && theirs.data && "playtime" in theirs.data && theirs.data.playtime
-      ? stats(friendTitles, theirs.data.playtime)
+    friend && friendTitles && friendPlay ? stats(friendTitles, friendPlay.playtime, friendPlay.playedOn)
       : null;
 
   const all = [meStats, frStats].filter((s): s is NonNullable<typeof s> => s !== null);
@@ -171,3 +189,13 @@ export function StatsPage() {
     </>
   );
 }
+
+/** Separa o resultado de `matchPlayed` em tempo por jogo e plataforma jogada por jogo. */
+function playMaps(play: Map<string, PlayInfo>): { playtime: Map<string, number>; playedOn: PlayedOn } {
+  return {
+    playtime: new Map([...play].map(([id, p]) => [id, p.seconds])),
+    playedOn: new Map([...play].map(([id, p]) => [id, p.platform])),
+  };
+}
+
+const PLATFORM_RANK = (p: string) => PLATFORM_ORDER.indexOf(p) + 1 || 99;

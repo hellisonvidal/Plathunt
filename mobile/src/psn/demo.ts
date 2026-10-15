@@ -50,7 +50,7 @@ const GAMES: Record<string, GameDef> = {
   tlou: { id: "DEMO_TLOU", service: "trophy", name: "The Last of Us Part II", iconUrl: null, platform: "PS4", defined: counts(1, 3, 12, 14), hasGroups: false, groups: [] },
   bb: { id: "DEMO_BB", service: "trophy", name: "Bloodborne", iconUrl: null, platform: "PS4", defined: counts(1, 6, 15, 12), hasGroups: false, groups: [] },
   unch: { id: "DEMO_UNCH", service: "trophy", name: "Uncharted 2: Among Thieves", iconUrl: null, platform: "PS3", defined: counts(1, 4, 12, 40), hasGroups: false, groups: [] },
-  grav: { id: "DEMO_GRAV", service: "trophy", name: "Gravity Rush", iconUrl: null, platform: "PSVITA", defined: counts(1, 2, 8, 37), hasGroups: false, groups: [] },
+  grav: { id: "DEMO_GRAV", service: "trophy", name: "Gravity Rush", iconUrl: null, platform: "PS4,PSVITA", defined: counts(1, 2, 8, 37), hasGroups: false, groups: [] },
   spidey: { id: "DEMO_SPIDEY", service: "trophy2", name: "Marvel's Spider-Man 2", iconUrl: null, platform: "PS5", defined: counts(1, 4, 10, 27), hasGroups: false, groups: [] },
   astro: { id: "DEMO_ASTRO", service: "trophy2", name: "Astro Bot", iconUrl: null, platform: "PS5", defined: counts(1, 5, 10, 29), hasGroups: false, groups: [] },
 };

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  matchPlayed,
+  primaryPlatform,
   platformFromCategory,
   computeStats,
   filterByPlatform,
@@ -92,18 +94,55 @@ describe("matchPlaytime com várias versões do mesmo jogo", () => {
 });
 
 describe("plataformas", () => {
-  it("separa e nomeia plataformas", () => {
+  const vitaShared = title("A", "Gravity Rush", "PS4,PSVITA", 50, c(0, 1, 2, 3));
+  const ps5 = title("B", "Astro Bot", "PS5", 80, c(1, 2, 3, 4));
+  const vitaOnly = title("C", "Tearaway", "PSVITA", 30, c(0, 0, 1, 2));
+
+  it("separa e nomeia as plataformas de uma lista", () => {
     expect(parsePlatforms("PS4,PSVITA")).toEqual(["PS4", "PS Vita"]);
-    expect(platformsOf([title("A", "a", "PS3", 0, c(0, 0, 0, 0)), title("B", "b", "PS5,PS4", 0, c(0, 0, 0, 0))])).toEqual([
-      "PS5",
-      "PS4",
-      "PS3",
+  });
+
+  it("lista multiplataforma conta só na plataforma principal", () => {
+    expect(primaryPlatform(vitaShared)).toBe("PS4");
+    expect(primaryPlatform(title("D", "d", "PS3,PSVITA", 0, c(0, 0, 0, 0)))).toBe("PS3");
+  });
+
+  it("…a não ser que o tempo de jogo diga onde foi jogado", () => {
+    expect(primaryPlatform(vitaShared, "PS Vita")).toBe("PS Vita");
+    // Plataforma que não está na lista é ignorada.
+    expect(primaryPlatform(ps5, "PS4")).toBe("PS5");
+  });
+
+  it("PS Vita só aparece quando há jogo que é só de Vita", () => {
+    expect(platformsOf([vitaShared, ps5])).toEqual(["PS5", "PS4"]);
+    expect(platformsOf([vitaShared, ps5, vitaOnly])).toEqual(["PS5", "PS4", "PS Vita"]);
+  });
+
+  it("filtra cada jogo pela plataforma em que conta", () => {
+    const ts = [vitaShared, ps5, vitaOnly];
+    expect(filterByPlatform(ts, "PS Vita").map((t) => t.id)).toEqual(["C"]);
+    expect(filterByPlatform(ts, "PS4").map((t) => t.id)).toEqual(["A"]);
+    expect(filterByPlatform(ts, "PS Vita", new Map([["A", "PS Vita"]])).map((t) => t.id)).toEqual(["A", "C"]);
+    expect(filterByPlatform(ts, null)).toHaveLength(3);
+  });
+
+  it("jogos por plataforma não contam o mesmo jogo duas vezes", () => {
+    const s = computeStats([vitaShared, ps5], new Map());
+    expect(s.byPlatform).toEqual([
+      { platform: "PS5", games: 1 },
+      { platform: "PS4", games: 1 },
     ]);
   });
-  it("filtra jogos multiplataforma por qualquer uma delas", () => {
-    const ts = [title("A", "a", "PS4,PSVITA", 0, c(0, 0, 0, 0)), title("B", "b", "PS5", 0, c(0, 0, 0, 0))];
-    expect(filterByPlatform(ts, "PS Vita").map((t) => t.id)).toEqual(["A"]);
-    expect(filterByPlatform(ts, null)).toHaveLength(2);
+});
+
+describe("matchPlayed", () => {
+  it("guarda a plataforma do registro com mais tempo", () => {
+    const g = title("G", "Gravity Rush", "PS4,PSVITA", 50, c(0, 1, 2, 3));
+    const played = [
+      { titleId: "1", name: "Gravity Rush", imageUrl: null, playSeconds: 3600, lastPlayed: null, platform: "PS4" },
+      { titleId: "2", name: "Gravity Rush", imageUrl: null, playSeconds: 600, lastPlayed: null, platform: "PS5" },
+    ];
+    expect(matchPlayed([g], played).get("G")).toEqual({ seconds: 4200, platform: "PS4" });
   });
 });
 
