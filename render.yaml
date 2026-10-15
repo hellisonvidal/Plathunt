@@ -1,0 +1,26 @@
+# Blueprint do Render: cria o servidor web + banco Postgres em um clique.
+# No painel do Render: New → Blueprint → selecione este repositório.
+services:
+  - type: web
+    name: perseus
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /login
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: perseus-db
+          property: connectionString
+      # Chave aleatória de 256 bits em base64, gerada pelo Render (cifra os tokens da PSN).
+      - key: PERSEUS_SECRET
+        generateValue: true
+
+databases:
+  - name: perseus-db
+    plan: free
+    region: oregon

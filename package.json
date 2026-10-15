@@ -9,10 +9,11 @@
     "start": "next start",
     "lint": "tsc --noEmit",
     "test": "vitest run",
-    "db:push": "prisma db push",
     "postinstall": "prisma generate",
     "db:seed": "node prisma/seed.mjs",
-    "demo:login": "node prisma/demo-login.mjs"
+    "demo:login": "node prisma/demo-login.mjs",
+    "db:migrate": "prisma migrate dev",
+    "start:prod": "prisma migrate deploy && next start"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -24,6 +25,9 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/cli": "8.5.2",
+    "@capacitor/core": "8.5.2",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
