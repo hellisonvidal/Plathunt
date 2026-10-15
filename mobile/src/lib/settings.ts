@@ -12,7 +12,7 @@ export interface Settings {
   /** Mostrar nome e descrição de troféus secretos ainda bloqueados. */
   revealSecrets: boolean;
   /** Tema de cores (Configurações → Aparência). */
-  theme: "playstation" | "light" | "oled" | "green" | "crimson" | "purple" | "horizon";
+  theme: "playstation" | "light" | "oled" | "green" | "crimson" | "purple" | "spiderman" | "horizon";
   /** Aba em que o app abre. */
   startTab: "/" | "/stats" | "/friends" | "/activity" | "/ranking";
 }

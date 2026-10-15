@@ -122,6 +122,21 @@ html[data-theme="horizon"] {
   --color-silver: #c4c8cf;
 }
 
+/* Marvel's Spider-Man: azul do traje de Peter Parker com o vermelho da máscara. */
+html[data-theme="spiderman"] {
+  --color-bg: #0b1238;
+  --color-surface: #141d52;
+  --color-surface-2: #1d2a6b;
+  --color-line: #2c3b85;
+  --color-ink: #eef1ff;
+  --color-muted: #a3acd8;
+  --color-ps-blue: #d01f2e;
+  --color-ps-blue-2: #ff7a80;
+  --color-on-accent: #ffffff;
+  --color-bronze: #d6925c;
+  --color-silver: #c4c8d6;
+}
+
 /* Botões cheios na cor de destaque sempre com texto branco (contraste em todos os temas). */
 .bg-ps-blue {
   color: var(--color-on-accent);
