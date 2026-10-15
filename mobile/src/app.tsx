@@ -47,7 +47,8 @@ export function App() {
       mode,
       client: mode === "demo" ? createDemoClient() : createPsnClient(),
       signOut: (reason) => {
-        clearSession();
+        // Sem motivo = o usuário tocou em "Sair": esquece também a conta da Sony.
+        clearSession(!reason);
         localStorage.removeItem(MODE_KEY);
         setNotice(reason ?? null);
         setMode(null);

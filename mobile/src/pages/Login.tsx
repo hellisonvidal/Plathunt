@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { extractNpsso } from "../lib/npsso";
-import { signInWithNpsso } from "../psn/auth";
+import { signInWithCode, signInWithNpsso } from "../psn/auth";
 import { isNativeApp, PsnLogin } from "../psn/native";
+
+/** A tela da Sony abre sozinha só na primeira vez que o app é aberto sem login. */
+let autoOpened = false;
 
 export function LoginPage({
   notice,
@@ -15,11 +18,13 @@ export function LoginPage({
   const [error, setError] = useState<string | null>(null);
   const [manual, setManual] = useState("");
 
-  async function finish(npsso: string) {
+  async function finish(credential: { code?: string; npsso?: string }) {
     setBusy(true);
     setError(null);
     try {
-      await signInWithNpsso(npsso);
+      if (credential.code) await signInWithCode(credential.code);
+      else if (credential.npsso) await signInWithNpsso(credential.npsso);
+      else return;
       onSignedIn("psn");
     } catch (e) {
       console.error(e);
@@ -31,15 +36,28 @@ export function LoginPage({
 
   async function loginWithSony() {
     setError(null);
-    const { npsso } = await PsnLogin.login();
-    if (npsso) await finish(npsso);
+    setBusy(true);
+    try {
+      await finish(await PsnLogin.login());
+    } finally {
+      setBusy(false);
+    }
   }
+
+  // Abre a tela de login da PlayStation assim que o app inicia.
+  useEffect(() => {
+    if (native && !autoOpened) {
+      autoOpened = true;
+      void loginWithSony();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function submitManual(e: React.FormEvent) {
     e.preventDefault();
     const npsso = extractNpsso(manual);
     if (!npsso) setError("Isso não parece um código NPSSO válido. Cole o texto inteiro mostrado pela Sony.");
-    else void finish(npsso);
+    else void finish({ npsso });
   }
 
   return (

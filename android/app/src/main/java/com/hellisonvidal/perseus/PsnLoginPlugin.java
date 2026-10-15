@@ -2,6 +2,7 @@ package com.hellisonvidal.perseus;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.webkit.CookieManager;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -15,10 +16,13 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 
 /**
  * Login da PSN feito no próprio celular (sem servidor):
- * - login(): abre a tela de entrada da Sony e resolve com { npsso } quando o
- *   usuário termina de entrar (ou {} se ele fechar a tela);
- * - authorize({ npsso }): troca o NPSSO pelo código OAuth. A Sony entrega o
- *   código em um redirect, que o WebView não deixa ler, por isso é nativo.
+ * - login(): abre direto o formulário de entrada da Sony e resolve com
+ *   { code } (código OAuth) quando o usuário termina, ou { npsso } como
+ *   reserva, ou {} se ele fechar a tela;
+ * - authorize({ npsso }): troca o NPSSO pelo código OAuth (login manual).
+ *   A Sony entrega o código em um redirect, que o WebView não deixa ler;
+ * - clearSession(): apaga o login da Sony guardado no aparelho, para que o
+ *   próximo login peça usuário e senha (troca de conta).
  */
 @CapacitorPlugin(name = "PsnLogin")
 public class PsnLoginPlugin extends Plugin {
@@ -29,13 +33,25 @@ public class PsnLoginPlugin extends Plugin {
         startActivityForResult(call, intent, "onLoginResult");
     }
 
-    private static final String AUTHORIZE_URL =
+    /** Mesmo fluxo OAuth do app oficial da PlayStation. */
+    static final String AUTHORIZE_URL =
         "https://ca.account.sony.com/api/authz/v3/oauth/authorize"
             + "?access_type=offline"
             + "&client_id=09515159-7237-4370-9b40-3806e67c0891"
             + "&redirect_uri=com.scee.psxandroid.scecompcall%3A%2F%2Fredirect"
             + "&response_type=code"
             + "&scope=psn%3Amobile.v2.core%20psn%3Aclientapp";
+
+    @PluginMethod
+    public void clearSession(PluginCall call) {
+        // O app não usa cookies próprios (os dados ficam no localStorage), então
+        // apagar tudo remove só o login da Sony.
+        CookieManager cookies = CookieManager.getInstance();
+        cookies.removeAllCookies(removed -> {
+            cookies.flush();
+            call.resolve();
+        });
+    }
 
     /** Roda fora da thread principal (os plugins do Capacitor usam uma thread própria). */
     @PluginMethod
@@ -87,7 +103,9 @@ public class PsnLoginPlugin extends Plugin {
         JSObject ret = new JSObject();
         Intent data = result.getData();
         if (result.getResultCode() == Activity.RESULT_OK && data != null) {
+            String code = data.getStringExtra(PsnLoginActivity.EXTRA_CODE);
             String npsso = data.getStringExtra(PsnLoginActivity.EXTRA_NPSSO);
+            if (code != null) ret.put("code", code);
             if (npsso != null) ret.put("npsso", npsso);
         }
         call.resolve(ret);

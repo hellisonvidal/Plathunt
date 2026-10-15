@@ -1,6 +1,6 @@
 import { exchangeAccessCodeForAuthTokens, exchangeRefreshTokenForAuthTokens, type AuthTokensResponse } from "psn-api";
 import { clearCache } from "../lib/cache";
-import { PsnLogin } from "./native";
+import { isNativeApp, PsnLogin } from "./native";
 
 /** Tokens OAuth da PSN, guardados só no celular. O NPSSO nunca é salvo. */
 interface StoredSession {
@@ -45,10 +45,15 @@ export function hasSession(): boolean {
   return !!s && s.refreshExpiresAt > Date.now();
 }
 
-/** Login completo a partir do NPSSO: código OAuth (nativo) → tokens. */
+/** Troca o código OAuth (vindo da tela de login da Sony) pelos tokens. */
+export async function signInWithCode(code: string): Promise<void> {
+  save(await exchangeAccessCodeForAuthTokens(code));
+}
+
+/** Login a partir do NPSSO (opção manual): código OAuth (nativo) → tokens. */
 export async function signInWithNpsso(npsso: string): Promise<void> {
   const { code } = await PsnLogin.authorize({ npsso });
-  save(await exchangeAccessCodeForAuthTokens(code));
+  await signInWithCode(code);
 }
 
 let refreshing: Promise<StoredSession> | null = null;
@@ -68,7 +73,13 @@ export async function getAccessToken(): Promise<string> {
   return (await refreshing).accessToken;
 }
 
-export function signOut() {
+/**
+ * Sai do app. Com `forgetSony`, também apaga o login da Sony do aparelho, para
+ * permitir entrar com outra conta; sem ele (sessão expirada), o próximo login
+ * pode entrar direto, sem pedir a senha de novo.
+ */
+export function signOut(forgetSony = false) {
   localStorage.removeItem(KEY);
   clearCache();
+  if (forgetSony && isNativeApp()) PsnLogin.clearSession().catch(() => {});
 }

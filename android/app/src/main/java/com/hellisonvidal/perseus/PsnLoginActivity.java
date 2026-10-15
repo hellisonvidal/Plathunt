@@ -3,12 +3,14 @@ package com.hellisonvidal.perseus;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -17,24 +19,31 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 /**
- * Tela de login da PSN. Carrega a página oficial da Sony e, assim que o
- * usuário entra, lê o cookie "npsso" e devolve para o app. O usuário nunca
- * precisa copiar nada.
+ * Tela de login da PSN. Abre direto o formulário de entrada da Sony (o mesmo
+ * fluxo OAuth do app oficial da PlayStation). Quando o usuário termina, a
+ * Sony redireciona para com.scee.psxandroid.scecompcall://redirect?code=...,
+ * que esta tela intercepta e devolve para o app. Se o usuário já estiver
+ * logado, o redirect acontece na hora e a tela fecha sozinha.
+ *
+ * Como reserva, também lê o cookie "npsso" (que o app troca pelo código).
  */
 public class PsnLoginActivity extends AppCompatActivity {
 
+    static final String EXTRA_CODE = "code";
     static final String EXTRA_NPSSO = "npsso";
-    private static final String START_URL = "https://my.playstation.com/";
+    private static final String REDIRECT_PREFIX = "com.scee.psxandroid.scecompcall://";
     private static final String[] COOKIE_URLS = {
         "https://ca.account.sony.com",
         "https://my.account.sony.com",
-        "https://www.playstation.com",
     };
+    /** Espera antes de aceitar o npsso, dando tempo para o redirect com o código chegar. */
+    private static final long NPSSO_GRACE_MS = 4000;
     private static final long POLL_MS = 1500;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WebView webView;
     private boolean finished = false;
+    private long npssoSeenAt = 0;
 
     private final Runnable poll = new Runnable() {
         @Override
@@ -54,7 +63,7 @@ public class PsnLoginActivity extends AppCompatActivity {
         root.setBackgroundColor(Color.parseColor("#0b0f1a"));
 
         TextView hint = new TextView(this);
-        hint.setText("Entre na sua conta PSN. Esta tela fecha sozinha quando terminar.");
+        hint.setText("Entre com sua conta PlayStation Network");
         hint.setTextColor(Color.parseColor("#e8ecf5"));
         hint.setGravity(Gravity.CENTER);
         int pad = (int) (12 * getResources().getDisplayMetrics().density);
@@ -77,13 +86,37 @@ public class PsnLoginActivity extends AppCompatActivity {
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                return handleRedirect(request.getUrl().toString());
+            }
+
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                handleRedirect(url);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 checkForNpsso();
             }
         });
 
-        webView.loadUrl(START_URL);
+        webView.loadUrl(PsnLoginPlugin.AUTHORIZE_URL);
         handler.post(poll);
+    }
+
+    /** Captura o redirect final da Sony com o código OAuth. */
+    private boolean handleRedirect(String url) {
+        if (url == null || !url.startsWith(REDIRECT_PREFIX)) return false;
+        try {
+            String code = PsnLoginPlugin.extractCode(url);
+            if (code != null) {
+                finishWith(EXTRA_CODE, code);
+                return true;
+            }
+        } catch (Exception ignored) {
+        }
+        return true; // Nunca deixa o WebView tentar abrir o esquema do app oficial.
     }
 
     private void checkForNpsso() {
@@ -91,10 +124,11 @@ public class PsnLoginActivity extends AppCompatActivity {
         CookieManager cookies = CookieManager.getInstance();
         for (String url : COOKIE_URLS) {
             String npsso = extractNpsso(cookies.getCookie(url));
-            if (npsso != null) {
-                finishWith(npsso);
-                return;
-            }
+            if (npsso == null) continue;
+            long now = System.currentTimeMillis();
+            if (npssoSeenAt == 0) npssoSeenAt = now;
+            if (now - npssoSeenAt >= NPSSO_GRACE_MS) finishWith(EXTRA_NPSSO, npsso);
+            return;
         }
     }
 
@@ -110,12 +144,13 @@ public class PsnLoginActivity extends AppCompatActivity {
         return null;
     }
 
-    private void finishWith(String npsso) {
+    private void finishWith(String key, String value) {
+        if (finished) return;
         finished = true;
         handler.removeCallbacks(poll);
         CookieManager.getInstance().flush();
         Intent data = new Intent();
-        data.putExtra(EXTRA_NPSSO, npsso);
+        data.putExtra(key, value);
         setResult(RESULT_OK, data);
         finish();
     }

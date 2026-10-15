@@ -7,7 +7,7 @@ O repositório tem duas versões:
 | | **App Android** (`mobile/` + `android/`) | **Versão web com servidor** (raiz) |
 |---|---|---|
 | Precisa de servidor? | **Não.** Fala direto com a PSN pelo celular | Sim (Node + PostgreSQL) |
-| Login PSN | Botão "Entrar com a PSN", sem copiar nada | Colar o código NPSSO |
+| Login PSN | A tela da PlayStation abre sozinha ao iniciar | Colar o código NPSSO |
 | Seus troféus, jogos e raridade | ✅ | ✅ |
 | Feed com troféus dos amigos | ✅ (lido direto da PSN) | ✅ (amigos que usam o app) |
 | Ranking de platinas | ✅ | ✅ |
@@ -25,7 +25,7 @@ O APK é gerado sozinho a cada mudança no app. Não é preciso configurar nada.
 
 ### Como funciona
 
-- **Login:** "Entrar com a PSN" abre a tela oficial da Sony dentro do app. Quando você termina de entrar, o app lê o código NPSSO sozinho (`PsnLoginActivity.java`), troca por um código OAuth (`PsnLoginPlugin.authorize`, nativo porque a Sony entrega o código num redirect) e depois pelos tokens de acesso. O NPSSO não é guardado.
+- **Login:** ao abrir o app, o formulário de login da PlayStation aparece sozinho (mesmo fluxo OAuth do app oficial). Quando você termina de entrar, a Sony redireciona com um código, que `PsnLoginActivity.java` captura e o app troca pelos tokens de acesso. Se o aparelho já estiver logado na Sony, a tela fecha sozinha. "Sair" também apaga o login da Sony do aparelho, para dar para entrar com outra conta.
 - **Dados:** a interface (`mobile/`, React + Vite) vai dentro do APK e chama a API da PSN com o HTTP nativo do Capacitor (o `fetch` do navegador seria bloqueado por CORS). Os tokens e um cache das respostas ficam só no aparelho. O token de acesso é renovado sozinho por cerca de 2 meses; depois disso é só entrar de novo.
 - **Feed de atividade:** junta os seus troféus e os dos amigos dos últimos 30 dias. Para não estourar o limite de chamadas da PSN, considera os 3 jogos mais recentes de cada amigo e no máximo 20 jogos por atualização. Amigos com troféus privados não aparecem.
 - **Modo demonstração:** a tela de login tem "Ver demonstração", com dados de exemplo.
