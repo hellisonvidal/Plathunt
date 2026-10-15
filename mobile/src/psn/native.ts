@@ -15,4 +15,20 @@ interface PsnLoginPlugin {
 
 export const PsnLogin = registerPlugin<PsnLoginPlugin>("PsnLogin");
 
+export interface DownloadProgress {
+  /** 0–100, ou -1 se o servidor não informou o tamanho. */
+  percent: number;
+  downloaded: number;
+  total: number;
+}
+
+/** Plugin nativo (android/.../AppUpdaterPlugin.java). */
+interface AppUpdaterPlugin {
+  /** Baixa o APK dentro do app e abre o instalador do Android. */
+  downloadAndInstall(options: { url: string }): Promise<{ status: "installing" | "permission-needed" }>;
+  addListener(event: "progress", listener: (p: DownloadProgress) => void): Promise<{ remove: () => Promise<void> }>;
+}
+
+export const AppUpdater = registerPlugin<AppUpdaterPlugin>("AppUpdater");
+
 export const isNativeApp = () => Capacitor.isNativePlatform();

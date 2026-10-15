@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
-import { GroupedBars, Legend, StatTile, type Series } from "../components/charts";
+import { GroupedBars, Legend, SERIES_COLORS, StatTile, type Series } from "../components/charts";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, Spinner, TrophyBadge } from "../components/ui";
 import {
@@ -10,6 +10,7 @@ import {
   formatDuration,
   matchPlayed,
   platformsOf,
+  titlesByPlatform,
   withEarnedTrophies,
   type PlayedOn,
   type PlayInfo,
@@ -71,8 +72,7 @@ export function StatsPage() {
     computeStats(filterByPlatform(withEarnedTrophies(titles), platform, playedOn), playtime, playedOn);
   const meStats = data ? stats(data.titles, data.playtime, data.playedOn) : null;
   const frStats =
-    friend && friendTitles && friendPlay ? stats(friendTitles, friendPlay.playtime, friendPlay.playedOn)
-      : null;
+    friend && friendTitles && friendPlay ? stats(friendTitles, friendPlay.playtime, friendPlay.playedOn) : null;
 
   const all = [meStats, frStats].filter((s): s is NonNullable<typeof s> => s !== null);
   const names = [data?.me.onlineId ?? "Você", friend?.onlineId ?? ""].slice(0, all.length);
@@ -113,11 +113,13 @@ export function StatsPage() {
                 className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
               >
                 <option value="">ninguém</option>
-                {data.friends.map((f) => (
-                  <option key={f.accountId} value={f.accountId}>
-                    {f.onlineId}
-                  </option>
-                ))}
+                {[...data.friends]
+                  .sort((a, b) => a.onlineId.localeCompare(b.onlineId, "pt-BR", { sensitivity: "base" }))
+                  .map((f) => (
+                    <option key={f.accountId} value={f.accountId}>
+                      {f.onlineId}
+                    </option>
+                  ))}
               </select>
             </label>
 
@@ -135,7 +137,11 @@ export function StatsPage() {
               <StatTile label="Platinas" names={names} values={all.map((s) => s.platinums.toLocaleString("pt-BR"))} />
               <StatTile label="Jogos 100%" names={names} values={all.map((s) => s.completed.toLocaleString("pt-BR"))} />
               <StatTile label="Conclusão média" names={names} values={all.map((s) => `${s.avgProgress}%`)} />
-              <StatTile label="Troféus" names={names} values={all.map((s) => s.totalTrophies.toLocaleString("pt-BR"))} />
+              <StatTile
+                label="Troféus"
+                names={names}
+                values={all.map((s) => s.totalTrophies.toLocaleString("pt-BR"))}
+              />
               <StatTile label="Tempo de jogo" names={names} values={all.map((s) => formatDuration(s.playSeconds))} />
             </div>
 
@@ -154,10 +160,29 @@ export function StatsPage() {
                 <h2 className="font-semibold">Jogos por plataforma</h2>
                 <GroupedBars
                   categories={platformRows}
-                  series={series((s) => platformRows.map((p) => s.byPlatform.find((b) => b.platform === p)?.games ?? 0))}
+                  series={series((s) =>
+                    platformRows.map((p) => s.byPlatform.find((b) => b.platform === p)?.games ?? 0),
+                  )}
                 />
               </section>
             )}
+
+            <PlatformTitles
+              players={[
+                { name: names[0], accountId: "me", titles: data.titles, playedOn: data.playedOn },
+                ...(friend && friendTitles && friendPlay
+                  ? [
+                      {
+                        name: friend.onlineId,
+                        accountId: friend.accountId,
+                        titles: friendTitles,
+                        playedOn: friendPlay.playedOn,
+                      },
+                    ]
+                  : []),
+              ]}
+              platform={platform}
+            />
 
             {all.map((s, i) =>
               s.topPlayed.length ? (
@@ -199,3 +224,102 @@ function playMaps(play: Map<string, PlayInfo>): { playtime: Map<string, number>;
 }
 
 const PLATFORM_RANK = (p: string) => PLATFORM_ORDER.indexOf(p) + 1 || 99;
+
+interface PlatformPlayer {
+  name: string;
+  accountId: string;
+  titles: Title[];
+  playedOn: PlayedOn;
+}
+
+/**
+ * Títulos jogados em cada plataforma (só jogos com troféus), para você e o
+ * amigo comparado. Cada plataforma abre e fecha ao tocar.
+ */
+function PlatformTitles({ players, platform }: { players: PlatformPlayer[]; platform: string | null }) {
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const grouped = players.map((p) => titlesByPlatform(withEarnedTrophies(p.titles), p.playedOn));
+  const platforms = [...new Set(grouped.flatMap((g) => [...g.keys()]))]
+    .filter((p) => !platform || p === platform)
+    .sort((a, b) => PLATFORM_RANK(a) - PLATFORM_RANK(b));
+  if (!platforms.length) return null;
+
+  const toggle = (p: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(p)) next.delete(p);
+      else next.add(p);
+      return next;
+    });
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-line bg-surface">
+      <h2 className="px-4 pb-2 pt-4 font-semibold">Títulos por plataforma</h2>
+      {platforms.map((p) => {
+        const expanded = platform !== null || open.has(p);
+        return (
+          <div key={p} className="border-t border-line">
+            <button
+              onClick={() => toggle(p)}
+              aria-expanded={expanded}
+              className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-surface-2"
+            >
+              <span className="flex-1 font-semibold">{p}</span>
+              {grouped.map((g, i) => (
+                <span key={players[i].accountId} className="flex items-center gap-1 text-xs text-muted">
+                  <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />
+                  {g.get(p)?.length ?? 0}
+                </span>
+              ))}
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden
+                className={`h-4 w-4 text-muted transition-transform ${expanded ? "rotate-180" : ""}`}
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+            {expanded && (
+              <div className="space-y-3 px-4 pb-4">
+                {grouped.map((g, i) => {
+                  const list = g.get(p) ?? [];
+                  return (
+                    <div key={players[i].accountId}>
+                      {players.length > 1 && (
+                        <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-muted">
+                          <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />
+                          {players[i].name} · {list.length} {list.length === 1 ? "jogo" : "jogos"}
+                        </p>
+                      )}
+                      {list.length === 0 ? (
+                        <p className="text-xs text-muted">Nenhum jogo com troféus nesta plataforma.</p>
+                      ) : (
+                        <ul className="divide-y divide-line">
+                          {list.map((t) => (
+                            <li key={t.id}>
+                              <Link
+                                to={`/game/${players[i].accountId}/${t.id}?service=${t.service}`}
+                                className="flex items-center gap-2 py-2 text-sm"
+                              >
+                                <span className="min-w-0 flex-1 truncate">{t.name}</span>
+                                {t.earned.platinum > 0 && <TrophyBadge type="platinum" count={t.earned.platinum} />}
+                                <span className="w-10 text-right text-xs tabular-nums text-muted">{t.progress}%</span>
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </section>
+  );
+}

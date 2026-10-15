@@ -33,7 +33,8 @@ Para fechar o app, toque duas vezes em voltar (nas abas principais e no login). 
 A engrenagem no topo das abas abre as Configurações:
 
 - **Conta**: sair / trocar de conta PSN.
-- **Atualizações**: versão instalada e "Verificar atualizações", que compara com a última Release do GitHub e oferece o download do APK. Com o repositório privado, o GitHub não responde ao app, então o botão abre a página de versões no navegador.
+- **Atualizações**: versão instalada e "Verificar atualizações", que compara com a última Release do GitHub. "Baixar e instalar" baixa o APK dentro do app, com barra de progresso (`AppUpdaterPlugin.java`, só aceita endereços do GitHub), e abre o instalador do Android. Na primeira vez, o Android pede para permitir que o app instale atualizações.
+- **PlayStation Plus**: plano (Essential, Extra, Premium, Deluxe) e data de vencimento, mostrados no Perfil com o selo do PS Plus e a contagem de dias. A PSN só informa *se* a conta tem PS Plus, não o plano nem o vencimento, por isso esses dois são preenchidos aqui.
 - **Atividades**: período de 7, 30 ou 90 dias.
 - **Troféus e jogos**: idioma dos nomes vindos da PSN (português, inglês ou espanhol) e opção de revelar troféus secretos.
 - **Aparência**: 5 temas: PlayStation (padrão), Claro, Preto OLED, Grafite e Carmesim. O contraste do texto foi verificado (WCAG ≥ 4.5:1) em todos.
@@ -43,7 +44,7 @@ A engrenagem no topo das abas abre as Configurações:
 ### Abas
 
 1. **Perfil**: avatar PSN, nível e progresso, troféus e a lista de jogos com tempo de jogo (busca e ordenação por recentes, progresso ou tempo). Em cada jogo, os troféus vêm agrupados em listas recolhíveis, uma para o **jogo base** e uma para cada **DLC**, com progresso de cada uma; toque na lista para abrir. Há filtro Todos / Conquistados / Bloqueados, e cada troféu tem um botão **Dicas no YouTube**, que busca um vídeo pelo nome do jogo e do troféu.
-2. **Estatísticas** (só jogos com pelo menos um troféu conquistado; cada jogo conta em uma única plataforma, a registrada no tempo de jogo ou a principal da lista de troféus, então uma lista "PS4,PSVITA" não faz o PS Vita aparecer se você não jogou lá): jogos, platinas, jogos 100%, conclusão média, troféus e tempo de jogo, com gráficos por tipo de troféu, plataforma e jogos mais jogados. Filtro pelas plataformas que têm troféus e comparação com qualquer amigo.
+2. **Estatísticas** (comparação com amigos escolhidos em ordem alfabética; "Títulos por plataforma" lista os jogos de cada plataforma, seus e do amigo; só jogos com pelo menos um troféu conquistado; cada jogo conta em uma única plataforma, a registrada no tempo de jogo ou a principal da lista de troféus, então uma lista "PS4,PSVITA" não faz o PS Vita aparecer se você não jogou lá): jogos, platinas, jogos 100%, conclusão média, troféus e tempo de jogo, com gráficos por tipo de troféu, plataforma e jogos mais jogados. Filtro pelas plataformas que têm troféus e comparação com qualquer amigo.
 3. **Amigos**: **todos** os amigos da PSN (a lista vem em páginas), com busca e ordenação por nível, platinas ou nome. Mostra avatar, nível e progresso, plataformas e conquistas. Os perfis carregam aos poucos, e as plataformas de cada amigo só são buscadas quando o cartão aparece na tela, para não estourar o limite de chamadas da PSN.
 4. **Atividades**: troféus seus e dos amigos dos últimos 30 dias, com curtidas por emoji.
 5. **Ranking de platinas**: você e seus amigos por platinas, nível ou total de troféus.
