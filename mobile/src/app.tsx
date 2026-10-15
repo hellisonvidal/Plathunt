@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { HashRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { ExitToast, useDoubleBackToExit } from "./lib/backButton";
 import { getSettings } from "./lib/settings";
 import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
@@ -14,9 +15,10 @@ import { ProfilePage } from "./pages/Profile";
 import { RankingPage } from "./pages/Ranking";
 import { SettingsPage } from "./pages/Settings";
 import { StatsPage } from "./pages/Stats";
+import { persistRemove, persistSet } from "./lib/persist";
 
 type Mode = "psn" | "demo";
-const MODE_KEY = "tm.mode";
+const MODE_KEY = "tm.mode" as const;
 
 interface AppState {
   client: PsnClient;
@@ -53,7 +55,7 @@ export function App() {
       signOut: (reason) => {
         // Sem motivo = o usuário tocou em "Sair": esquece também a conta da Sony.
         clearSession(!reason);
-        localStorage.removeItem(MODE_KEY);
+        persistRemove(MODE_KEY);
         setNotice(reason ?? null);
         setMode(null);
       },
@@ -65,7 +67,7 @@ export function App() {
       <LoginPage
         notice={notice}
         onSignedIn={(m) => {
-          localStorage.setItem(MODE_KEY, m);
+          persistSet(MODE_KEY, m);
           setNotice(null);
           setMode(m);
         }}
@@ -77,6 +79,7 @@ export function App() {
     <AppContext.Provider value={state}>
       <HashRouter>
         <StartTab />
+        <BackButton />
         <div className="safe-top mx-auto min-h-screen max-w-2xl pb-24">
           {state.mode === "demo" && (
             <div className="bg-gold/15 px-4 py-2 text-center text-xs text-gold">
@@ -102,6 +105,18 @@ export function App() {
       </HashRouter>
     </AppContext.Provider>
   );
+}
+
+/** Voltar do Android: nas abas principais, dois toques fecham o app. */
+const TAB_PATHS = new Set(["/", "/stats", "/friends", "/activity", "/ranking"]);
+function BackButton() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const warning = useDoubleBackToExit(
+    () => !TAB_PATHS.has(pathname),
+    () => navigate(-1),
+  );
+  return <ExitToast show={warning} />;
 }
 
 /** Abre o app na aba escolhida em Configurações (só ao iniciar). */

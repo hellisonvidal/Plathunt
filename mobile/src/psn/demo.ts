@@ -29,6 +29,7 @@ const GAMES: Record<string, GameDef> = {
   bb: { id: "DEMO_BB", service: "trophy", name: "Bloodborne", iconUrl: null, platform: "PS4", defined: counts(1, 6, 15, 12), hasGroups: false, groups: [] },
   unch: { id: "DEMO_UNCH", service: "trophy", name: "Uncharted 2: Among Thieves", iconUrl: null, platform: "PS3", defined: counts(1, 4, 12, 40), hasGroups: false, groups: [] },
   grav: { id: "DEMO_GRAV", service: "trophy", name: "Gravity Rush", iconUrl: null, platform: "PSVITA", defined: counts(1, 2, 8, 37), hasGroups: false, groups: [] },
+  spidey: { id: "DEMO_SPIDEY", service: "trophy2", name: "Marvel's Spider-Man 2", iconUrl: null, platform: "PS5", defined: counts(1, 4, 10, 27), hasGroups: false, groups: [] },
   astro: { id: "DEMO_ASTRO", service: "trophy2", name: "Astro Bot", iconUrl: null, platform: "PS5", defined: counts(1, 5, 10, 29), hasGroups: false, groups: [] },
 };
 
@@ -64,6 +65,7 @@ const PLAYS: [string, string, number, Counts, number, number, [number, number, n
   ["me", "gow", 92, counts(1, 6, 12, 17), 2, 74, [[0, 2, 6.8], [12, 28, 21], [5, 300, 96.1], [20, 120, 40.2], [41, 3, 55.1]]],
   ["me", "tlou", 64, counts(0, 1, 7, 10), 30, 38, [[7, 30, 11.4], [2, 400, 88]]],
   ["me", "unch", 100, counts(1, 4, 12, 40), 4000, 0, [[0, 4000, 18.5], [1, 4100, 90.2]]],
+  ["me", "spidey", 0, counts(0, 0, 0, 0), 600, 1, []],
   ["me", "grav", 100, counts(1, 2, 8, 37), 9000, 0, [[0, 9000, 9.1], [4, 9100, 70]]],
   ["aloy", "hfw", 100, counts(1, 5, 14, 48), 1, 131, [[0, 1, 3.2], [22, 26, 34.9], [3, 500, 97], [90, 6, 8.3]]],
   ["aloy", "gow", 41, counts(0, 1, 4, 9), 50, 22, [[5, 50, 96.1]]],

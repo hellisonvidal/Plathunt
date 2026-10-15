@@ -24,7 +24,9 @@ O repositório tem duas versões:
 1. No GitHub, abra **Releases** e baixe `PlayStation-Trophy-Mania.apk` da versão mais recente. (Versões de branches que ainda não estão na `main` ficam em **Actions → Android APK → Artifacts**.)
 2. No celular, abra o APK e permita "instalar apps de fontes desconhecidas".
 
-Cada mudança que chega na `main` gera uma Release `build-N` automaticamente. Todas as versões são assinadas com a mesma chave (`android/app/debug.keystore`), então uma versão nova instala por cima da anterior sem perder o login.
+Cada mudança que chega na `main` gera uma Release `build-N` automaticamente. Todas as versões são assinadas com a mesma chave (`android/app/debug.keystore`), então uma versão nova instala por cima da anterior. O login, o modo, as configurações e as curtidas ficam também no armazenamento nativo do Android (`@capacitor/preferences`), então uma atualização não pede login de novo.
+
+Para fechar o app, toque duas vezes em voltar (nas abas principais e no login). Dentro de um jogo, perfil de amigo ou das configurações, voltar retorna à tela anterior.
 
 ### Configurações e atualizações
 
@@ -39,8 +41,8 @@ A engrenagem no topo das abas abre as Configurações:
 
 ### Abas
 
-1. **Perfil**: avatar PSN, nível e progresso, troféus e a lista de jogos com tempo de jogo (busca e ordenação por recentes, progresso ou tempo). Em cada jogo, os troféus vêm separados em **jogo base** e **DLCs**, com filtro Todos / Conquistados / Bloqueados.
-2. **Estatísticas**: jogos, platinas, jogos 100%, conclusão média, troféus e tempo de jogo, com gráficos por tipo de troféu, plataforma e jogos mais jogados. Filtro pelas plataformas que têm troféus e comparação com qualquer amigo.
+1. **Perfil**: avatar PSN, nível e progresso, troféus e a lista de jogos com tempo de jogo (busca e ordenação por recentes, progresso ou tempo). Em cada jogo, os troféus vêm agrupados em listas recolhíveis, uma para o **jogo base** e uma para cada **DLC**, com progresso de cada uma; toque na lista para abrir. Há filtro Todos / Conquistados / Bloqueados.
+2. **Estatísticas** (só jogos com pelo menos um troféu conquistado): jogos, platinas, jogos 100%, conclusão média, troféus e tempo de jogo, com gráficos por tipo de troféu, plataforma e jogos mais jogados. Filtro pelas plataformas que têm troféus e comparação com qualquer amigo.
 3. **Amigos**: avatar, nível e progresso, plataformas em que jogam e conquistas de cada amigo da PSN.
 4. **Atividades**: troféus seus e dos amigos dos últimos 30 dias, com curtidas por emoji.
 5. **Ranking de platinas**: você e seus amigos por platinas, nível ou total de troféus.

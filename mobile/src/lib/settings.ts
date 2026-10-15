@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { persistSet } from "./persist";
 
 /** Preferências do app, salvas no celular. */
 export interface Settings {
@@ -19,7 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   startTab: "/",
 };
 
-const KEY = "tm.settings";
+const KEY = "tm.settings" as const;
 const listeners = new Set<() => void>();
 
 export function getSettings(): Settings {
@@ -32,9 +33,7 @@ export function getSettings(): Settings {
 
 export function updateSettings(patch: Partial<Settings>): Settings {
   const next = { ...getSettings(), ...patch };
-  try {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  } catch {}
+  persistSet(KEY, JSON.stringify(next));
   listeners.forEach((l) => l());
   return next;
 }

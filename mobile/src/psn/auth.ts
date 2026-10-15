@@ -1,6 +1,7 @@
 import { exchangeAccessCodeForAuthTokens, exchangeRefreshTokenForAuthTokens, type AuthTokensResponse } from "psn-api";
 import { clearCache } from "../lib/cache";
 import { isNativeApp, PsnLogin } from "./native";
+import { persistRemove, persistSet } from "../lib/persist";
 
 /** Tokens OAuth da PSN, guardados só no celular. O NPSSO nunca é salvo. */
 interface StoredSession {
@@ -10,7 +11,7 @@ interface StoredSession {
   refreshExpiresAt: number;
 }
 
-const KEY = "tm.session";
+const KEY = "tm.session" as const;
 
 export class SessionExpired extends Error {
   constructor() {
@@ -36,7 +37,7 @@ function save(tokens: AuthTokensResponse): StoredSession {
     refreshToken: tokens.refreshToken,
     refreshExpiresAt: now + tokens.refreshTokenExpiresIn * 1000,
   };
-  localStorage.setItem(KEY, JSON.stringify(session));
+  persistSet(KEY, JSON.stringify(session));
   return session;
 }
 
@@ -79,7 +80,7 @@ export async function getAccessToken(): Promise<string> {
  * pode entrar direto, sem pedir a senha de novo.
  */
 export function signOut(forgetSony = false) {
-  localStorage.removeItem(KEY);
+  persistRemove(KEY);
   clearCache();
   if (forgetSony && isNativeApp()) PsnLogin.clearSession().catch(() => {});
 }

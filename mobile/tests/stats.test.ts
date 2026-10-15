@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeStats,
   filterByPlatform,
+  withEarnedTrophies,
   formatDuration,
   groupTrophies,
   matchPlaytime,
@@ -67,6 +68,13 @@ describe("plataformas", () => {
     const ts = [title("A", "a", "PS4,PSVITA", 0, c(0, 0, 0, 0)), title("B", "b", "PS5", 0, c(0, 0, 0, 0))];
     expect(filterByPlatform(ts, "PS Vita").map((t) => t.id)).toEqual(["A"]);
     expect(filterByPlatform(ts, null)).toHaveLength(2);
+  });
+});
+
+describe("withEarnedTrophies", () => {
+  it("descarta jogos sem nenhum troféu conquistado", () => {
+    const ts = [title("A", "a", "PS5", 0, c(0, 0, 0, 0)), title("B", "b", "PS4", 3, c(0, 0, 0, 1))];
+    expect(withEarnedTrophies(ts).map((t) => t.id)).toEqual(["B"]);
   });
 });
 

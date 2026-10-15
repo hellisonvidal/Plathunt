@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { persistRemove, persistSet } from "./persist";
 
 /**
  * Reações às conquistas. Sem servidor, ficam salvas só neste celular (os
@@ -8,7 +9,7 @@ export const STANDARD_REACTIONS = ["👍", "❤️", "🔥", "👏", "😮", "�
 export const PLAYSTATION_REACTIONS = ["ps:triangle", "ps:circle", "ps:cross", "ps:square", "🎮", "🏆"] as const;
 const ALL = new Set<string>([...STANDARD_REACTIONS, ...PLAYSTATION_REACTIONS]);
 
-const KEY = "tm.reactions";
+const KEY = "tm.reactions" as const;
 const listeners = new Set<() => void>();
 
 function readAll(): Record<string, string[]> {
@@ -27,17 +28,13 @@ export function toggleReaction(itemKey: string, reaction: string): string[] {
   const next = current.includes(reaction) ? current.filter((r) => r !== reaction) : [...current, reaction];
   if (next.length) all[itemKey] = next;
   else delete all[itemKey];
-  try {
-    localStorage.setItem(KEY, JSON.stringify(all));
-  } catch {}
+  persistSet(KEY, JSON.stringify(all));
   listeners.forEach((l) => l());
   return next;
 }
 
 export function clearReactions() {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {}
+  persistRemove(KEY);
   listeners.forEach((l) => l());
 }
 

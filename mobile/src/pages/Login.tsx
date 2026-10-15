@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ExitToast, useDoubleBackToExit } from "../lib/backButton";
 import { extractNpsso } from "../lib/npsso";
 import { signInWithCode, signInWithNpsso } from "../psn/auth";
 import { isNativeApp, PsnLogin } from "../psn/native";
@@ -60,86 +61,103 @@ export function LoginPage({
     else void finish({ npsso });
   }
 
+  // No login não há tela anterior: dois toques em voltar fecham o app.
+  const exitWarning = useDoubleBackToExit(
+    () => false,
+    () => {},
+  );
+
   return (
-    <div className="safe-top mx-auto flex min-h-screen max-w-md flex-col px-6 pb-10 pt-16">
-      <img src="./icon.png" alt="" className="h-20 w-20 rounded-2xl" />
-      <p className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-ps-blue-2">PlayStation</p>
-      <h1 className="text-3xl font-bold tracking-tight">Trophy Mania</h1>
-      <p className="mt-2 text-muted">Seus troféus da PlayStation e as conquistas dos seus amigos, no celular.</p>
+    <div className="safe-top safe-bottom mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 py-8">
+      {/* Bloco principal centralizado na vertical; o aviso de privacidade fica no rodapé. */}
+      <div className="my-auto flex flex-col items-center pt-6 text-center">
+        <img src="./icon.png" alt="" className="h-24 w-24 rounded-3xl shadow-[0_8px_40px_-8px] shadow-ps-blue/60" />
+        <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-ps-blue-2">PlayStation</p>
+        <h1 className="text-3xl font-bold tracking-tight">Trophy Mania</h1>
+        <p className="mt-2 max-w-xs text-muted">
+          Seus troféus da PlayStation e as conquistas dos seus amigos, no celular.
+        </p>
 
-      {notice && <p className="mt-6 rounded-xl border border-gold/40 bg-gold/10 p-3 text-sm">{notice}</p>}
+        {notice && <p className="mt-6 w-full rounded-xl border border-gold/40 bg-gold/10 p-3 text-sm">{notice}</p>}
 
-      <div className="mt-10 space-y-3">
-        {native ? (
+        <div className="mt-10 w-full space-y-3">
+          {native ? (
+            <button
+              onClick={loginWithSony}
+              disabled={busy}
+              className="w-full rounded-xl bg-ps-blue py-3.5 text-base font-semibold active:bg-ps-blue-2 disabled:opacity-60"
+            >
+              {busy ? "Conectando à PSN…" : "Entrar com a PSN"}
+            </button>
+          ) : (
+            <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
+              O login com a PSN funciona no app Android. Aqui no navegador você pode ver a demonstração.
+            </p>
+          )}
+
           <button
-            onClick={loginWithSony}
+            onClick={() => onSignedIn("demo")}
             disabled={busy}
-            className="w-full rounded-xl bg-ps-blue py-3.5 text-base font-semibold active:bg-ps-blue-2 disabled:opacity-60"
+            className="w-full rounded-xl border border-line py-3 text-sm text-muted active:bg-surface"
           >
-            {busy ? "Conectando à PSN…" : "Entrar com a PSN"}
+            Ver demonstração
           </button>
-        ) : (
-          <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
-            O login com a PSN funciona no app Android. Aqui no navegador você pode ver a demonstração.
-          </p>
+
+          {error && <p className="text-sm text-red-400">{error}</p>}
+        </div>
+
+        {native && (
+          <details className="mt-8 w-full text-left text-sm text-muted">
+            <summary>Problemas? Entrar manualmente</summary>
+            <ol className="mt-3 list-decimal space-y-2 pl-5">
+              <li>
+                Em um navegador, entre na sua conta em{" "}
+                <a
+                  className="text-ps-blue-2 underline"
+                  href="https://www.playstation.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  playstation.com
+                </a>
+                .
+              </li>
+              <li>
+                No mesmo navegador, abra{" "}
+                <a
+                  className="text-ps-blue-2 underline"
+                  href="https://ca.account.sony.com/api/v1/ssocookie"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  este link da Sony
+                </a>{" "}
+                e copie todo o texto.
+              </li>
+              <li>Cole aqui:</li>
+            </ol>
+            <form onSubmit={submitManual} className="mt-2 flex gap-2">
+              <input
+                value={manual}
+                onChange={(e) => setManual(e.target.value)}
+                placeholder='{"npsso":"…"}'
+                autoComplete="off"
+                spellCheck={false}
+                className="min-w-0 flex-1 rounded-xl border border-line bg-surface-2 px-3 py-2 font-mono text-xs text-ink outline-none"
+              />
+              <button disabled={busy} className="rounded-xl bg-ps-blue px-4 font-semibold text-ink disabled:opacity-60">
+                OK
+              </button>
+            </form>
+          </details>
         )}
-
-        <button
-          onClick={() => onSignedIn("demo")}
-          disabled={busy}
-          className="w-full rounded-xl border border-line py-3 text-sm text-muted active:bg-surface"
-        >
-          Ver demonstração
-        </button>
-
-        {error && <p className="text-sm text-red-400">{error}</p>}
       </div>
 
-      {native && (
-        <details className="mt-8 text-sm text-muted">
-          <summary>Problemas? Entrar manualmente</summary>
-          <ol className="mt-3 list-decimal space-y-2 pl-5">
-            <li>
-              Em um navegador, entre na sua conta em{" "}
-              <a className="text-ps-blue-2 underline" href="https://www.playstation.com/" target="_blank" rel="noreferrer">
-                playstation.com
-              </a>
-              .
-            </li>
-            <li>
-              No mesmo navegador, abra{" "}
-              <a
-                className="text-ps-blue-2 underline"
-                href="https://ca.account.sony.com/api/v1/ssocookie"
-                target="_blank"
-                rel="noreferrer"
-              >
-                este link da Sony
-              </a>{" "}
-              e copie todo o texto.
-            </li>
-            <li>Cole aqui:</li>
-          </ol>
-          <form onSubmit={submitManual} className="mt-2 flex gap-2">
-            <input
-              value={manual}
-              onChange={(e) => setManual(e.target.value)}
-              placeholder='{"npsso":"…"}'
-              autoComplete="off"
-              spellCheck={false}
-              className="min-w-0 flex-1 rounded-xl border border-line bg-surface-2 px-3 py-2 font-mono text-xs text-ink outline-none"
-            />
-            <button disabled={busy} className="rounded-xl bg-ps-blue px-4 font-semibold text-ink disabled:opacity-60">
-              OK
-            </button>
-          </form>
-        </details>
-      )}
-
-      <p className="mt-auto pt-10 text-xs leading-relaxed text-muted">
-        🔒 Sem servidor: seus dados vão direto do celular para a PSN e ficam só no aparelho. O PlayStation Trophy Mania não é
-        afiliado à Sony Interactive Entertainment.
+      <p className="pt-8 text-center text-xs leading-relaxed text-muted">
+        🔒 Sem servidor: seus dados vão direto do celular para a PSN e ficam só no aparelho. O PlayStation Trophy Mania
+        não é afiliado à Sony Interactive Entertainment.
       </p>
+      <ExitToast show={exitWarning} />
     </div>
   );
 }

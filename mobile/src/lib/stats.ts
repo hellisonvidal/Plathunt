@@ -86,6 +86,11 @@ export function platformsOf(titles: Title[]): string[] {
 }
 const rank = (p: string) => (PLATFORM_ORDER.indexOf(p) + 1 || 99);
 
+/** Só jogos em que o jogador conquistou pelo menos um troféu. */
+export function withEarnedTrophies(titles: Title[]): Title[] {
+  return titles.filter((t) => t.earned.bronze + t.earned.silver + t.earned.gold + t.earned.platinum > 0);
+}
+
 export function filterByPlatform(titles: Title[], platform: string | null): Title[] {
   if (!platform) return titles;
   return titles.filter((t) => parsePlatforms(t.platform).includes(platform));

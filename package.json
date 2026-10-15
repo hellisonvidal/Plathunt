@@ -2,7 +2,7 @@
   "name": "perseus",
   "version": "0.1.0",
   "private": true,
-  "description": "Gerenciador de trof\u00e9us PlayStation com feed social, parab\u00e9ns e rea\u00e7\u00f5es com emoji.",
+  "description": "Gerenciador de troféus PlayStation com feed social, parabéns e reações com emoji.",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -17,6 +17,8 @@
     "android:build": "npm run build --prefix mobile && npx cap sync android"
   },
   "dependencies": {
+    "@capacitor/app": "8.1.1",
+    "@capacitor/preferences": "8.0.1",
     "@prisma/client": "^6.19.3",
     "next": "^15.5.28",
     "psn-api": "^2.18.1",

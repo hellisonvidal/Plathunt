@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, GameIcon, ProgressBar, Spinner, TrophyBadge, rarityLabel } from "../components/ui";
+import type { GroupSection } from "../lib/stats";
 import { useSettings } from "../lib/settings";
 import { formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
@@ -17,6 +18,15 @@ export function GamePage() {
   const [params] = useSearchParams();
   const service: Title["service"] = params.get("service") === "trophy" ? "trophy" : "trophy2";
   const [filter, setFilter] = useState<Filter>("todos");
+  // Listas abertas (jogo base / DLCs). Fechadas por padrão; com uma lista só, ela já vem aberta.
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const { data, error, loading, refresh } = useData(
     async (force) => {
@@ -91,42 +101,107 @@ export function GamePage() {
               ))}
             </div>
 
-            {sections.map((section) => {
-              const rows = visible.filter((t) => section.trophies.includes(t));
-              return (
-                <section key={section.group.id} className="space-y-2">
-                  <div className="flex items-center gap-3 pt-2">
-                    {section.group.iconUrl && (
-                      <img src={section.group.iconUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-ps-blue-2">
-                        {section.isBase ? "Jogo base" : "DLC"}
-                      </p>
-                      <h3 className="truncate font-semibold">{section.group.name}</h3>
-                    </div>
-                    <span className="text-sm text-muted">
-                      {section.earned}/{section.trophies.length}
-                    </span>
-                  </div>
-                  {rows.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-line p-3 text-center text-xs text-muted">
-                      {filter === "conquistados" ? "Nenhum troféu conquistado aqui ainda." : "Tudo conquistado aqui! 🏆"}
-                    </p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {rows.map((t) => (
-                        <TrophyItem key={t.id} trophy={t} />
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              );
-            })}
+            {sections.map((section) => (
+              <GroupList
+                key={section.group.id}
+                section={section}
+                rows={visible.filter((t) => section.trophies.includes(t))}
+                filter={filter}
+                expanded={sections.length === 1 || open.has(section.group.id)}
+                onToggle={sections.length === 1 ? undefined : () => toggle(section.group.id)}
+              />
+            ))}
           </>
         )}
       </div>
     </>
+  );
+}
+
+/** Uma lista de troféus (jogo base ou DLC) que abre e fecha ao tocar no cabeçalho. */
+function GroupList({
+  section,
+  rows,
+  filter,
+  expanded,
+  onToggle,
+}: {
+  section: GroupSection;
+  rows: TrophyRow[];
+  filter: Filter;
+  expanded: boolean;
+  onToggle?: () => void;
+}) {
+  const total = section.trophies.length;
+  const percent = total ? Math.round((section.earned / total) * 100) : 0;
+  const header = (
+    <>
+      {section.group.iconUrl ? (
+        <img src={section.group.iconUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+      ) : (
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-lg">
+          {section.isBase ? "🎮" : "🧩"}
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-ps-blue-2">
+          {section.isBase ? "Jogo base" : "DLC"}
+        </p>
+        <h3 className="truncate font-semibold">{section.group.name}</h3>
+        <div className="mt-1.5 flex items-center gap-2">
+          <ProgressBar value={percent} />
+          <span className="shrink-0 text-xs tabular-nums text-muted">
+            {section.earned}/{total}
+          </span>
+        </div>
+      </div>
+      {onToggle && (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+          className={`h-5 w-5 shrink-0 text-muted transition-transform ${expanded ? "rotate-180" : ""}`}
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      )}
+    </>
+  );
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-line bg-surface">
+      {onToggle ? (
+        <button
+          onClick={onToggle}
+          aria-expanded={expanded}
+          className="flex w-full items-center gap-3 p-3 text-left active:bg-surface-2"
+        >
+          {header}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 p-3">{header}</div>
+      )}
+
+      {expanded && (
+        <div className="border-t border-line bg-bg/40 p-2">
+          {rows.length === 0 ? (
+            <p className="p-3 text-center text-xs text-muted">
+              {filter === "conquistados" ? "Nenhum troféu conquistado aqui ainda." : "Tudo conquistado aqui! 🏆"}
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {rows.map((t) => (
+                <TrophyItem key={t.id} trophy={t} />
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 

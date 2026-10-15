@@ -4,7 +4,7 @@ import { useApp } from "../app";
 import { GroupedBars, Legend, StatTile, type Series } from "../components/charts";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, Spinner, TrophyBadge } from "../components/ui";
-import { computeStats, filterByPlatform, formatDuration, matchPlaytime, platformsOf } from "../lib/stats";
+import { computeStats, filterByPlatform, formatDuration, matchPlaytime, platformsOf, withEarnedTrophies } from "../lib/stats";
 import { useData } from "../lib/useData";
 import type { Title } from "../psn/types";
 
@@ -45,9 +45,11 @@ export function StatsPage() {
   const friendTitles = theirs.data?.titles ?? null;
 
   // Plataformas com troféus (suas e, se estiver comparando, do amigo).
-  const platforms = data ? platformsOf([...data.titles, ...(friendTitles ?? [])]) : [];
+  // Jogos sem nenhum troféu conquistado ficam de fora das estatísticas.
+  const platforms = data ? platformsOf(withEarnedTrophies([...data.titles, ...(friendTitles ?? [])])) : [];
 
-  const stats = (titles: Title[], playtime: Map<string, number>) => computeStats(filterByPlatform(titles, platform), playtime);
+  const stats = (titles: Title[], playtime: Map<string, number>) =>
+    computeStats(filterByPlatform(withEarnedTrophies(titles), platform), playtime);
   const meStats = data ? stats(data.titles, data.playtime) : null;
   const frStats =
     friend && friendTitles && theirs.data && "playtime" in theirs.data && theirs.data.playtime
