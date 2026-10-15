@@ -11,6 +11,7 @@ export const THEMES: { value: Settings["theme"]; label: string; description: str
   { value: "green", label: "The Last of Us", description: "Verde-oliva de Ellie com o cáqui de Joel", swatch: ["#13140c", "#282b1a", "#5e7a24"] },
   { value: "crimson", label: "God of War", description: "Cinza das cinzas de Kratos com a tatuagem vermelha", swatch: ["#171615", "#2e2b29", "#b3121f"] },
   { value: "purple", label: "Ratchet & Clank", description: "Pelo dourado de Ratchet sobre marrom", swatch: ["#1a1207", "#342411", "#e0a11b"] },
+  { value: "spiderman", label: "Marvel's Spider-Man", description: "Azul do traje de Peter com o vermelho da máscara", swatch: ["#0b1238", "#1d2a6b", "#d01f2e"] },
   { value: "horizon", label: "Horizon", description: "Azul-petróleo do Focus com o ruivo de Aloy", swatch: ["#0a1a1f", "#173540", "#d9621b"] },
 ];
 
