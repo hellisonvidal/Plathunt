@@ -1,4 +1,4 @@
-PS-Platinum
+Trophy Mania
 
 Gerenciador de troféus da PlayStation com feed social: acompanhe seus troféus, veja as conquistas dos amigos da PSN, mande os parabéns e reaja com emojis.
 
@@ -6,7 +6,7 @@ Gerenciador de troféus da PlayStation com feed social: acompanhe seus troféus,
 
 - **Login direto com a PSN**: o usuário cola o código NPSSO da própria conta Sony e o app faz o resto. Não existe cadastro nem senha própria.
 - **Meus troféus**: nível, contagem por tipo, lista de jogos com progresso e a página de cada jogo com todos os troféus, incluindo a raridade de cada um.
-- **Feed social**: troféus conquistados por você e pelos seus amigos da PSN que também usam o PS-Platinum. As platinas aparecem em destaque.
+- **Feed social**: troféus conquistados por você e pelos seus amigos da PSN que também usam o Trophy Mania. As platinas aparecem em destaque.
 - **Reações com emoji**: 🏆 🔥 👏 🎉 😮 💪 😂 ❤️, com atualização otimista na tela.
 - **Parabéns**: mensagens rápidas que mudam conforme o tipo do troféu, ou um texto livre.
 - **Notificações**: quando alguém reage ou dá os parabéns por uma conquista sua.
@@ -14,7 +14,7 @@ Gerenciador de troféus da PlayStation com feed social: acompanhe seus troféus,
 
 ## Como funciona o login
 
-A Sony não oferece um "Entrar com PlayStation" público para apps de terceiros. O PS-Platinum usa o mesmo fluxo da biblioteca [`psn-api`](https://psn-api.achievements.app), usado por vários apps da comunidade:
+A Sony não oferece um "Entrar com PlayStation" público para apps de terceiros. O Trophy Mania usa o mesmo fluxo da biblioteca [`psn-api`](https://psn-api.achievements.app), usado por vários apps da comunidade:
 
 1. O usuário faz login em playstation.com.
 2. No mesmo navegador, abre `https://ca.account.sony.com/api/v1/ssocookie` e copia o JSON `{"npsso":"..."}`. Pode colar o JSON inteiro, o app extrai o token sozinho.
@@ -34,7 +34,7 @@ Next.js 15 (App Router, Server Actions) · React 19 · TypeScript · Prisma (SQL
 ```bash
 npm install
 cp .env.example .env
-# gere a chave e cole em PS-Platinum_SECRET:
+# gere a chave e cole em Trophy Mania_SECRET:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 npm run db:push
 npm run dev
