@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
 import { ReactionBar } from "../components/Reactions";
-import { Avatar, ErrorBox, Spinner, TrophyBadge, rarityLabel, timeAgo } from "../components/ui";
+import { Avatar, ErrorBox, RemoteImage, Spinner, TrophyBadge, rarityLabel, timeAgo } from "../components/ui";
 import { useSettings } from "../lib/settings";
 import { useData } from "../lib/useData";
 import type { FeedItem } from "../psn/types";
@@ -101,7 +101,7 @@ function FeedCard({ item }: { item: FeedItem }) {
       </header>
 
       <Link to={gameLink} className="mt-3 flex gap-3 rounded-xl bg-surface-2 p-3">
-        {item.trophy.iconUrl && <img src={item.trophy.iconUrl} alt="" className="h-14 w-14 shrink-0 rounded-lg" />}
+        <RemoteImage src={item.trophy.iconUrl} alt="" className="h-14 w-14 shrink-0 rounded-lg" fallback={null} />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold">{item.trophy.name}</h3>

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  matchPlayed,
+  primaryPlatform,
+  platformFromCategory,
   computeStats,
   filterByPlatform,
   withEarnedTrophies,
@@ -45,8 +48,8 @@ describe("matchPlaytime", () => {
       title("C", "Uncharted 2: Among Thieves™", "PS3", 100, c(1, 0, 0, 0)),
     ];
     const played = [
-      { titleId: "1", name: "God of War Ragnarök", imageUrl: null, playSeconds: 100, lastPlayed: null },
-      { titleId: "2", name: "Marvel’s Spider-Man 2 PS5", imageUrl: null, playSeconds: 200, lastPlayed: null },
+      { titleId: "1", name: "God of War Ragnarök", imageUrl: null, playSeconds: 100, lastPlayed: null, platform: "PS5" },
+      { titleId: "2", name: "Marvel’s Spider-Man 2 PS5", imageUrl: null, playSeconds: 200, lastPlayed: null, platform: "PS5" },
     ];
     const m = matchPlaytime(titles, played);
     expect(m.get("A")).toBe(100);
@@ -55,19 +58,100 @@ describe("matchPlaytime", () => {
   });
 });
 
+describe("matchPlaytime com várias versões do mesmo jogo", () => {
+  const ps4 = title("GOW4", "God of War Ragnarök", "PS4", 10, c(0, 0, 1, 3));
+  const ps5 = title("GOW5", "God of War Ragnarök", "PS5", 90, c(1, 6, 12, 17));
+  const played = (seconds: number, platform: string | null) => ({
+    titleId: "x",
+    name: "God of War Ragnarök",
+    imageUrl: null,
+    playSeconds: seconds,
+    lastPlayed: null,
+    platform,
+  });
+
+  it("não repete o tempo nas duas versões: vai para a da mesma plataforma", () => {
+    const m = matchPlaytime([ps4, ps5], [played(7200, "PS5")]);
+    expect(m.get("GOW5")).toBe(7200);
+    expect(m.has("GOW4")).toBe(false);
+  });
+
+  it("cada versão recebe o tempo da sua plataforma", () => {
+    const m = matchPlaytime([ps4, ps5], [played(7200, "PS5"), played(1800, "PS4")]);
+    expect(m.get("GOW5")).toBe(7200);
+    expect(m.get("GOW4")).toBe(1800);
+  });
+
+  it("sem plataforma conhecida, vai para a versão com mais troféus", () => {
+    const m = matchPlaytime([ps4, ps5], [played(600, null)]);
+    expect([...m.entries()]).toEqual([["GOW5", 600]]);
+  });
+
+  it("o tempo total é a soma dos registros, sem duplicar", () => {
+    const m = matchPlaytime([ps4, ps5], [played(7200, "PS5"), played(1800, "PS4")]);
+    expect([...m.values()].reduce((a, b) => a + b, 0)).toBe(9000);
+  });
+});
+
 describe("plataformas", () => {
-  it("separa e nomeia plataformas", () => {
+  const vitaShared = title("A", "Gravity Rush", "PS4,PSVITA", 50, c(0, 1, 2, 3));
+  const ps5 = title("B", "Astro Bot", "PS5", 80, c(1, 2, 3, 4));
+  const vitaOnly = title("C", "Tearaway", "PSVITA", 30, c(0, 0, 1, 2));
+
+  it("separa e nomeia as plataformas de uma lista", () => {
     expect(parsePlatforms("PS4,PSVITA")).toEqual(["PS4", "PS Vita"]);
-    expect(platformsOf([title("A", "a", "PS3", 0, c(0, 0, 0, 0)), title("B", "b", "PS5,PS4", 0, c(0, 0, 0, 0))])).toEqual([
-      "PS5",
-      "PS4",
-      "PS3",
+  });
+
+  it("lista multiplataforma conta só na plataforma principal", () => {
+    expect(primaryPlatform(vitaShared)).toBe("PS4");
+    expect(primaryPlatform(title("D", "d", "PS3,PSVITA", 0, c(0, 0, 0, 0)))).toBe("PS3");
+  });
+
+  it("…a não ser que o tempo de jogo diga onde foi jogado", () => {
+    expect(primaryPlatform(vitaShared, "PS Vita")).toBe("PS Vita");
+    // Plataforma que não está na lista é ignorada.
+    expect(primaryPlatform(ps5, "PS4")).toBe("PS5");
+  });
+
+  it("PS Vita só aparece quando há jogo que é só de Vita", () => {
+    expect(platformsOf([vitaShared, ps5])).toEqual(["PS5", "PS4"]);
+    expect(platformsOf([vitaShared, ps5, vitaOnly])).toEqual(["PS5", "PS4", "PS Vita"]);
+  });
+
+  it("filtra cada jogo pela plataforma em que conta", () => {
+    const ts = [vitaShared, ps5, vitaOnly];
+    expect(filterByPlatform(ts, "PS Vita").map((t) => t.id)).toEqual(["C"]);
+    expect(filterByPlatform(ts, "PS4").map((t) => t.id)).toEqual(["A"]);
+    expect(filterByPlatform(ts, "PS Vita", new Map([["A", "PS Vita"]])).map((t) => t.id)).toEqual(["A", "C"]);
+    expect(filterByPlatform(ts, null)).toHaveLength(3);
+  });
+
+  it("jogos por plataforma não contam o mesmo jogo duas vezes", () => {
+    const s = computeStats([vitaShared, ps5], new Map());
+    expect(s.byPlatform).toEqual([
+      { platform: "PS5", games: 1 },
+      { platform: "PS4", games: 1 },
     ]);
   });
-  it("filtra jogos multiplataforma por qualquer uma delas", () => {
-    const ts = [title("A", "a", "PS4,PSVITA", 0, c(0, 0, 0, 0)), title("B", "b", "PS5", 0, c(0, 0, 0, 0))];
-    expect(filterByPlatform(ts, "PS Vita").map((t) => t.id)).toEqual(["A"]);
-    expect(filterByPlatform(ts, null)).toHaveLength(2);
+});
+
+describe("matchPlayed", () => {
+  it("guarda a plataforma do registro com mais tempo", () => {
+    const g = title("G", "Gravity Rush", "PS4,PSVITA", 50, c(0, 1, 2, 3));
+    const played = [
+      { titleId: "1", name: "Gravity Rush", imageUrl: null, playSeconds: 3600, lastPlayed: null, platform: "PS4" },
+      { titleId: "2", name: "Gravity Rush", imageUrl: null, playSeconds: 600, lastPlayed: null, platform: "PS5" },
+    ];
+    expect(matchPlayed([g], played).get("G")).toEqual({ seconds: 4200, platform: "PS4" });
+  });
+});
+
+describe("platformFromCategory", () => {
+  it("lê a plataforma da categoria da PSN", () => {
+    expect(platformFromCategory("ps5_native_game")).toBe("PS5");
+    expect(platformFromCategory("ps4_game")).toBe("PS4");
+    expect(platformFromCategory("unknown")).toBeNull();
+    expect(platformFromCategory(undefined)).toBeNull();
   });
 });
 
