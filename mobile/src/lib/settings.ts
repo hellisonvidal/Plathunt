@@ -9,6 +9,8 @@ export interface Settings {
   feedDays: 7 | 30 | 90;
   /** Mostrar nome e descrição de troféus secretos ainda bloqueados. */
   revealSecrets: boolean;
+  /** Tema de cores (Configurações → Aparência). */
+  theme: "playstation" | "light" | "oled" | "graphite" | "crimson";
   /** Aba em que o app abre. */
   startTab: "/" | "/stats" | "/friends" | "/activity" | "/ranking";
 }
@@ -18,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   feedDays: 30,
   revealSecrets: false,
   startTab: "/",
+  theme: "playstation",
 };
 
 const KEY = "tm.settings" as const;
@@ -36,6 +39,12 @@ export function updateSettings(patch: Partial<Settings>): Settings {
   persistSet(KEY, JSON.stringify(next));
   listeners.forEach((l) => l());
   return next;
+}
+
+/** Avisa quando alguma configuração muda. */
+export function onSettingsChange(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
 }
 
 export function useSettings(): Settings {

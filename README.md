@@ -36,6 +36,7 @@ A engrenagem no topo das abas abre as Configurações:
 - **Atualizações**: versão instalada e "Verificar atualizações", que compara com a última Release do GitHub e oferece o download do APK. Com o repositório privado, o GitHub não responde ao app, então o botão abre a página de versões no navegador.
 - **Atividades**: período de 7, 30 ou 90 dias.
 - **Troféus e jogos**: idioma dos nomes vindos da PSN (português, inglês ou espanhol) e opção de revelar troféus secretos.
+- **Aparência**: 5 temas: PlayStation (padrão), Claro, Preto OLED, Grafite e Carmesim. O contraste do texto foi verificado (WCAG ≥ 4.5:1) em todos.
 - **Geral**: aba em que o app abre.
 - **Dados**: atualizar tudo da PSN agora e apagar as curtidas.
 

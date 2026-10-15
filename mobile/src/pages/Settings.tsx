@@ -5,6 +5,7 @@ import { Avatar } from "../components/ui";
 import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
 import { APP_VERSION, updateSettings, useSettings, type Settings } from "../lib/settings";
+import { THEMES } from "../lib/theme";
 import { checkForUpdate, RELEASES_PAGE, type UpdateResult } from "../lib/updates";
 import { useData } from "../lib/useData";
 
@@ -59,6 +60,22 @@ export function SettingsPage() {
             danger
             onClick={() => signOut()}
           />
+        </Section>
+
+        <Section title="Aparência">
+          <div className="space-y-2 p-4">
+            <p className="text-sm">Tema</p>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tema">
+              {THEMES.map((t) => (
+                <ThemeCard
+                  key={t.value}
+                  theme={t}
+                  selected={settings.theme === t.value}
+                  onSelect={() => updateSettings({ theme: t.value })}
+                />
+              ))}
+            </div>
+          </div>
         </Section>
 
         <Section title="Atualizações">
@@ -148,6 +165,40 @@ export function SettingsPage() {
         </div>
       )}
     </>
+  );
+}
+
+/** Cartão de tema com uma miniatura das cores (fundo, cartão e destaque). */
+function ThemeCard({
+  theme,
+  selected,
+  onSelect,
+}: {
+  theme: (typeof THEMES)[number];
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const [bg, card, accent] = theme.swatch;
+  return (
+    <button
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={`rounded-xl border-2 p-2 text-left ${selected ? "border-ps-blue-2" : "border-line"}`}
+    >
+      <span className="flex h-14 flex-col justify-end gap-1 rounded-lg p-1.5" style={{ background: bg }}>
+        <span className="block h-2 w-3/4 rounded-sm" style={{ background: card }} />
+        <span className="flex items-center gap-1">
+          <span className="block h-2 flex-1 rounded-sm" style={{ background: card }} />
+          <span className="block h-3 w-6 rounded-sm" style={{ background: accent }} />
+        </span>
+      </span>
+      <span className="mt-1.5 flex items-center justify-between gap-1">
+        <span className="text-sm font-semibold">{theme.label}</span>
+        {selected && <span className="text-ps-blue-2">✓</span>}
+      </span>
+      <span className="block text-[11px] leading-tight text-muted">{theme.description}</span>
+    </button>
   );
 }
 
