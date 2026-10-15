@@ -1,0 +1,187 @@
+// Perseus — modelo de dados.
+// SQLite em desenvolvimento; troque o provider para "postgresql" em produção.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Um jogador que entrou no Perseus com a conta PSN.
+model User {
+  id           String   @id @default(cuid())
+  /// accountId numérico da PSN (identidade estável do usuário).
+  psnAccountId String   @unique
+  onlineId     String   @unique
+  avatarUrl    String?
+  aboutMe      String?
+  isPlus       Boolean  @default(false)
+  trophyLevel  Int      @default(1)
+  trophyTier   Int      @default(1)
+  bronze       Int      @default(0)
+  silver       Int      @default(0)
+  gold         Int      @default(0)
+  platinum     Int      @default(0)
+
+  /// Tokens PSN cifrados (AES-256-GCM). O NPSSO nunca é armazenado.
+  accessTokenEnc   String
+  accessExpiresAt  DateTime
+  refreshTokenEnc  String
+  refreshExpiresAt DateTime
+
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions      Session[]
+  titles        UserTitle[]
+  activities    Activity[]
+  reactions     Reaction[]
+  congrats      Congratulation[]
+  friendsOut    Friendship[]    @relation("FriendshipOwner")
+  friendsIn     Friendship[]    @relation("FriendshipFriend")
+  notifications Notification[]  @relation("NotificationRecipient")
+  notified      Notification[]  @relation("NotificationActor")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  /// Hash SHA-256 do token guardado no cookie.
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// Amizade espelhada da lista de amigos da PSN (somente entre usuários do Perseus).
+model Friendship {
+  ownerId  String
+  friendId String
+  owner    User     @relation("FriendshipOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  friend   User     @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Cascade)
+  syncedAt DateTime @default(now())
+
+  @@id([ownerId, friendId])
+  @@index([friendId])
+}
+
+/// Jogo (lista de troféus) — compartilhado entre usuários.
+model Game {
+  npCommunicationId String   @id
+  npServiceName     String
+  name              String
+  iconUrl           String?
+  platform          String
+  definedBronze     Int      @default(0)
+  definedSilver     Int      @default(0)
+  definedGold       Int      @default(0)
+  definedPlatinum   Int      @default(0)
+  updatedAt         DateTime @updatedAt
+
+  trophies   Trophy[]
+  userTitles UserTitle[]
+}
+
+/// Progresso de um usuário em um jogo.
+model UserTitle {
+  userId            String
+  npCommunicationId String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game              Game     @relation(fields: [npCommunicationId], references: [npCommunicationId], onDelete: Cascade)
+  progress          Int      @default(0)
+  earnedBronze      Int      @default(0)
+  earnedSilver      Int      @default(0)
+  earnedGold        Int      @default(0)
+  earnedPlatinum    Int      @default(0)
+  lastUpdatedAt     DateTime
+  /// lastUpdatedAt já processado pela sincronização de troféus individuais.
+  trophiesSyncedAt  DateTime?
+
+  @@id([userId, npCommunicationId])
+  @@index([userId, lastUpdatedAt])
+}
+
+/// Metadados de um troféu (nome, descrição, ícone).
+model Trophy {
+  id                String  @id // `${npCommunicationId}:${trophyId}`
+  npCommunicationId String
+  trophyId          Int
+  groupId           String  @default("default")
+  type              String // bronze | silver | gold | platinum
+  name              String
+  detail            String?
+  iconUrl           String?
+  hidden            Boolean @default(false)
+  game              Game    @relation(fields: [npCommunicationId], references: [npCommunicationId], onDelete: Cascade)
+
+  activities Activity[]
+
+  @@unique([npCommunicationId, trophyId])
+}
+
+/// Item do feed: "fulano conquistou o troféu X".
+model Activity {
+  id         String   @id @default(cuid())
+  userId     String
+  trophyKey  String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trophy     Trophy   @relation(fields: [trophyKey], references: [id], onDelete: Cascade)
+  earnedAt   DateTime
+  /// Porcentagem de jogadores que têm o troféu (raridade).
+  earnedRate Float?
+  createdAt  DateTime @default(now())
+
+  reactions Reaction[]
+  congrats  Congratulation[]
+
+  @@unique([userId, trophyKey])
+  @@index([earnedAt])
+}
+
+model Reaction {
+  id         String   @id @default(cuid())
+  activityId String
+  userId     String
+  emoji      String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([activityId, userId, emoji])
+  @@index([activityId])
+}
+
+model Congratulation {
+  id         String   @id @default(cuid())
+  activityId String
+  userId     String
+  message    String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([activityId, createdAt])
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  recipientId String
+  actorId     String
+  /// "reaction" | "congrats"
+  kind        String
+  activityId  String
+  emoji       String?
+  message     String?
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+  recipient   User      @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User      @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, createdAt])
+}
