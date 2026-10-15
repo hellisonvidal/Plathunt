@@ -60,7 +60,7 @@ export const SettingsIcon = () => (
 
 /** Selo do PlayStation Plus: "+" amarelo. */
 export const PsPlusIcon = ({ size = 18 }: { size?: number }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} aria-label="PlayStation Plus" role="img">
+  <svg viewBox="0 0 24 24" style={{ width: `${size / 16}rem`, height: `${size / 16}rem` }} aria-label="PlayStation Plus" role="img">
     <defs>
       <linearGradient id="psplus-g" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0" stopColor="#ffe066" />

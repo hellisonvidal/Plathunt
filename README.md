@@ -7,7 +7,7 @@ O repositório tem duas versões:
 | | **App Android** (`mobile/` + `android/`) | **Versão web com servidor** (raiz) |
 |---|---|---|
 | Precisa de servidor? | **Não.** Fala direto com a PSN pelo celular | Sim (Node + PostgreSQL) |
-| Login PSN | A tela da PlayStation abre sozinha ao iniciar | Colar o código NPSSO |
+| Login PSN | Entra sozinho se a Sony já estiver logada no aparelho; senão, o formulário da PlayStation | Colar o código NPSSO |
 | Perfil: avatar PSN, nível, jogos com tempo de jogo | ✅ | — (sem tempo de jogo) |
 | Troféus por jogo base e DLC, filtro conquistados/bloqueados | ✅ | — |
 | Estatísticas por plataforma, comparação com amigos | ✅ | — |
@@ -34,7 +34,6 @@ A engrenagem no topo das abas abre as Configurações:
 
 - **Conta**: sair / trocar de conta PSN.
 - **Atualizações**: versão instalada e "Verificar atualizações", que compara com a última Release do GitHub. "Baixar e instalar" baixa o APK dentro do app, com barra de progresso (`AppUpdaterPlugin.java`, só aceita endereços do GitHub), e abre o instalador do Android. Na primeira vez, o Android pede para permitir que o app instale atualizações.
-- **PlayStation Plus**: plano (Essential, Extra, Premium, Deluxe) e data de vencimento, mostrados no Perfil com o selo do PS Plus e a contagem de dias. A PSN só informa *se* a conta tem PS Plus, não o plano nem o vencimento, por isso esses dois são preenchidos aqui.
 - **Atividades**: período de 7, 30 ou 90 dias.
 - **Troféus e jogos**: idioma dos nomes vindos da PSN (português, inglês ou espanhol) e opção de revelar troféus secretos.
 - **Aparência**: 5 temas: PlayStation (padrão), Claro, Preto OLED, Grafite e Carmesim. O contraste do texto foi verificado (WCAG ≥ 4.5:1) em todos.
@@ -44,7 +43,7 @@ A engrenagem no topo das abas abre as Configurações:
 ### Abas
 
 1. **Perfil**: avatar PSN, nível e progresso, troféus e a lista de jogos com tempo de jogo (busca e ordenação por recentes, progresso ou tempo). Em cada jogo, os troféus vêm agrupados em listas recolhíveis, uma para o **jogo base** e uma para cada **DLC**, com progresso de cada uma; toque na lista para abrir. Há filtro Todos / Conquistados / Bloqueados, e cada troféu tem um botão **Dicas no YouTube**, que busca um vídeo pelo nome do jogo e do troféu.
-2. **Estatísticas** (comparação com amigos escolhidos em ordem alfabética; "Títulos por plataforma" lista os jogos de cada plataforma, seus e do amigo; só jogos com pelo menos um troféu conquistado; cada jogo conta em uma única plataforma, a registrada no tempo de jogo ou a principal da lista de troféus, então uma lista "PS4,PSVITA" não faz o PS Vita aparecer se você não jogou lá): jogos, platinas, jogos 100%, conclusão média, troféus e tempo de jogo, com gráfico por tipo de troféu e jogos mais jogados. Filtro pelas plataformas que têm troféus e comparação com qualquer amigo.
+2. **Estatísticas** (comparação com amigos escolhidos em ordem alfabética, usando a lista completa de jogos dos dois; "Títulos por plataforma" lista os jogos de cada plataforma, seus e do amigo; só jogos com pelo menos um troféu conquistado; cada jogo conta em uma única plataforma, a registrada no tempo de jogo ou a principal da lista de troféus, então uma lista "PS4,PSVITA" não faz o PS Vita aparecer se você não jogou lá): jogos, platinas, jogos 100%, conclusão média, troféus e tempo de jogo, com gráfico por tipo de troféu e jogos mais jogados. Filtro pelas plataformas que têm troféus e comparação com qualquer amigo.
 3. **Amigos**: **todos** os amigos da PSN (a lista vem em páginas), com busca e ordenação por nível, platinas ou nome. Mostra avatar, nível e progresso, plataformas e conquistas. Os perfis carregam aos poucos, e as plataformas de cada amigo só são buscadas quando o cartão aparece na tela, para não estourar o limite de chamadas da PSN.
 4. **Atividades**: troféus seus e dos amigos dos últimos 30 dias, com curtidas por emoji.
 5. **Ranking de platinas**: você e seus amigos por platinas, nível ou total de troféus.
@@ -53,7 +52,8 @@ O tempo de jogo vem da lista de "jogados" da PSN, que só registra PS4 e PS5. Co
 
 ### Como funciona
 
-- **Login:** ao abrir o app, o formulário de login da PlayStation aparece sozinho (mesmo fluxo OAuth do app oficial). Quando você termina de entrar, a Sony redireciona com um código, que `PsnLoginActivity.java` captura e o app troca pelos tokens de acesso. Se o aparelho já estiver logado na Sony, a tela fecha sozinha. "Sair" também apaga o login da Sony do aparelho, para dar para entrar com outra conta.
+- **Login:** ao abrir o app, se o aparelho já tiver um login da Sony salvo, o app entra sozinho, sem mostrar nenhuma página da Sony (`silentLogin` em `PsnLoginPlugin.java`). Senão, "Entrar com a PSN" abre direto o formulário compacto de usuário e senha da PlayStation (mesmo fluxo OAuth do app oficial); os redirects intermediários da Sony ficam escondidos atrás de um indicador de carregamento. Quando você termina de entrar, a Sony redireciona com um código, que `PsnLoginActivity.java` captura e o app troca pelos tokens de acesso. "Sair" também apaga o login da Sony do aparelho, para dar para entrar com outra conta.
+- **Tela:** a interface se ajusta à resolução de cada celular. Textos, espaçamentos, ícones e avatares são medidos em `rem`, e o `rem` acompanha a largura da tela (14 px em telas estreitas, 16 px em ~390 px, até 18 px em telas grandes e tablets). As barras do sistema e o recorte da câmera são respeitados (áreas seguras do Capacitor 8), e o tamanho de fonte do Android é aplicado dentro de 85–115% para não quebrar o layout.
 - **Dados:** a interface (`mobile/`, React + Vite) vai dentro do APK e chama a API da PSN com o HTTP nativo do Capacitor (o `fetch` do navegador seria bloqueado por CORS). Os tokens e um cache das respostas ficam só no aparelho. O token de acesso é renovado sozinho por cerca de 2 meses; depois disso é só entrar de novo.
 - **Feed de atividade:** junta os seus troféus e os dos amigos dos últimos 30 dias. Para não estourar o limite de chamadas da PSN, considera os 3 jogos mais recentes de cada amigo e no máximo 20 jogos por atualização. Amigos com troféus privados não aparecem.
 - **Modo demonstração:** a tela de login tem "Ver demonstração", com dados de exemplo.

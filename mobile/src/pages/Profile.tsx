@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
 import { TitleList } from "../components/TitleList";
@@ -7,8 +7,6 @@ import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge } from "../componen
 import { formatDuration, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import { PsPlusIcon } from "../components/icons";
-import { describeExpiry, PS_PLUS_TIERS } from "../lib/psplus";
-import { useSettings } from "../lib/settings";
 
 type Sort = "recentes" | "progresso" | "tempo";
 
@@ -62,7 +60,7 @@ export function ProfilePage() {
                 <Avatar src={data.profile.avatarUrl} name={data.profile.onlineId} size={84} />
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-xl font-bold">{data.profile.onlineId}</h2>
-                  <PsPlusInfo isPlus={data.profile.isPlus} isMe={isMe} />
+                  <PsPlusInfo isPlus={data.profile.isPlus} />
                   {data.profile.aboutMe && <p className="mt-0.5 text-sm text-muted">{data.profile.aboutMe}</p>}
                 </div>
               </div>
@@ -136,35 +134,13 @@ export function ProfilePage() {
   );
 }
 
-/**
- * Selo do PlayStation Plus. No seu perfil, mostra também o plano e o
- * vencimento informados em Configurações (a PSN não fornece esses dados).
- */
-function PsPlusInfo({ isPlus, isMe }: { isPlus: boolean; isMe: boolean }) {
-  const { psPlusTier, psPlusExpires } = useSettings();
-  if (!isPlus && !(isMe && psPlusTier)) return null;
-  const expiry = isMe ? describeExpiry(psPlusExpires) : null;
-  const tier = isMe && psPlusTier ? PS_PLUS_TIERS[psPlusTier] : null;
+/** Selo do PlayStation Plus (a PSN só informa se a conta é assinante). */
+function PsPlusInfo({ isPlus }: { isPlus: boolean }) {
+  if (!isPlus) return null;
   return (
-    <div className="mt-0.5">
-      <p className="flex items-center gap-1.5 text-xs font-semibold text-gold">
-        <PsPlusIcon size={16} />
-        PlayStation Plus{tier && ` ${tier}`}
-      </p>
-      {expiry && (
-        <p
-          className={`text-[11px] ${
-            expiry.state === "expired" ? "text-red-400" : expiry.state === "soon" ? "text-gold" : "text-muted"
-          }`}
-        >
-          {expiry.label}
-        </p>
-      )}
-      {isMe && (!tier || !expiry) && (
-        <Link to="/settings" className="text-[11px] text-ps-blue-2 underline">
-          informar plano e vencimento
-        </Link>
-      )}
-    </div>
+    <p className="mt-0.5 flex items-center gap-1.5 text-xs font-semibold text-gold">
+      <PsPlusIcon size={16} />
+      PlayStation Plus
+    </p>
   );
 }

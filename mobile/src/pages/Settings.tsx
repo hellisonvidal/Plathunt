@@ -5,7 +5,6 @@ import { Avatar, ProgressBar } from "../components/ui";
 import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
 import { APP_VERSION, updateSettings, useSettings, type Settings } from "../lib/settings";
-import { PS_PLUS_TIERS, type PsPlusTier } from "../lib/psplus";
 import { THEMES } from "../lib/theme";
 import { checkForUpdate, RELEASES_PAGE, type UpdateResult } from "../lib/updates";
 import { useData } from "../lib/useData";
@@ -16,10 +15,6 @@ const LANGUAGES: { value: Settings["language"]; label: string }[] = [
   { value: "en-US", label: "English" },
   { value: "es-ES", label: "Español" },
 ];
-const PS_PLUS_OPTIONS = (Object.keys(PS_PLUS_TIERS) as PsPlusTier[]).map((value) => ({
-  value,
-  label: PS_PLUS_TIERS[value],
-}));
 const FEED_DAYS: Settings["feedDays"][] = [7, 30, 90];
 const START_TABS: { value: Settings["startTab"]; label: string }[] = [
   { value: "/", label: "Perfil" },
@@ -99,29 +94,6 @@ export function SettingsPage() {
             </button>
           </div>
           {update && <UpdateStatus result={update} />}
-        </Section>
-
-        <Section title="PlayStation Plus">
-          <Choice
-            label="Plano"
-            options={[{ value: "" as const, label: "Não informar" }, ...PS_PLUS_OPTIONS]}
-            value={settings.psPlusTier}
-            onChange={(psPlusTier) => updateSettings({ psPlusTier })}
-          />
-          <label className="flex items-center gap-3 p-4">
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm">Vencimento da assinatura</span>
-              <span className="mt-0.5 block text-xs text-muted">
-                A PSN não informa plano nem vencimento; o perfil mostra o que você preencher aqui.
-              </span>
-            </span>
-            <input
-              type="date"
-              value={settings.psPlusExpires}
-              onChange={(e) => updateSettings({ psPlusExpires: e.target.value })}
-              className="rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-sm"
-            />
-          </label>
         </Section>
 
         <Section title="Atividades">
@@ -226,7 +198,7 @@ function ThemeCard({
         <span className="text-sm font-semibold">{theme.label}</span>
         {selected && <span className="text-ps-blue-2">✓</span>}
       </span>
-      <span className="block text-[11px] leading-tight text-muted">{theme.description}</span>
+      <span className="block text-[0.6875rem] leading-tight text-muted">{theme.description}</span>
     </button>
   );
 }
@@ -343,7 +315,7 @@ function UpdateStatus({ result }: { result: UpdateResult }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{title}</h2>
+      <h2 className="mb-2 px-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted">{title}</h2>
       <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">{children}</div>
     </section>
   );

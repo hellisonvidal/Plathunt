@@ -46,14 +46,14 @@ export function GroupedBars({
       {categories.map((label, ci) => (
         <div key={ci} className="grid grid-cols-[5.5rem_1fr] items-center gap-3">
           <div className="text-sm">{label}</div>
-          <div className="space-y-[2px]">
+          <div className="space-y-[0.125rem]">
             {series.map((s, si) => {
               const v = s.values[ci] ?? 0;
               return (
                 <div key={s.name} className="flex items-center gap-2" title={`${s.name}: ${format(v)}`}>
                   <div className="h-2.5 flex-1">
                     <div
-                      className="h-full rounded-r-[4px]"
+                      className="h-full rounded-r-[0.25rem]"
                       style={{ width: `${(v / max) * 100}%`, minWidth: v > 0 ? 3 : 0, background: SERIES_COLORS[si + colorOffset] }}
                     />
                   </div>

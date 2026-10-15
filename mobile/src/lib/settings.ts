@@ -11,9 +11,6 @@ export interface Settings {
   revealSecrets: boolean;
   /** Tema de cores (Configurações → Aparência). */
   theme: "playstation" | "light" | "oled" | "graphite" | "crimson";
-  /** Plano do PS Plus e vencimento (aaaa-mm-dd), informados pelo usuário. */
-  psPlusTier: "" | "essential" | "extra" | "premium" | "deluxe";
-  psPlusExpires: string;
   /** Aba em que o app abre. */
   startTab: "/" | "/stats" | "/friends" | "/activity" | "/ranking";
 }
@@ -24,8 +21,6 @@ export const DEFAULT_SETTINGS: Settings = {
   revealSecrets: false,
   startTab: "/",
   theme: "playstation",
-  psPlusTier: "",
-  psPlusExpires: "",
 };
 
 const KEY = "tm.settings" as const;
@@ -33,7 +28,10 @@ const listeners = new Set<() => void>();
 
 export function getSettings(): Settings {
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(KEY) ?? "{}") };
+    const saved = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Record<string, unknown>;
+    // Só as chaves conhecidas: opções removidas (ex.: plano do PS Plus) somem do que fica salvo.
+    const known = Object.keys(DEFAULT_SETTINGS).filter((k) => k in saved);
+    return { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) };
   } catch {
     return DEFAULT_SETTINGS;
   }

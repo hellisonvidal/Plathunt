@@ -43,22 +43,31 @@ export function StatsPage() {
     async (force) => {
       if (!friendId) return null;
       const [titles, played] = await Promise.all([
+        // Troféus privados: a PSN recusa a lista de jogos.
         client.titles(friendId, force).catch(() => null),
         client.playedGames(friendId, force),
       ]);
-      return titles ? { titles, ...playMaps(matchPlayed(titles, played ?? [])) } : { titles: null };
+      return {
+        friendId,
+        titles,
+        ...playMaps(titles ? matchPlayed(titles, played ?? []) : new Map()),
+      };
     },
     [client, friendId],
   );
 
   const data = mine.data;
   const friend = data?.friends.find((f) => f.accountId === friendId) ?? null;
-  const friendTitles = theirs.data?.titles ?? null;
+  // Ao trocar de amigo, os dados do anterior ficam em `theirs.data` até os
+  // novos chegarem: só valem os do amigo escolhido agora.
+  const friendData = friend && theirs.data?.friendId === friend.accountId ? theirs.data : null;
+  const friendTitles = friendData?.titles ?? null;
+  const friendLoading = !!friend && !friendData && !theirs.error;
 
   // Plataformas com troféus (suas e, se estiver comparando, do amigo).
   // Jogos sem nenhum troféu conquistado ficam de fora das estatísticas.
   // Cada jogo conta em uma só plataforma (a jogada ou a principal da lista).
-  const friendPlay = theirs.data && "playedOn" in theirs.data ? theirs.data : null;
+  const friendPlay = friendTitles ? friendData : null;
   const platforms = data
     ? [
         ...new Set([
@@ -122,8 +131,11 @@ export function StatsPage() {
               </select>
             </label>
 
-            {friend && theirs.loading && <Spinner label={`Buscando os jogos de ${friend.onlineId}…`} />}
-            {friend && !theirs.loading && !frStats && (
+            {friend && (friendLoading || theirs.loading) && (
+              <Spinner label={`Buscando os jogos de ${friend.onlineId}…`} />
+            )}
+            {friend && theirs.error ? <ErrorBox error={theirs.error} onRetry={theirs.refresh} /> : null}
+            {friend && friendData && !friendTitles && (
               <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
                 Os troféus de {friend.onlineId} são privados, então não dá para comparar.
               </p>
@@ -189,7 +201,7 @@ export function StatsPage() {
                     format={formatDuration}
                     colorOffset={i}
                   />
-                  <p className="text-[11px] text-muted">
+                  <p className="text-[0.6875rem] text-muted">
                     Tempo disponível para {s.gamesWithPlaytime} de {s.games} jogos (PS3 e Vita não registram).
                   </p>
                 </section>

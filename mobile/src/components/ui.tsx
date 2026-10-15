@@ -49,11 +49,14 @@ export function RemoteImage({
   );
 }
 
+/** Tamanhos em rem: acompanham a escala da tela (styles.css). `px` é o tamanho em uma tela de referência. */
+const rem = (px: number) => `${px / 16}rem`;
+
 export function Avatar({ src, name, size = 40 }: { src?: string | null; name: string; size?: number }) {
   const initial = (
     <span
       className="inline-flex shrink-0 items-center justify-center rounded-full bg-surface-2 font-semibold text-muted"
-      style={{ width: size, height: size }}
+      style={{ width: rem(size), height: rem(size) }}
     >
       {name.slice(0, 1).toUpperCase()}
     </span>
@@ -66,7 +69,7 @@ export function Avatar({ src, name, size = 40 }: { src?: string | null; name: st
       width={size}
       height={size}
       className="shrink-0 rounded-full bg-surface-2 object-cover"
-      style={{ width: size, height: size }}
+      style={{ width: rem(size), height: rem(size) }}
     />
   );
 }
@@ -124,7 +127,7 @@ export function GameIcon({ src, size = 56 }: { src: string | null; size?: number
   const placeholder = (
     <span
       className="flex shrink-0 items-center justify-center rounded-lg bg-surface-2 text-xl"
-      style={{ width: size, height: size }}
+      style={{ width: rem(size), height: rem(size) }}
     >
       🎮
     </span>
@@ -135,7 +138,7 @@ export function GameIcon({ src, size = 56 }: { src: string | null; size?: number
       fallback={placeholder}
       alt=""
       className="shrink-0 rounded-lg object-cover"
-      style={{ width: size, height: size }}
+      style={{ width: rem(size), height: rem(size) }}
     />
   );
 }

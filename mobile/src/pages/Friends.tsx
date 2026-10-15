@@ -165,7 +165,7 @@ function FriendCard({ friend: f }: { friend: Profile }) {
           <p className="truncate font-semibold">
             {f.onlineId}{" "}
             {f.isPlus && (
-              <span className="inline-flex items-center gap-0.5 align-middle text-[11px] font-semibold text-gold">
+              <span className="inline-flex items-center gap-0.5 align-middle text-[0.6875rem] font-semibold text-gold">
                 <PsPlusIcon size={13} /> PS Plus
               </span>
             )}
@@ -176,7 +176,7 @@ function FriendCard({ friend: f }: { friend: Profile }) {
               <div className="flex-1">
                 <ProgressBar value={f.levelProgress ?? 0} />
               </div>
-              <span className="text-[11px] text-muted">{f.levelProgress ?? 0}%</span>
+              <span className="text-[0.6875rem] text-muted">{f.levelProgress ?? 0}%</span>
             </div>
           ) : (
             <p className="mt-1 text-xs text-muted">Troféus privados</p>
@@ -194,7 +194,7 @@ function FriendCard({ friend: f }: { friend: Profile }) {
       )}
 
       {f.level !== null && (
-        <div className="mt-3 flex min-h-5 flex-wrap items-center gap-1.5 text-[11px]">
+        <div className="mt-3 flex min-h-5 flex-wrap items-center gap-1.5 text-[0.6875rem]">
           {platforms.map((p) => (
             <span key={p} className="rounded-full border border-line px-2 py-0.5 text-muted">
               {p}

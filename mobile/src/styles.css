@@ -17,7 +17,14 @@
   --color-on-accent: #ffffff;
 }
 
+/*
+ * Escala da interface: tudo (texto, espaçamentos, ícones, avatares) é medido
+ * em rem, e o rem acompanha a largura da tela. Em um celular de 390 px de
+ * largura fica em 16 px; telas estreitas encolhem até 14 px e telas largas
+ * (celulares grandes, tablets, paisagem) crescem até 18 px.
+ */
 html {
+  font-size: clamp(14px, 4.1vw, 18px);
   color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
 }
@@ -89,12 +96,17 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+/*
+ * Áreas seguras (barra de status, recorte da câmera, barra de navegação).
+ * O Capacitor 8 informa os valores pelo env() do WebView ou, em WebViews
+ * antigos, pelas variáveis --safe-area-inset-*; usa o maior dos dois.
+ */
 .safe-top {
-  padding-top: env(safe-area-inset-top);
+  padding-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
 }
 
 .safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
 }
 
 /* Vermelho de erro/sair mais escuro no tema claro (contraste sobre branco). */

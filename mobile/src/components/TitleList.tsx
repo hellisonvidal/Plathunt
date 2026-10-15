@@ -40,7 +40,7 @@ export function TitleList({
                   <ProgressBar value={t.progress} />
                   <span className="w-10 text-right text-xs text-muted">{t.progress}%</span>
                 </div>
-                {t.hasGroups && <p className="mt-1 text-[11px] text-muted">Inclui DLCs</p>}
+                {t.hasGroups && <p className="mt-1 text-[0.6875rem] text-muted">Inclui DLCs</p>}
               </div>
             </Link>
           </li>
