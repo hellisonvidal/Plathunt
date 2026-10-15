@@ -1,4 +1,4 @@
-# Perseus
+PS-Platinum
 
 Gerenciador de troféus da PlayStation com feed social: acompanhe seus troféus, veja as conquistas dos amigos da PSN, mande os parabéns e reaja com emojis.
 
