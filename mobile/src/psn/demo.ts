@@ -13,6 +13,27 @@ const PROFILES: Record<string, Profile> = {
   ellie: { accountId: "demo-ellie", onlineId: "Ellie_TLOU", avatarUrl: "http://psn-rsc.prod.dl.playstation.net/psn-rsc/avatar/DEMO/ellie_l.png", aboutMe: null, isPlus: false, level: 233, levelProgress: 88, earned: counts(9, 70, 210, 800) },
 };
 
+// Mais amigos de exemplo, para a lista completa (alguns com troféus privados).
+const EXTRA_NAMES = [
+  "Nathan_Drake", "Jin_Sakai", "Peter_P", "Joel_M", "Ratchet_L", "Sackboy", "Astro_Fan", "Nariko_HS",
+  "Cole_MacGrath", "Sly_Cooper", "Kat_Gravity", "Deacon_StJ", "Selene_R", "Sam_Porter", "Hunter_BB", "Abby_A",
+  "Miles_M", "Kiryu_K", "Leon_SK", "Jill_V", "Dante_DMC", "Cloud_S",
+];
+EXTRA_NAMES.forEach((onlineId, i) => {
+  const level = 50 + ((i * 37) % 600);
+  const isPrivate = i % 7 === 3;
+  PROFILES[`f${i + 1}`] = {
+    accountId: `demo-f${i + 1}`,
+    onlineId,
+    avatarUrl: null,
+    aboutMe: null,
+    isPlus: i % 2 === 0,
+    level: isPrivate ? null : level,
+    levelProgress: isPrivate ? null : (i * 13) % 100,
+    earned: isPrivate ? null : counts(Math.floor(level / 25), level, level * 3, level * 9),
+  };
+});
+
 type GameDef = Omit<Title, "progress" | "earned" | "lastUpdated"> & { groups: TrophyGroup[] };
 const group = (id: string, name: string, defined: Counts): TrophyGroup => ({ id, name, iconUrl: null, defined });
 
@@ -128,7 +149,8 @@ export function createDemoClient(): PsnClient {
     playedGames: (accountId) => delay(playedOf(keyOf(accountId))),
     trophyGroups: (game) => delay(Object.values(GAMES).find((g) => g.id === game.id)?.groups ?? []),
     gameTrophies: (accountId, game) => delay(trophiesOf(keyOf(accountId), game.id)),
-    friends: () => delay([PROFILES.aloy, PROFILES.ellie]),
+    friendIds: () => delay(Object.values(PROFILES).filter((p) => p.accountId !== "demo-me").map((p) => p.accountId)),
+    friends: () => delay(Object.values(PROFILES).filter((p) => p.accountId !== "demo-me")),
     feed: () => {
       const now = Date.now();
       const items = Object.keys(PROFILES).flatMap((k) => {

@@ -42,9 +42,9 @@ A engrenagem no topo das abas abre as Configurações:
 
 ### Abas
 
-1. **Perfil**: avatar PSN, nível e progresso, troféus e a lista de jogos com tempo de jogo (busca e ordenação por recentes, progresso ou tempo). Em cada jogo, os troféus vêm agrupados em listas recolhíveis, uma para o **jogo base** e uma para cada **DLC**, com progresso de cada uma; toque na lista para abrir. Há filtro Todos / Conquistados / Bloqueados.
+1. **Perfil**: avatar PSN, nível e progresso, troféus e a lista de jogos com tempo de jogo (busca e ordenação por recentes, progresso ou tempo). Em cada jogo, os troféus vêm agrupados em listas recolhíveis, uma para o **jogo base** e uma para cada **DLC**, com progresso de cada uma; toque na lista para abrir. Há filtro Todos / Conquistados / Bloqueados, e cada troféu tem um botão **Dicas no YouTube**, que busca um vídeo pelo nome do jogo e do troféu.
 2. **Estatísticas** (só jogos com pelo menos um troféu conquistado): jogos, platinas, jogos 100%, conclusão média, troféus e tempo de jogo, com gráficos por tipo de troféu, plataforma e jogos mais jogados. Filtro pelas plataformas que têm troféus e comparação com qualquer amigo.
-3. **Amigos**: avatar, nível e progresso, plataformas em que jogam e conquistas de cada amigo da PSN.
+3. **Amigos**: **todos** os amigos da PSN (a lista vem em páginas), com busca e ordenação por nível, platinas ou nome. Mostra avatar, nível e progresso, plataformas e conquistas. Os perfis carregam aos poucos, e as plataformas de cada amigo só são buscadas quando o cartão aparece na tela, para não estourar o limite de chamadas da PSN.
 4. **Atividades**: troféus seus e dos amigos dos últimos 30 dias, com curtidas por emoji.
 5. **Ranking de platinas**: você e seus amigos por platinas, nível ou total de troféus.
 
@@ -67,7 +67,7 @@ npm run android:build              # compila mobile/ e copia para android/
 npx cap open android               # abre no Android Studio → Run
 ```
 
-O ícone (troféu de platina) fica em `assets/*.svg`, e os PNGs em `android/app/src/main/res/mipmap-*`.
+A imagem do ícone fica em `assets/app-icon.jpg`. Os PNGs gerados a partir dela (ícone adaptativo, redondo e splash) ficam em `android/app/src/main/res/`.
 
 > ⚠️ A API da PSN usada aqui não é oficial. A Sony pode mudar ou bloquear esse fluxo, e o uso pode conflitar com os termos de serviço da PSN. O app não é afiliado à Sony.
 

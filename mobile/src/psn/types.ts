@@ -87,6 +87,9 @@ export interface PsnClient {
   playedGames(accountId: string, force?: boolean): Promise<PlayedGame[] | null>;
   trophyGroups(game: { id: string; service: Title["service"] }): Promise<TrophyGroup[]>;
   gameTrophies(accountId: string, game: { id: string; service: Title["service"] }, force?: boolean): Promise<TrophyRow[]>;
+  /** Todos os amigos da PSN (só os ids, em uma ou mais páginas). */
+  friendIds(force?: boolean): Promise<string[]>;
+  /** Perfis de todos os amigos (carrega cada um; pode demorar com listas grandes). */
   friends(force?: boolean): Promise<Profile[]>;
   profile(accountId: string, force?: boolean): Promise<Profile>;
   feed(force?: boolean): Promise<FeedItem[]>;

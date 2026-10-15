@@ -20,7 +20,10 @@ import type { FeedItem, PlayedGame, Profile, PsnClient, Title } from "./types";
 /** Idioma dos nomes de jogos e troféus (Configurações). */
 const headers = () => ({ "Accept-Language": getSettings().language });
 const MIN = 60_000;
-const MAX_FRIENDS = 60;
+/** A PSN devolve a lista de amigos em páginas; percorremos todas. */
+const FRIENDS_PAGE = 1000;
+/** As Atividades olham só os primeiros amigos da lista, para não estourar o limite de chamadas da PSN. */
+const FEED_FRIENDS = 60;
 const MAX_FEED_SOURCES = 20;
 const CONCURRENCY = 5;
 
@@ -91,7 +94,8 @@ export function createPsnClient(): PsnClient {
     },
 
     async profile(accountId, force) {
-      return cached(`profile:${accountId}`, 30 * MIN, () => loadProfile(accountId), force);
+      // Perfis passam pelo limitador: a lista completa de amigos pode ter centenas.
+      return cached(`profile:${accountId}`, 30 * MIN, () => limited(() => loadProfile(accountId)), force);
     },
 
     async titles(accountId, force) {
@@ -191,19 +195,29 @@ export function createPsnClient(): PsnClient {
       return mergeTrophies(meta, earned);
     },
 
-    async friends(force) {
+    async friendIds(force) {
       return cached(
-        "friends",
+        "friend-ids",
         30 * MIN,
         async () => {
-          const res = await getUserFriendsAccountIds(await auth(), "me", { limit: MAX_FRIENDS });
-          const profiles = await mapLimit(res.friends, CONCURRENCY, (id) =>
-            client.profile(id, force).catch(() => null),
-          );
-          return profiles.filter((p): p is Profile => p !== null);
+          const a = await auth();
+          const ids: string[] = [];
+          for (let offset = 0; ; ) {
+            const res = await getUserFriendsAccountIds(a, "me", { limit: FRIENDS_PAGE, offset });
+            ids.push(...res.friends);
+            if (res.nextOffset === undefined || res.friends.length === 0 || ids.length >= res.totalItemCount) break;
+            offset = res.nextOffset;
+          }
+          return [...new Set(ids)];
         },
         force,
       );
+    },
+
+    async friends(force) {
+      const ids = await client.friendIds(force);
+      const profiles = await mapLimit(ids, CONCURRENCY, (id) => client.profile(id, force).catch(() => null));
+      return profiles.filter((p): p is Profile => p !== null);
     },
 
     async feed(force) {
@@ -213,7 +227,10 @@ export function createPsnClient(): PsnClient {
         10 * MIN,
         async () => {
           const me = await client.me(force);
-          const friends = await client.friends(force);
+          const friendIds = (await client.friendIds(force)).slice(0, FEED_FRIENDS);
+          const friends = (
+            await mapLimit(friendIds, CONCURRENCY, (id) => client.profile(id).catch(() => null))
+          ).filter((p): p is Profile => p !== null);
           const now = Date.now();
 
           const mine: FeedSource[] = (await client.titles("me", force)).map((title) => ({

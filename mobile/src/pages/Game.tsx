@@ -5,6 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, GameIcon, ProgressBar, RemoteImage, Spinner, TrophyBadge, rarityLabel } from "../components/ui";
 import type { GroupSection } from "../lib/stats";
 import { useSettings } from "../lib/settings";
+import { trophyGuideUrl } from "../lib/tips";
 import { formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import type { Title, TrophyRow } from "../psn/types";
@@ -105,6 +106,7 @@ export function GamePage() {
               <GroupList
                 key={section.group.id}
                 section={section}
+                gameName={data.title?.name ?? ""}
                 rows={visible.filter((t) => section.trophies.includes(t))}
                 filter={filter}
                 expanded={sections.length === 1 || open.has(section.group.id)}
@@ -121,12 +123,14 @@ export function GamePage() {
 /** Uma lista de troféus (jogo base ou DLC) que abre e fecha ao tocar no cabeçalho. */
 function GroupList({
   section,
+  gameName,
   rows,
   filter,
   expanded,
   onToggle,
 }: {
   section: GroupSection;
+  gameName: string;
   rows: TrophyRow[];
   filter: Filter;
   expanded: boolean;
@@ -198,7 +202,7 @@ function GroupList({
           ) : (
             <ul className="space-y-2">
               {rows.map((t) => (
-                <TrophyItem key={t.id} trophy={t} />
+                <TrophyItem key={t.id} trophy={t} gameName={gameName} />
               ))}
             </ul>
           )}
@@ -208,37 +212,51 @@ function GroupList({
   );
 }
 
-function TrophyItem({ trophy: t }: { trophy: TrophyRow }) {
-  const { revealSecrets } = useSettings();
+function TrophyItem({ trophy: t, gameName }: { trophy: TrophyRow; gameName: string }) {
+  const { revealSecrets, language } = useSettings();
   const locked = !t.earned;
   const secret = t.hidden && locked && !revealSecrets;
   const rarity = rarityLabel(t.rate);
   return (
-    <li className={`flex gap-3 rounded-xl border border-line bg-surface p-3 ${locked ? "opacity-60" : ""}`}>
-      <RemoteImage
-        src={secret ? null : t.iconUrl}
-        alt=""
-        className={`h-12 w-12 shrink-0 rounded-lg ${locked ? "grayscale" : ""}`}
-        fallback={
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-2">
-            {secret ? "?" : locked ? "🔒" : "🏆"}
-          </span>
-        }
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">{secret ? "Troféu secreto" : t.name}</span>
-          <TrophyBadge type={t.type} />
+    <li className="rounded-xl border border-line bg-surface p-3">
+      <div className={`flex gap-3 ${locked ? "opacity-60" : ""}`}>
+        <RemoteImage
+          src={secret ? null : t.iconUrl}
+          alt=""
+          className={`h-12 w-12 shrink-0 rounded-lg ${locked ? "grayscale" : ""}`}
+          fallback={
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-2">
+              {secret ? "?" : locked ? "🔒" : "🏆"}
+            </span>
+          }
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium">{secret ? "Troféu secreto" : t.name}</span>
+            <TrophyBadge type={t.type} />
+          </div>
+          {!secret && t.detail && <p className="text-sm text-muted">{t.detail}</p>}
+          {(t.earnedAt || rarity) && (
+            <p className="mt-1 text-xs text-ps-blue-2">
+              {t.earnedAt && `Conquistado em ${new Date(t.earnedAt).toLocaleDateString("pt-BR")}`}
+              {t.earnedAt && rarity && " · "}
+              {rarity}
+            </p>
+          )}
         </div>
-        {!secret && t.detail && <p className="text-sm text-muted">{t.detail}</p>}
-        {(t.earnedAt || rarity) && (
-          <p className="mt-1 text-xs text-ps-blue-2">
-            {t.earnedAt && `Conquistado em ${new Date(t.earnedAt).toLocaleDateString("pt-BR")}`}
-            {t.earnedAt && rarity && " · "}
-            {rarity}
-          </p>
-        )}
       </div>
+      {/* Abre no app do YouTube (ou no navegador) a busca por um vídeo de dicas. */}
+      <a
+        href={trophyGuideUrl(gameName, t.name, language)}
+        target="_blank"
+        rel="noreferrer"
+        className="ml-15 mt-2 inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
+      >
+        <span className="text-[#ff3d3d]" aria-hidden>
+          ▶
+        </span>
+        {secret ? "Dicas no YouTube (pode ter spoiler)" : "Dicas no YouTube"}
+      </a>
     </li>
   );
 }
