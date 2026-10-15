@@ -78,7 +78,6 @@ export function StatsPage() {
   const names = [data?.me.onlineId ?? "Você", friend?.onlineId ?? ""].slice(0, all.length);
   const series = (pick: (s: NonNullable<typeof meStats>) => number[]): Series[] =>
     all.map((s, i) => ({ name: names[i], values: pick(s) }));
-  const platformRows = [...new Set(all.flatMap((s) => s.byPlatform.map((p) => p.platform)))];
 
   return (
     <>
@@ -154,18 +153,6 @@ export function StatsPage() {
                 series={series((s) => TYPES.map((t) => s.trophies[t]))}
               />
             </section>
-
-            {platform === null && platformRows.length > 1 && (
-              <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
-                <h2 className="font-semibold">Jogos por plataforma</h2>
-                <GroupedBars
-                  categories={platformRows}
-                  series={series((s) =>
-                    platformRows.map((p) => s.byPlatform.find((b) => b.platform === p)?.games ?? 0),
-                  )}
-                />
-              </section>
-            )}
 
             <PlatformTitles
               players={[
