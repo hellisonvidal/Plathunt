@@ -21,11 +21,21 @@ O repositório tem duas versões:
 
 ### Instalar
 
-1. No GitHub, abra **Actions → Android APK** e clique na execução mais recente (ou em **Run workflow** para gerar uma nova).
-2. Em **Artifacts**, baixe **trophy-mania-android** e descompacte. Dentro está o `app-debug.apk`.
-3. No celular, abra o APK e permita "instalar apps de fontes desconhecidas".
+1. No GitHub, abra **Releases** e baixe `PlayStation-Trophy-Mania.apk` da versão mais recente. (Versões de branches que ainda não estão na `main` ficam em **Actions → Android APK → Artifacts**.)
+2. No celular, abra o APK e permita "instalar apps de fontes desconhecidas".
 
-O APK é gerado sozinho a cada mudança no app. Não é preciso configurar nada.
+Cada mudança que chega na `main` gera uma Release `build-N` automaticamente. Todas as versões são assinadas com a mesma chave (`android/app/debug.keystore`), então uma versão nova instala por cima da anterior sem perder o login.
+
+### Configurações e atualizações
+
+A engrenagem no topo das abas abre as Configurações:
+
+- **Conta**: sair / trocar de conta PSN.
+- **Atualizações**: versão instalada e "Verificar atualizações", que compara com a última Release do GitHub e oferece o download do APK. Com o repositório privado, o GitHub não responde ao app, então o botão abre a página de versões no navegador.
+- **Atividades**: período de 7, 30 ou 90 dias.
+- **Troféus e jogos**: idioma dos nomes vindos da PSN (português, inglês ou espanhol) e opção de revelar troféus secretos.
+- **Geral**: aba em que o app abre.
+- **Dados**: atualizar tudo da PSN agora e apagar as curtidas.
 
 ### Abas
 

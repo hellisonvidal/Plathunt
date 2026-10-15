@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, GameIcon, ProgressBar, Spinner, TrophyBadge, rarityLabel } from "../components/ui";
+import { useSettings } from "../lib/settings";
 import { formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import type { Title, TrophyRow } from "../psn/types";
@@ -130,8 +131,9 @@ export function GamePage() {
 }
 
 function TrophyItem({ trophy: t }: { trophy: TrophyRow }) {
+  const { revealSecrets } = useSettings();
   const locked = !t.earned;
-  const secret = t.hidden && locked;
+  const secret = t.hidden && locked && !revealSecrets;
   const rarity = rarityLabel(t.rate);
   return (
     <li className={`flex gap-3 rounded-xl border border-line bg-surface p-3 ${locked ? "opacity-60" : ""}`}>

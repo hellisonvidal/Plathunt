@@ -7,15 +7,11 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.Gravity;
-import android.view.ViewGroup;
 import android.webkit.CookieManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 /**
@@ -58,21 +54,10 @@ public class PsnLoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.parseColor("#0b0f1a"));
-
-        TextView hint = new TextView(this);
-        hint.setText("Entre com sua conta PlayStation Network");
-        hint.setTextColor(Color.parseColor("#e8ecf5"));
-        hint.setGravity(Gravity.CENTER);
-        int pad = (int) (12 * getResources().getDisplayMetrics().density);
-        hint.setPadding(pad, pad, pad, pad);
-        root.addView(hint, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
+        // Só a página da Sony, em tela cheia.
         webView = new WebView(this);
-        root.addView(webView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-        setContentView(root);
+        webView.setBackgroundColor(Color.parseColor("#0b0f1a"));
+        setContentView(webView);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);

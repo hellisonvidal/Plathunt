@@ -11,12 +11,14 @@ import {
   type TrophyTitle,
 } from "psn-api";
 import { cached, createLimiter, mapLimit } from "../lib/cache";
+import { getSettings } from "../lib/settings";
 import { parseDuration } from "../lib/stats";
 import { feedItemsFromTrophies, mergeTrophies, pickFeedSources, sortFeed, type FeedSource } from "../lib/feed";
 import { getAccessToken } from "./auth";
 import type { FeedItem, PlayedGame, Profile, PsnClient, Title } from "./types";
 
-const HEADERS = { "Accept-Language": "pt-BR" } as const;
+/** Idioma dos nomes de jogos e troféus (Configurações). */
+const headers = () => ({ "Accept-Language": getSettings().language });
 const MIN = 60_000;
 const MAX_FRIENDS = 60;
 const MAX_FEED_SOURCES = 20;
@@ -102,7 +104,7 @@ export function createPsnClient(): PsnClient {
           // Até 800 jogos para você; para amigos, os 100 mais recentes bastam.
           const pages = accountId === "me" ? 8 : 1;
           for (let page = 0, offset = 0; page < pages; page++) {
-            const res = await getUserTitles(a, accountId, { limit: 100, offset, headerOverrides: HEADERS });
+            const res = await getUserTitles(a, accountId, { limit: 100, offset, headerOverrides: headers() });
             all.push(...res.trophyTitles.map(toTitle));
             if (res.nextOffset === undefined || res.trophyTitles.length === 0) break;
             offset = res.nextOffset;
@@ -119,7 +121,7 @@ export function createPsnClient(): PsnClient {
         30 * MIN,
         () =>
           limited(async () => {
-            const res = await getUserTitles(await auth(), accountId, { limit: 100, headerOverrides: HEADERS });
+            const res = await getUserTitles(await auth(), accountId, { limit: 100, headerOverrides: headers() });
             return res.trophyTitles.map(toTitle);
           }),
         force,
@@ -162,7 +164,7 @@ export function createPsnClient(): PsnClient {
       return cached(`groups:${game.id}`, 24 * 60 * MIN, async () => {
         const res = await getTitleTrophyGroups(await auth(), game.id, {
           npServiceName: game.service,
-          headerOverrides: HEADERS,
+          headerOverrides: headers(),
         });
         return res.trophyGroups.map((g) => ({
           id: g.trophyGroupId,
@@ -174,7 +176,7 @@ export function createPsnClient(): PsnClient {
     },
 
     async gameTrophies(accountId, game, force) {
-      const opts = { npServiceName: game.service, headerOverrides: HEADERS };
+      const opts = { npServiceName: game.service, headerOverrides: headers() };
       const meta = await cached(`meta:${game.id}`, 24 * 60 * MIN, async () => {
         const res = await getTitleTrophies(await auth(), game.id, "all", opts);
         return res.trophies;
@@ -204,8 +206,9 @@ export function createPsnClient(): PsnClient {
     },
 
     async feed(force) {
+      const days = getSettings().feedDays;
       return cached(
-        "feed",
+        `feed:${days}`,
         10 * MIN,
         async () => {
           const me = await client.me(force);
@@ -220,7 +223,7 @@ export function createPsnClient(): PsnClient {
           const theirs = (
             await mapLimit(friends, CONCURRENCY, async (f) => {
               try {
-                const res = await getUserTitles(await auth(), f.accountId, { limit: 3, headerOverrides: HEADERS });
+                const res = await getUserTitles(await auth(), f.accountId, { limit: 3, headerOverrides: headers() });
                 return res.trophyTitles.map((t) => ({
                   owner: { accountId: f.accountId, onlineId: f.onlineId, avatarUrl: f.avatarUrl, isMe: false },
                   title: toTitle(t),
@@ -231,11 +234,11 @@ export function createPsnClient(): PsnClient {
             })
           ).flat();
 
-          const sources = pickFeedSources([...mine, ...theirs], now, MAX_FEED_SOURCES);
+          const sources = pickFeedSources([...mine, ...theirs], now, MAX_FEED_SOURCES, days);
           const items = await mapLimit(sources, CONCURRENCY, async (s) => {
             try {
               const id = s.owner.isMe ? "me" : s.owner.accountId;
-              return feedItemsFromTrophies(s, await client.gameTrophies(id, s.title, force), now);
+              return feedItemsFromTrophies(s, await client.gameTrophies(id, s.title, force), now, days);
             } catch {
               return [] as FeedItem[];
             }

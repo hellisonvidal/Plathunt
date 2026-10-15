@@ -4,7 +4,7 @@ import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
 import { ReactionBar } from "../components/Reactions";
 import { Avatar, ErrorBox, Spinner, TrophyBadge, rarityLabel, timeAgo } from "../components/ui";
-import { FEED_WINDOW_DAYS } from "../lib/feed";
+import { useSettings } from "../lib/settings";
 import { useData } from "../lib/useData";
 import type { FeedItem } from "../psn/types";
 
@@ -18,7 +18,8 @@ type FilterKey = keyof typeof FILTERS;
 
 export function ActivityPage() {
   const { client } = useApp();
-  const { data, error, loading, refresh } = useData((force) => client.feed(force), [client]);
+  const { feedDays } = useSettings();
+  const { data, error, loading, refresh } = useData((force) => client.feed(force), [client, feedDays]);
   const [filter, setFilter] = useState<FilterKey>("todos");
 
   const items = (data ?? []).filter((i) => {
@@ -50,7 +51,7 @@ export function ActivityPage() {
 
         {data && items.length === 0 && (
           <p className="py-12 text-center text-sm text-muted">
-            Nenhum troféu nos últimos {FEED_WINDOW_DAYS} dias por aqui. Bora jogar! 🎮
+            Nenhum troféu nos últimos {feedDays} dias por aqui. Bora jogar! 🎮
           </p>
         )}
 

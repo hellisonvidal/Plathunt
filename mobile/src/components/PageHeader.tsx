@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { SettingsIcon } from "./icons";
 
 export function PageHeader({
   title,
@@ -29,6 +30,11 @@ export function PageHeader({
         >
           <span className={refreshing ? "inline-block animate-spin" : ""}>⟳</span>
         </button>
+      )}
+      {!back && (
+        <Link to="/settings" aria-label="Configurações" className="rounded-full p-1 text-muted active:text-ink">
+          <SettingsIcon />
+        </Link>
       )}
     </header>
   );

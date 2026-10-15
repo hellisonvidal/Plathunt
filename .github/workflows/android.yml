@@ -1,8 +1,10 @@
 name: Android APK
 
-# Gera o APK do Trophy Mania. Roda sozinho a cada mudança no app e também
-# manualmente em Actions → Android APK → Run workflow.
-# O APK fica em "Artifacts" (trophy-mania-android) na página da execução.
+# Gera o APK do PlayStation Trophy Mania. Roda sozinho a cada mudança no app e
+# também manualmente em Actions → Android APK → Run workflow.
+# - Em qualquer branch: o APK fica em "Artifacts" (trophy-mania-android).
+# - Na main: também publica uma Release "build-N" com o APK, que é o que o botão
+#   "Verificar atualizações" do app consulta.
 on:
   workflow_dispatch:
   push:
@@ -12,9 +14,16 @@ on:
       - "capacitor.config.ts"
       - ".github/workflows/android.yml"
 
+permissions:
+  contents: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      # Vira o versionCode do Android e a versão mostrada em Configurações.
+      BUILD_NUMBER: ${{ github.run_number }}
+      VITE_BUILD_NUMBER: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
 
@@ -53,3 +62,15 @@ jobs:
           name: trophy-mania-android
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Publicar versão (Release)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ github.event.head_commit.message }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk PlayStation-Trophy-Mania.apk
+          gh release create "build-$BUILD_NUMBER" PlayStation-Trophy-Mania.apk \
+            --title "PlayStation Trophy Mania 1.0.$BUILD_NUMBER" \
+            --notes "${NOTES:-Nova versão}" \
+            --target "$GITHUB_SHA"

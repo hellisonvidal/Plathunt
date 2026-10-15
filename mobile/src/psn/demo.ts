@@ -1,4 +1,5 @@
 import { feedItemsFromTrophies, sortFeed } from "../lib/feed";
+import { getSettings } from "../lib/settings";
 import type { Counts, PlayedGame, Profile, PsnClient, Title, TrophyGroup, TrophyRow, TrophyType } from "./types";
 
 /** Dados de demonstração: permite ver o app funcionando sem conta PSN. */
@@ -128,7 +129,9 @@ export function createDemoClient(): PsnClient {
       const items = Object.keys(PROFILES).flatMap((k) => {
         const p = PROFILES[k];
         const owner = { accountId: p.accountId, onlineId: p.onlineId, avatarUrl: p.avatarUrl, isMe: k === "me" };
-        return titlesOf(k).flatMap((title) => feedItemsFromTrophies({ owner, title }, trophiesOf(k, title.id), now));
+        return titlesOf(k).flatMap((title) =>
+          feedItemsFromTrophies({ owner, title }, trophiesOf(k, title.id), now, getSettings().feedDays),
+        );
       });
       return delay(sortFeed(items));
     },

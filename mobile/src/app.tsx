@@ -1,5 +1,6 @@
-import { createContext, useContext, useMemo, useState } from "react";
-import { HashRouter, Navigate, NavLink, Route, Routes } from "react-router-dom";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { HashRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { getSettings } from "./lib/settings";
 import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
 import { createDemoClient } from "./psn/demo";
@@ -11,6 +12,7 @@ import { GamePage } from "./pages/Game";
 import { LoginPage } from "./pages/Login";
 import { ProfilePage } from "./pages/Profile";
 import { RankingPage } from "./pages/Ranking";
+import { SettingsPage } from "./pages/Settings";
 import { StatsPage } from "./pages/Stats";
 
 type Mode = "psn" | "demo";
@@ -74,6 +76,7 @@ export function App() {
   return (
     <AppContext.Provider value={state}>
       <HashRouter>
+        <StartTab />
         <div className="safe-top mx-auto min-h-screen max-w-2xl pb-24">
           {state.mode === "demo" && (
             <div className="bg-gold/15 px-4 py-2 text-center text-xs text-gold">
@@ -89,6 +92,7 @@ export function App() {
             <Route path="/friends" element={<FriendsPage />} />
             <Route path="/activity" element={<ActivityPage />} />
             <Route path="/ranking" element={<RankingPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/u/me" element={<Navigate to="/" replace />} />
             <Route path="/u/:accountId" element={<ProfilePage />} />
             <Route path="/game/:accountId/:gameId" element={<GamePage />} />
@@ -98,6 +102,21 @@ export function App() {
       </HashRouter>
     </AppContext.Provider>
   );
+}
+
+/** Abre o app na aba escolhida em Configurações (só ao iniciar). */
+let startHandled = false;
+function StartTab() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (startHandled) return;
+    startHandled = true;
+    const { startTab } = getSettings();
+    if (pathname === "/" && startTab !== "/") navigate(startTab, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
 }
 
 const TABS = [

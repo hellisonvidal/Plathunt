@@ -34,6 +34,13 @@ export function toggleReaction(itemKey: string, reaction: string): string[] {
   return next;
 }
 
+export function clearReactions() {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {}
+  listeners.forEach((l) => l());
+}
+
 export function useReactions(itemKey: string) {
   const [mine, setMine] = useState<string[]>(() => readAll()[itemKey] ?? []);
   useEffect(() => {

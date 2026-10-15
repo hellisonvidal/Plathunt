@@ -13,8 +13,13 @@ export interface FeedSource {
  * tiveram troféus dentro da janela, os mais recentes primeiro, até `max`
  * (cada par custa duas chamadas à PSN).
  */
-export function pickFeedSources(sources: FeedSource[], now: number, max: number): FeedSource[] {
-  const since = now - FEED_WINDOW_DAYS * 86_400_000;
+export function pickFeedSources(
+  sources: FeedSource[],
+  now: number,
+  max: number,
+  days: number = FEED_WINDOW_DAYS,
+): FeedSource[] {
+  const since = now - days * 86_400_000;
   return sources
     .filter((s) => new Date(s.title.lastUpdated).getTime() >= since)
     .sort((a, b) => new Date(b.title.lastUpdated).getTime() - new Date(a.title.lastUpdated).getTime())
@@ -22,8 +27,13 @@ export function pickFeedSources(sources: FeedSource[], now: number, max: number)
 }
 
 /** Troféus conquistados dentro da janela, prontos para o feed. */
-export function feedItemsFromTrophies(source: FeedSource, trophies: TrophyRow[], now: number): FeedItem[] {
-  const since = now - FEED_WINDOW_DAYS * 86_400_000;
+export function feedItemsFromTrophies(
+  source: FeedSource,
+  trophies: TrophyRow[],
+  now: number,
+  days: number = FEED_WINDOW_DAYS,
+): FeedItem[] {
+  const since = now - days * 86_400_000;
   const { owner, title } = source;
   return trophies
     .filter((t) => t.earned && t.earnedAt && new Date(t.earnedAt).getTime() >= since)
