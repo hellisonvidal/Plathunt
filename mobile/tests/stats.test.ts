@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  titlesByPlatform,
   matchPlayed,
   primaryPlatform,
   platformFromCategory,
@@ -132,6 +133,20 @@ describe("plataformas", () => {
       { platform: "PS5", games: 1 },
       { platform: "PS4", games: 1 },
     ]);
+  });
+});
+
+describe("titlesByPlatform", () => {
+  it("agrupa por plataforma em ordem alfabética, cada jogo uma vez", () => {
+    const ts = [
+      title("1", "Uncharted 4", "PS4", 10, c(0, 0, 0, 1)),
+      title("2", "astro Bot", "PS5", 10, c(0, 0, 0, 1)),
+      title("3", "Bloodborne", "PS4,PSVITA", 10, c(0, 0, 0, 1)),
+      title("4", "Ápex", "PS4", 10, c(0, 0, 0, 1)),
+    ];
+    const g = titlesByPlatform(ts);
+    expect([...g.keys()]).toEqual(["PS5", "PS4"]);
+    expect(g.get("PS4")!.map((t) => t.name)).toEqual(["Ápex", "Bloodborne", "Uncharted 4"]);
   });
 });
 

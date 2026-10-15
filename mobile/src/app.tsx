@@ -80,7 +80,7 @@ export function App() {
       <HashRouter>
         <StartTab />
         <BackButton />
-        <div className="safe-top mx-auto min-h-screen max-w-2xl pb-24">
+        <div className="safe-top mx-auto min-h-[100dvh] max-w-2xl pb-24">
           {state.mode === "demo" && (
             <div className="bg-gold/15 px-4 py-2 text-center text-xs text-gold">
               Modo demonstração ·{" "}
@@ -152,7 +152,7 @@ function TabBar() {
             to={t.to}
             end={t.to === "/"}
             className={({ isActive }) =>
-              `flex flex-1 flex-col items-center gap-1 pb-2 pt-2.5 text-[10px] ${isActive ? "text-ps-blue-2" : "text-muted"}`
+              `flex flex-1 flex-col items-center gap-1 pb-2 pt-2.5 text-[0.625rem] ${isActive ? "text-ps-blue-2" : "text-muted"}`
             }
           >
             <span className="flex h-6 items-center">{t.icon}</span>

@@ -151,7 +151,7 @@ function GroupList({
         }
       />
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-ps-blue-2">
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-ps-blue-2">
           {section.isBase ? "Jogo base" : "DLC"}
         </p>
         <h3 className="truncate font-semibold">{section.group.name}</h3>

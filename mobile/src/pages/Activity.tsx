@@ -60,7 +60,7 @@ export function ActivityPage() {
         ))}
 
         {data && items.length > 0 && (
-          <p className="pb-2 text-center text-[11px] text-muted">
+          <p className="pb-2 text-center text-[0.6875rem] text-muted">
             Suas curtidas ficam salvas neste celular.
           </p>
         )}

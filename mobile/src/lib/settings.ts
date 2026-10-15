@@ -28,7 +28,10 @@ const listeners = new Set<() => void>();
 
 export function getSettings(): Settings {
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(KEY) ?? "{}") };
+    const saved = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Record<string, unknown>;
+    // Só as chaves conhecidas: opções removidas (ex.: plano do PS Plus) somem do que fica salvo.
+    const known = Object.keys(DEFAULT_SETTINGS).filter((k) => k in saved);
+    return { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) };
   } catch {
     return DEFAULT_SETTINGS;
   }

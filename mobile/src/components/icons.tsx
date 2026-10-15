@@ -58,6 +58,24 @@ export const SettingsIcon = () => (
   </svg>
 );
 
+/** Selo do PlayStation Plus: "+" amarelo. */
+export const PsPlusIcon = ({ size = 18 }: { size?: number }) => (
+  <svg viewBox="0 0 24 24" style={{ width: `${size / 16}rem`, height: `${size / 16}rem` }} aria-label="PlayStation Plus" role="img">
+    <defs>
+      <linearGradient id="psplus-g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#ffe066" />
+        <stop offset="1" stopColor="#e3a300" />
+      </linearGradient>
+    </defs>
+    <path
+      d="M9 2.5h6a1 1 0 0 1 1 1V8h4.5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H16v4.5a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V16H3.5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1H8V3.5a1 1 0 0 1 1-1Z"
+      fill="url(#psplus-g)"
+      stroke="#9a6b00"
+      strokeWidth="0.8"
+    />
+  </svg>
+);
+
 /** Símbolos dos botões do controle PlayStation, nas cores clássicas. */
 export const PS_BUTTONS = {
   "ps:triangle": { glyph: "△", color: "#3ed3a2", label: "Triângulo" },

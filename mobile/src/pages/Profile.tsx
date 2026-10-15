@@ -6,6 +6,7 @@ import { TitleList } from "../components/TitleList";
 import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge } from "../components/ui";
 import { formatDuration, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
+import { PsPlusIcon } from "../components/icons";
 
 type Sort = "recentes" | "progresso" | "tempo";
 
@@ -42,7 +43,12 @@ export function ProfilePage() {
 
   return (
     <>
-      <PageHeader title={isMe ? "Perfil" : (data?.profile.onlineId ?? "Perfil")} back={!isMe} onRefresh={refresh} refreshing={loading} />
+      <PageHeader
+        title={isMe ? "Perfil" : (data?.profile.onlineId ?? "Perfil")}
+        back={!isMe}
+        onRefresh={refresh}
+        refreshing={loading}
+      />
       <div className="space-y-4 px-4 pt-4">
         {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
         {loading && !data && <Spinner label="Carregando perfil e jogos…" />}
@@ -54,7 +60,7 @@ export function ProfilePage() {
                 <Avatar src={data.profile.avatarUrl} name={data.profile.onlineId} size={84} />
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-xl font-bold">{data.profile.onlineId}</h2>
-                  {data.profile.isPlus && <span className="text-xs font-semibold text-gold">PlayStation Plus</span>}
+                  <PsPlusInfo isPlus={data.profile.isPlus} />
                   {data.profile.aboutMe && <p className="mt-0.5 text-sm text-muted">{data.profile.aboutMe}</p>}
                 </div>
               </div>
@@ -125,5 +131,16 @@ export function ProfilePage() {
         )}
       </div>
     </>
+  );
+}
+
+/** Selo do PlayStation Plus (a PSN só informa se a conta é assinante). */
+function PsPlusInfo({ isPlus }: { isPlus: boolean }) {
+  if (!isPlus) return null;
+  return (
+    <p className="mt-0.5 flex items-center gap-1.5 text-xs font-semibold text-gold">
+      <PsPlusIcon size={16} />
+      PlayStation Plus
+    </p>
   );
 }

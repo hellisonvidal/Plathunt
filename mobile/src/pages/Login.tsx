@@ -4,8 +4,8 @@ import { extractNpsso } from "../lib/npsso";
 import { signInWithCode, signInWithNpsso } from "../psn/auth";
 import { isNativeApp, PsnLogin } from "../psn/native";
 
-/** A tela da Sony abre sozinha só na primeira vez que o app é aberto sem login. */
-let autoOpened = false;
+/** O login silencioso é tentado uma vez por abertura do app (não depois de "Sair"). */
+let silentTried = false;
 
 export function LoginPage({
   notice,
@@ -16,6 +16,7 @@ export function LoginPage({
 }) {
   const native = isNativeApp();
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manual, setManual] = useState("");
 
@@ -45,12 +46,16 @@ export function LoginPage({
     }
   }
 
-  // Abre a tela de login da PlayStation assim que o app inicia.
+  // Ao abrir o app, reaproveita o login da Sony salvo no aparelho, sem
+  // mostrar a página da Sony. A página só abre ao tocar em "Entrar com a PSN".
   useEffect(() => {
-    if (native && !autoOpened) {
-      autoOpened = true;
-      void loginWithSony();
-    }
+    if (!native || silentTried) return;
+    silentTried = true;
+    setChecking(true);
+    PsnLogin.silentLogin()
+      .then((r) => (r.code ? finish({ code: r.code }) : undefined))
+      .catch(() => {})
+      .finally(() => setChecking(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -84,10 +89,10 @@ export function LoginPage({
           {native ? (
             <button
               onClick={loginWithSony}
-              disabled={busy}
+              disabled={busy || checking}
               className="w-full rounded-xl bg-ps-blue py-3.5 text-base font-semibold active:bg-ps-blue-2 disabled:opacity-60"
             >
-              {busy ? "Conectando à PSN…" : "Entrar com a PSN"}
+              {checking ? "Verificando login salvo…" : busy ? "Conectando à PSN…" : "Entrar com a PSN"}
             </button>
           ) : (
             <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">

@@ -45,7 +45,7 @@ export function ReactionBar({ itemKey }: { itemKey: string }) {
       {open && (
         <div className="mt-2 rounded-2xl border border-line bg-surface-2 p-2">
           <Row reactions={STANDARD_REACTIONS} mine={mine} onPick={(r) => (toggle(r), setOpen(false))} />
-          <p className="mb-1 mt-2 px-1 text-[11px] uppercase tracking-wide text-muted">PlayStation</p>
+          <p className="mb-1 mt-2 px-1 text-[0.6875rem] uppercase tracking-wide text-muted">PlayStation</p>
           <Row reactions={PLAYSTATION_REACTIONS} mine={mine} onPick={(r) => (toggle(r), setOpen(false))} />
         </div>
       )}

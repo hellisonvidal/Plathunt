@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
-import { Avatar } from "../components/ui";
+import { Avatar, ProgressBar } from "../components/ui";
 import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
 import { APP_VERSION, updateSettings, useSettings, type Settings } from "../lib/settings";
 import { THEMES } from "../lib/theme";
 import { checkForUpdate, RELEASES_PAGE, type UpdateResult } from "../lib/updates";
 import { useData } from "../lib/useData";
+import { AppUpdater, isNativeApp } from "../psn/native";
 
 const LANGUAGES: { value: Settings["language"]; label: string }[] = [
   { value: "pt-BR", label: "Português" },
@@ -197,8 +198,89 @@ function ThemeCard({
         <span className="text-sm font-semibold">{theme.label}</span>
         {selected && <span className="text-ps-blue-2">✓</span>}
       </span>
-      <span className="block text-[11px] leading-tight text-muted">{theme.description}</span>
+      <span className="block text-[0.6875rem] leading-tight text-muted">{theme.description}</span>
     </button>
+  );
+}
+
+type InstallState =
+  | { step: "idle" }
+  | { step: "downloading"; percent: number; downloaded: number }
+  | { step: "installing" }
+  | { step: "permission" }
+  | { step: "error"; message: string };
+
+/**
+ * Baixa e instala a atualização dentro do app (plugin nativo AppUpdater), com
+ * barra de progresso. No navegador (ou se o download falhar), abre o link.
+ */
+function InstallButton({ url }: { url: string }) {
+  const [state, setState] = useState<InstallState>({ step: "idle" });
+
+  if (!isNativeApp()) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="block rounded-xl bg-ps-blue py-2.5 text-center text-sm font-semibold"
+      >
+        Baixar e instalar
+      </a>
+    );
+  }
+
+  async function start() {
+    setState({ step: "downloading", percent: 0, downloaded: 0 });
+    const sub = await AppUpdater.addListener("progress", (p) =>
+      setState({ step: "downloading", percent: p.percent, downloaded: p.downloaded }),
+    );
+    try {
+      const { status } = await AppUpdater.downloadAndInstall({ url });
+      setState(status === "permission-needed" ? { step: "permission" } : { step: "installing" });
+    } catch (e) {
+      setState({ step: "error", message: e instanceof Error ? e.message : "Falha no download." });
+    } finally {
+      await sub.remove();
+    }
+  }
+
+  if (state.step === "downloading") {
+    const mb = (state.downloaded / 1_048_576).toFixed(1);
+    return (
+      <div className="space-y-1.5" role="status">
+        <ProgressBar value={state.percent < 0 ? 100 : state.percent} />
+        <p className="text-xs text-muted">
+          Baixando… {state.percent >= 0 ? `${state.percent}% · ` : ""}
+          {mb} MB
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {state.step === "installing" && (
+        <p className="text-xs text-ps-blue-2">Download concluído. Confirme a instalação na tela do Android.</p>
+      )}
+      {state.step === "permission" && (
+        <p className="text-xs text-gold">
+          Permita que o PlayStation Trophy Mania instale apps (na tela que abriu), volte e toque em “Baixar e instalar”
+          de novo.
+        </p>
+      )}
+      {state.step === "error" && (
+        <p className="text-xs text-red-400">
+          {state.message}{" "}
+          <a href={url} target="_blank" rel="noreferrer" className="underline">
+            Baixar pelo navegador
+          </a>
+        </p>
+      )}
+      <button onClick={start} className="block w-full rounded-xl bg-ps-blue py-2.5 text-center text-sm font-semibold">
+        {state.step === "idle" ? "Baixar e instalar" : "Baixar e instalar de novo"}
+      </button>
+    </div>
   );
 }
 
@@ -211,14 +293,7 @@ function UpdateStatus({ result }: { result: UpdateResult }) {
       <div className="space-y-2 border-t border-line px-4 py-3">
         <p className="text-sm font-semibold">Nova versão disponível: 1.0.{result.latest}</p>
         {result.notes && <p className="whitespace-pre-line text-xs text-muted">{result.notes}</p>}
-        <a
-          href={result.apkUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="block rounded-xl bg-ps-blue py-2.5 text-center text-sm font-semibold"
-        >
-          Baixar e instalar
-        </a>
+        <InstallButton url={result.apkUrl} />
       </div>
     );
   }
@@ -240,13 +315,23 @@ function UpdateStatus({ result }: { result: UpdateResult }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{title}</h2>
+      <h2 className="mb-2 px-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted">{title}</h2>
       <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">{children}</div>
     </section>
   );
 }
 
-function Row({ label, hint, danger, onClick }: { label: string; hint?: string; danger?: boolean; onClick: () => void }) {
+function Row({
+  label,
+  hint,
+  danger,
+  onClick,
+}: {
+  label: string;
+  hint?: string;
+  danger?: boolean;
+  onClick: () => void;
+}) {
   return (
     <button onClick={onClick} className="flex w-full items-center gap-3 p-4 text-left active:bg-surface-2">
       <span className="min-w-0 flex-1">
@@ -275,7 +360,13 @@ function Toggle({
         <span className="block text-sm">{label}</span>
         {hint && <span className="mt-0.5 block text-xs text-muted">{hint}</span>}
       </span>
-      <input type="checkbox" role="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
+      <input
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="peer sr-only"
+      />
       <span className="relative h-6 w-11 shrink-0 rounded-full bg-surface-2 transition peer-checked:bg-ps-blue after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-ink after:transition peer-checked:after:translate-x-5" />
     </label>
   );

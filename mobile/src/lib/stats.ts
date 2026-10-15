@@ -151,6 +151,17 @@ export function filterByPlatform(titles: Title[], platform: string | null, playe
   return titles.filter((t) => primaryPlatform(t, playedOn?.get(t.id)) === platform);
 }
 
+/** Jogos de cada plataforma (cada jogo em uma só), em ordem alfabética. */
+export function titlesByPlatform(titles: Title[], playedOn?: PlayedOn): Map<string, Title[]> {
+  const out = new Map<string, Title[]>();
+  for (const t of titles) {
+    const p = primaryPlatform(t, playedOn?.get(t.id));
+    out.set(p, [...(out.get(p) ?? []), t]);
+  }
+  for (const list of out.values()) list.sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
+  return new Map([...out].sort(([a], [b]) => rank(a) - rank(b)));
+}
+
 export interface GameStats {
   games: number;
   completed: number;

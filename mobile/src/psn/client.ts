@@ -105,9 +105,9 @@ export function createPsnClient(): PsnClient {
         async () => {
           const a = await auth();
           const all: Title[] = [];
-          // Até 800 jogos para você; para amigos, os 100 mais recentes bastam.
-          const pages = accountId === "me" ? 8 : 1;
-          for (let page = 0, offset = 0; page < pages; page++) {
+          // Todos os jogos (até 2.000), seus e dos amigos: a comparação de
+          // estatísticas precisa da lista completa dos dois lados.
+          for (let page = 0, offset = 0; page < 20; page++) {
             const res = await getUserTitles(a, accountId, { limit: 100, offset, headerOverrides: headers() });
             all.push(...res.trophyTitles.map(toTitle));
             if (res.nextOffset === undefined || res.trophyTitles.length === 0) break;

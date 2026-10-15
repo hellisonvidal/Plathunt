@@ -19,6 +19,8 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  * - login(): abre direto o formulário de entrada da Sony e resolve com
  *   { code } (código OAuth) quando o usuário termina, ou { npsso } como
  *   reserva, ou {} se ele fechar a tela;
+ * - silentLogin(): sem mostrar nada, usa o login da Sony já guardado no
+ *   aparelho (cookie npsso) para pegar um código OAuth; {} se não houver;
  * - authorize({ npsso }): troca o NPSSO pelo código OAuth (login manual).
  *   A Sony entrega o código em um redirect, que o WebView não deixa ler;
  * - clearSession(): apaga o login da Sony guardado no aparelho, para que o
@@ -40,7 +42,35 @@ public class PsnLoginPlugin extends Plugin {
             + "&client_id=09515159-7237-4370-9b40-3806e67c0891"
             + "&redirect_uri=com.scee.psxandroid.scecompcall%3A%2F%2Fredirect"
             + "&response_type=code"
-            + "&scope=psn%3Amobile.v2.core%20psn%3Aclientapp";
+            + "&scope=psn%3Amobile.v2.core%20psn%3Aclientapp"
+            // Formulário compacto da PlayStation (como no app oficial): vai
+            // direto para usuário e senha, sem a página inicial da Sony.
+            + "&service_entity=urn%3Aservice-entity%3Apsn"
+            + "&ui=pr"
+            + "&layout_type=popup"
+            + "&service_logo=ps"
+            + "&smcid=psapp%3Asignin";
+
+    /** Login silencioso: não abre tela; resolve {} quando não há login da Sony salvo. */
+    @PluginMethod
+    public void silentLogin(PluginCall call) {
+        JSObject ret = new JSObject();
+        try {
+            CookieManager cookies = CookieManager.getInstance();
+            for (String url : PsnLoginActivity.COOKIE_URLS) {
+                String npsso = PsnLoginActivity.extractNpsso(cookies.getCookie(url));
+                if (npsso == null) continue;
+                String code = requestCode(npsso);
+                if (code != null) {
+                    ret.put("code", code);
+                    break;
+                }
+            }
+        } catch (Exception ignored) {
+            // Sem rede ou login expirado: o app mostra o botão de entrar.
+        }
+        call.resolve(ret);
+    }
 
     @PluginMethod
     public void clearSession(PluginCall call) {
@@ -61,17 +91,10 @@ public class PsnLoginPlugin extends Plugin {
             call.reject("NPSSO inválido.");
             return;
         }
-        HttpURLConnection conn = null;
         try {
-            conn = (HttpURLConnection) new URL(AUTHORIZE_URL).openConnection();
-            conn.setInstanceFollowRedirects(false);
-            conn.setConnectTimeout(15000);
-            conn.setReadTimeout(15000);
-            conn.setRequestProperty("Cookie", "npsso=" + npsso);
-            int status = conn.getResponseCode();
-            String code = extractCode(conn.getHeaderField("Location"));
+            String code = requestCode(npsso);
             if (code == null) {
-                call.reject("A PSN não devolveu o código de acesso (HTTP " + status + "). O NPSSO pode ter expirado.");
+                call.reject("A PSN não devolveu o código de acesso. O NPSSO pode ter expirado.");
                 return;
             }
             JSObject ret = new JSObject();
@@ -79,6 +102,20 @@ public class PsnLoginPlugin extends Plugin {
             call.resolve(ret);
         } catch (Exception e) {
             call.reject("Não foi possível falar com a PSN.", e);
+        }
+    }
+
+    /** Pede o código OAuth com o NPSSO; null se a Sony não devolver (NPSSO expirado). */
+    static String requestCode(String npsso) throws Exception {
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(AUTHORIZE_URL).openConnection();
+            conn.setInstanceFollowRedirects(false);
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
+            conn.setRequestProperty("Cookie", "npsso=" + npsso);
+            conn.getResponseCode();
+            return extractCode(conn.getHeaderField("Location"));
         } finally {
             if (conn != null) conn.disconnect();
         }

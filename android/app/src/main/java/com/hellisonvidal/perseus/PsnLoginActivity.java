@@ -7,6 +7,10 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ProgressBar;
 import android.webkit.CookieManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -28,7 +32,7 @@ public class PsnLoginActivity extends AppCompatActivity {
     static final String EXTRA_CODE = "code";
     static final String EXTRA_NPSSO = "npsso";
     private static final String REDIRECT_PREFIX = "com.scee.psxandroid.scecompcall://";
-    private static final String[] COOKIE_URLS = {
+    static final String[] COOKIE_URLS = {
         "https://ca.account.sony.com",
         "https://my.account.sony.com",
     };
@@ -38,6 +42,10 @@ public class PsnLoginActivity extends AppCompatActivity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WebView webView;
+    private ProgressBar spinner;
+    /** Tempo máximo com a tela de carregamento antes de mostrar a página como estiver. */
+    private static final long REVEAL_TIMEOUT_MS = 8000;
+    private final Runnable reveal = this::showWebView;
     private boolean finished = false;
     private long npssoSeenAt = 0;
 
@@ -54,10 +62,19 @@ public class PsnLoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Só a página da Sony, em tela cheia.
+        // Só o formulário da Sony, em tela cheia. Enquanto os redirects da Sony
+        // carregam, fica um indicador de progresso no lugar da página.
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.parseColor("#0b0f1a"));
         webView = new WebView(this);
         webView.setBackgroundColor(Color.parseColor("#0b0f1a"));
-        setContentView(webView);
+        webView.setVisibility(View.INVISIBLE);
+        root.addView(webView, new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        spinner = new ProgressBar(this);
+        root.addView(spinner, new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+        setContentView(root);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -83,11 +100,17 @@ public class PsnLoginActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 checkForNpsso();
+                // Mostra a página quando ela termina de carregar e não é um
+                // passo intermediário (o redirect final fecha a tela sozinho).
+                if (!finished && url != null && !url.startsWith(REDIRECT_PREFIX) && !url.contains("/oauth/authorize")) {
+                    handler.postDelayed(reveal, 300);
+                }
             }
         });
 
         webView.loadUrl(PsnLoginPlugin.AUTHORIZE_URL);
         handler.post(poll);
+        handler.postDelayed(reveal, REVEAL_TIMEOUT_MS);
     }
 
     /** Captura o redirect final da Sony com o código OAuth. */
@@ -102,6 +125,12 @@ public class PsnLoginActivity extends AppCompatActivity {
         } catch (Exception ignored) {
         }
         return true; // Nunca deixa o WebView tentar abrir o esquema do app oficial.
+    }
+
+    private void showWebView() {
+        if (finished || webView == null) return;
+        spinner.setVisibility(View.GONE);
+        webView.setVisibility(View.VISIBLE);
     }
 
     private void checkForNpsso() {
@@ -133,6 +162,7 @@ public class PsnLoginActivity extends AppCompatActivity {
         if (finished) return;
         finished = true;
         handler.removeCallbacks(poll);
+        handler.removeCallbacks(reveal);
         CookieManager.getInstance().flush();
         Intent data = new Intent();
         data.putExtra(key, value);
@@ -143,6 +173,7 @@ public class PsnLoginActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         handler.removeCallbacks(poll);
+        handler.removeCallbacks(reveal);
         if (webView != null) webView.destroy();
         super.onDestroy();
     }
