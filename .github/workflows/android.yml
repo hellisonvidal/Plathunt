@@ -1,24 +1,29 @@
 name: Android APK
 
-# Gera o APK do app Android. Rode manualmente em Actions → Android APK → Run workflow,
-# informando o endereço do servidor publicado (ou defina a variável de repositório
-# PERSEUS_SERVER_URL em Settings → Secrets and variables → Actions → Variables).
+# Gera o APK do PlayStation Trophy Mania. Roda sozinho a cada mudança no app e
+# também manualmente em Actions → Android APK → Run workflow.
+# - Em qualquer branch: o APK fica em "Artifacts" (trophy-mania-android).
+# - Na main: também publica uma Release "build-N" com o APK, que é o que o botão
+#   "Verificar atualizações" do app consulta.
 on:
   workflow_dispatch:
-    inputs:
-      server_url:
-        description: "Endereço do servidor (ex.: https://perseus.onrender.com)"
-        required: false
   push:
     paths:
       - "android/**"
-      - "capacitor.config.ts"
       - "mobile/**"
+      - "capacitor.config.ts"
       - ".github/workflows/android.yml"
+
+permissions:
+  contents: write
 
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      # Vira o versionCode do Android e a versão mostrada em Configurações.
+      BUILD_NUMBER: ${{ github.run_number }}
+      VITE_BUILD_NUMBER: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,22 +31,27 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
-      - run: npm ci
+      - name: Instalar dependências
+        run: |
+          npm ci
+          npm ci --prefix mobile
+
+      - name: Testar e compilar o app
+        run: |
+          npm test --prefix mobile
+          npm run build --prefix mobile
 
       - name: Sincronizar projeto Android
-        env:
-          CAP_SERVER_URL: ${{ inputs.server_url || vars.PERSEUS_SERVER_URL }}
-        run: |
-          if [ -z "$CAP_SERVER_URL" ]; then
-            echo "::warning::Sem endereço do servidor: o APK abrirá uma tela pedindo configuração."
-          fi
-          npx cap sync android
+        run: npx cap sync android
 
       - name: Compilar APK
         working-directory: android
@@ -49,6 +59,18 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: perseus-android
+          name: trophy-mania-android
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Publicar versão (Release)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ github.event.head_commit.message }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk PlayStation-Trophy-Mania.apk
+          gh release create "build-$BUILD_NUMBER" PlayStation-Trophy-Mania.apk \
+            --title "PlayStation Trophy Mania 1.0.$BUILD_NUMBER" \
+            --notes "${NOTES:-Nova versão}" \
+            --target "$GITHUB_SHA"

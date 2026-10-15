@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0b0f1a;
+  --color-surface: #131a2b;
+  --color-surface-2: #1b2438;
+  --color-line: #263049;
+  --color-ink: #e8ecf5;
+  --color-muted: #8b95ad;
+  --color-ps-blue: #0070d1;
+  --color-ps-blue-2: #2f8cff;
+  --color-bronze: #c27a45;
+  --color-silver: #b8c2cf;
+  --color-gold: #e6b422;
+  --color-platinum: #a8d8f0;
+  /* Texto sobre botões e marcações na cor de destaque. */
+  --color-on-accent: #ffffff;
+}
+
+html {
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * Temas (Configurações → Aparência). Cada um só troca as variáveis de cor;
+ * "ps-blue" é a cor de destaque do tema. Contraste de texto verificado
+ * (WCAG ≥ 4.5:1) contra a superfície de cada tema.
+ */
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #f3f5f9;
+  --color-surface: #ffffff;
+  --color-surface-2: #e9edf4;
+  --color-line: #d5dbe6;
+  --color-ink: #111827;
+  --color-muted: #5b6475;
+  --color-ps-blue: #0062c4;
+  --color-ps-blue-2: #0b5fc4;
+  --color-bronze: #97562a;
+  --color-silver: #5f6b7a;
+  --color-gold: #946800;
+  --color-platinum: #2a7299;
+}
+
+html[data-theme="oled"] {
+  --color-bg: #000000;
+  --color-surface: #0d0d0d;
+  --color-surface-2: #1a1a1a;
+  --color-line: #262626;
+  --color-ink: #f2f2f2;
+  --color-muted: #8f8f8f;
+  --color-ps-blue-2: #3d95ff;
+}
+
+html[data-theme="graphite"] {
+  --color-bg: #16191d;
+  --color-surface: #1f2328;
+  --color-surface-2: #2a2f36;
+  --color-line: #353b44;
+  --color-ink: #e6e9ee;
+  --color-muted: #959ca8;
+  --color-ps-blue: #0a7e95;
+  --color-ps-blue-2: #34c3dc;
+  --color-bronze: #c98450;
+}
+
+html[data-theme="crimson"] {
+  --color-bg: #120b0d;
+  --color-surface: #1e1416;
+  --color-surface-2: #2a1c1f;
+  --color-line: #3a2629;
+  --color-ink: #f3e9ea;
+  --color-muted: #a8949a;
+  --color-ps-blue: #b82a38;
+  --color-ps-blue-2: #ff6b7c;
+  --color-bronze: #cf8a55;
+}
+
+/* Botões cheios na cor de destaque sempre com texto branco (contraste em todos os temas). */
+.bg-ps-blue {
+  color: var(--color-on-accent);
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Vermelho de erro/sair mais escuro no tema claro (contraste sobre branco). */
+html[data-theme="light"] .text-red-400 {
+  color: #c0262d;
+}

@@ -13,9 +13,12 @@
     "db:seed": "node prisma/seed.mjs",
     "demo:login": "node prisma/demo-login.mjs",
     "db:migrate": "prisma migrate dev",
-    "start:prod": "prisma migrate deploy && next start"
+    "start:prod": "prisma migrate deploy && next start",
+    "android:build": "npm run build --prefix mobile && npx cap sync android"
   },
   "dependencies": {
+    "@capacitor/app": "8.1.1",
+    "@capacitor/preferences": "8.0.1",
     "@prisma/client": "^6.19.3",
     "next": "^15.5.28",
     "psn-api": "^2.18.1",
