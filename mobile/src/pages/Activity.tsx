@@ -10,9 +10,7 @@ import type { FeedItem } from "../psn/types";
 
 const FILTERS = {
   todos: { label: "Tudo", types: null },
-  amigos: { label: "Amigos", types: null },
   platinas: { label: "Platinas", types: ["platinum"] },
-  raros: { label: "Ouro e platina", types: ["gold", "platinum"] },
 } as const;
 type FilterKey = keyof typeof FILTERS;
 
@@ -23,7 +21,6 @@ export function ActivityPage() {
   const [filter, setFilter] = useState<FilterKey>("todos");
 
   const items = (data ?? []).filter((i) => {
-    if (filter === "amigos") return !i.owner.isMe;
     const types = FILTERS[filter].types as readonly string[] | null;
     return !types || types.includes(i.trophy.type);
   });
