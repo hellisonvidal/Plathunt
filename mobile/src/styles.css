@@ -1,20 +1,21 @@
 @import "tailwindcss";
 
+/* Tema padrão, Astro Bot: visor escuro com o azul-ciano dos olhos de LED do Astro. */
 @theme {
-  --color-bg: #0b0f1a;
-  --color-surface: #131a2b;
-  --color-surface-2: #1b2438;
-  --color-line: #263049;
-  --color-ink: #e8ecf5;
-  --color-muted: #8b95ad;
-  --color-ps-blue: #0070d1;
-  --color-ps-blue-2: #2f8cff;
+  --color-bg: #050a14;
+  --color-surface: #0c1424;
+  --color-surface-2: #142036;
+  --color-line: #1f2f4d;
+  --color-ink: #eaf6ff;
+  --color-muted: #8fa6c4;
+  --color-ps-blue: #00a6e6;
+  --color-ps-blue-2: #5fd4ff;
   --color-bronze: #c27a45;
   --color-silver: #b8c2cf;
   --color-gold: #e6b422;
   --color-platinum: #a8d8f0;
-  /* Texto sobre botões e marcações na cor de destaque. */
-  --color-on-accent: #ffffff;
+  /* Texto sobre botões e marcações na cor de destaque (escuro sobre o ciano). */
+  --color-on-accent: #00121c;
 }
 
 /*
@@ -48,9 +49,10 @@ html[data-theme="light"] {
   --color-silver: #5f6b7a;
   --color-gold: #946800;
   --color-platinum: #2a7299;
+  --color-on-accent: #ffffff;
 }
 
-/* Demon's Souls: preto puro (OLED) com dourado; texto escuro nos botões dourados. */
+/* Demon's Souls: preto do Slayer of Demons com o prata da armadura; texto escuro nos botões prata. */
 html[data-theme="oled"] {
   --color-bg: #000000;
   --color-surface: #0f0f0f;
@@ -58,53 +60,54 @@ html[data-theme="oled"] {
   --color-line: #2b2b2b;
   --color-ink: #f5f5f5;
   --color-muted: #9a9a9a;
-  --color-ps-blue: #e6b422;
-  --color-ps-blue-2: #ffcc4d;
-  --color-on-accent: #1a1300;
+  --color-ps-blue: #b9c0ca;
+  --color-ps-blue-2: #e3e7ee;
+  --color-on-accent: #101317;
 }
 
-/* The Last of Us: verde da vegetação tomando a cidade. */
+/* The Last of Us: verde-oliva da jaqueta de Ellie com o cáqui de Joel. */
 html[data-theme="green"] {
-  --color-bg: #06170f;
-  --color-surface: #0c2619;
-  --color-surface-2: #133423;
-  --color-line: #1d4631;
-  --color-ink: #e4f6ec;
-  --color-muted: #8db8a2;
-  --color-ps-blue: #0f7a4b;
-  --color-ps-blue-2: #3fdc95;
+  --color-bg: #13140c;
+  --color-surface: #1d1f13;
+  --color-surface-2: #282b1a;
+  --color-line: #3a3e26;
+  --color-ink: #f1efe2;
+  --color-muted: #aeab8f;
+  --color-ps-blue: #5e7a24;
+  --color-ps-blue-2: #b9d36a;
+  --color-on-accent: #ffffff;
   --color-bronze: #d08a52;
 }
 
-/* God of War: vermelho de Kratos. */
+/* God of War: cinza da pele de cinzas de Kratos com a tatuagem vermelha. */
 html[data-theme="crimson"] {
-  --color-bg: #1c0709;
-  --color-surface: #2b0d11;
-  --color-surface-2: #3a1218;
-  --color-line: #4f1820;
-  --color-ink: #fbe9eb;
-  --color-muted: #c69aa0;
-  --color-ps-blue: #c62a3c;
-  --color-ps-blue-2: #ff7d8c;
-  --color-bronze: #d6925c;
-  --color-silver: #c4c8cf;
-}
-
-/* Ratchet & Clank: roxo das fendas de Rift Apart. */
-html[data-theme="purple"] {
-  --color-bg: #140a24;
-  --color-surface: #1f1236;
-  --color-surface-2: #2a1946;
-  --color-line: #3b2560;
-  --color-ink: #f1eafc;
-  --color-muted: #ab9cc9;
-  --color-ps-blue: #7b3fe4;
-  --color-ps-blue-2: #c4a1ff;
+  --color-bg: #171615;
+  --color-surface: #22201f;
+  --color-surface-2: #2e2b29;
+  --color-line: #403c39;
+  --color-ink: #f2eeeb;
+  --color-muted: #a9a29d;
+  --color-ps-blue: #b3121f;
+  --color-ps-blue-2: #ff6b6b;
+  --color-on-accent: #ffffff;
   --color-bronze: #d08a52;
-  --color-silver: #c4c8d6;
 }
 
-/* Horizon: azul-petróleo com o laranja de Aloy; texto escuro nos botões laranja. */
+/* Ratchet & Clank: pelo dourado de Ratchet sobre marrom; texto escuro nos botões dourados. */
+html[data-theme="purple"] {
+  --color-bg: #1a1207;
+  --color-surface: #271b0c;
+  --color-surface-2: #342411;
+  --color-line: #4a3418;
+  --color-ink: #fbf1e1;
+  --color-muted: #c2ab88;
+  --color-ps-blue: #e0a11b;
+  --color-ps-blue-2: #ffc94d;
+  --color-on-accent: #1f1400;
+  --color-bronze: #d08a52;
+}
+
+/* Horizon: azul-petróleo do Focus de Aloy com o ruivo do cabelo; texto escuro nos botões laranja. */
 html[data-theme="horizon"] {
   --color-bg: #0a1a1f;
   --color-surface: #10272e;
