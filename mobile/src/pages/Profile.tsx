@@ -13,7 +13,7 @@ type Sort = "recentes" | "progresso" | "tempo";
 
 /** Perfil: o seu (aba 1) ou o de um amigo (/u/:accountId). */
 export function ProfilePage() {
-  const { client, signOut } = useApp();
+  const { client } = useApp();
   const { accountId = "me" } = useParams();
   const isMe = accountId === "me";
   const [query, setQuery] = useState("");
@@ -121,14 +121,6 @@ export function ProfilePage() {
               </>
             )}
 
-            {isMe && (
-              <button
-                onClick={() => signOut()}
-                className="w-full rounded-xl border border-line py-3 text-sm text-muted active:bg-surface"
-              >
-                Sair
-              </button>
-            )}
           </>
         )}
       </div>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { GroupedBars, Legend, SERIES_COLORS, StatTile, type Series } from "../components/charts";
+import { ConsoleArt } from "../components/Consoles";
 import { Mural, MURAL_LABELS, type MuralCategory } from "../components/Mural";
 import { PageHeader } from "../components/PageHeader";
 import { RankingView, useRanking } from "./Ranking";
@@ -335,9 +336,7 @@ function PlatformPicker({
         aria-expanded={open}
         className="flex w-full items-center gap-3 p-3 text-left active:bg-surface-2"
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ps-blue text-lg" aria-hidden>
-          🎮
-        </span>
+        <ConsoleArt platform={selected} className="h-11 w-11" />
         <span className="min-w-0 flex-1">
           <span className="block text-xs text-muted">
             Plataformas jogadas · {platforms.length}
@@ -355,10 +354,13 @@ function PlatformPicker({
               role="radio"
               aria-checked={selected === p}
               onClick={() => pick(p)}
-              className={`rounded-xl border-2 p-3 text-left ${selected === p ? "border-ps-blue-2 bg-surface-2" : "border-line"}`}
+              className={`flex flex-col items-center rounded-xl border-2 p-3 text-center ${
+                selected === p ? "border-ps-blue-2 bg-surface-2" : "border-line"
+              }`}
             >
-              <span className="block font-semibold">{p ?? "Todas"}</span>
-              <span className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+              <ConsoleArt platform={p} className="h-16 w-16" />
+              <span className="mt-2 block font-semibold">{p ?? "Todas"}</span>
+              <span className="mt-1 flex flex-wrap justify-center gap-x-3 gap-y-0.5 text-xs text-muted">
                 {totalOf(p).map((n, i) => (
                   <span key={counts[i].name} className="flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />
