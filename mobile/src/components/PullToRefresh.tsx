@@ -33,7 +33,9 @@ export function usePullToRefresh(onRefresh?: () => void): number {
     };
 
     const onStart = (e: TouchEvent) => {
-      tracking = e.touches.length === 1 && window.scrollY <= 0;
+      // Dentro de pop-ups (data-no-pull) o gesto rola o pop-up, não atualiza a página.
+      const inOverlay = e.target instanceof Element && !!e.target.closest("[data-no-pull]");
+      tracking = !inOverlay && e.touches.length === 1 && window.scrollY <= 0;
       pulling = false;
       distance = 0;
       if (tracking) {

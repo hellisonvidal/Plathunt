@@ -202,3 +202,13 @@ html:not([data-theme]) .text-red-400 {
 html[data-theme="light"] .text-red-400 {
   color: #ffe27a;
 }
+
+/* Pop-ups que sobem da parte de baixo da tela (ex.: mural das Estatísticas). */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
