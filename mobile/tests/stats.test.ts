@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   titlesByPlatform,
+  compareTitles,
   matchPlayed,
   primaryPlatform,
   platformFromCategory,
@@ -209,5 +210,16 @@ describe("groupTrophies", () => {
     const sections = groupTrophies([trophy(0, "default", false), trophy(1, "002", true)], []);
     expect(sections).toHaveLength(1);
     expect(sections[0].earned).toBe(1);
+  });
+});
+
+describe("compareTitles", () => {
+  it("separa jogos em comum, só meus e só do amigo", () => {
+    const mine = [title("1", "God of War™", "PS5", 80, c(0, 1, 1, 1)), title("2", "Astro Bot", "PS5", 100, c(1, 0, 0, 0))];
+    const theirs = [title("9", "God of War", "PS5", 30, c(0, 0, 1, 1)), title("8", "Bloodborne", "PS5", 10, c(0, 0, 0, 1))];
+    const r = compareTitles(mine, theirs);
+    expect(r.common.map((x) => [x.mine.id, x.theirs.id])).toEqual([["1", "9"]]);
+    expect(r.onlyMine.map((t) => t.id)).toEqual(["2"]);
+    expect(r.onlyTheirs.map((t) => t.id)).toEqual(["8"]);
   });
 });

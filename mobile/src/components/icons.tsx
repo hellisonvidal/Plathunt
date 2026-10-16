@@ -17,9 +17,14 @@ export const ProfileIcon = () => (
   </svg>
 );
 
+/** Barras arredondadas subindo, com a linha de tendência e a seta. */
 export const StatsIcon = () => (
   <svg {...base}>
-    <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    <rect x="3.5" y="14" width="4" height="6.5" rx="1.2" />
+    <rect x="10" y="11" width="4" height="9.5" rx="1.2" />
+    <rect x="16.5" y="8" width="4" height="12.5" rx="1.2" />
+    <path d="M3.5 9.5 9 5.5l3.5 2.5L19 3" />
+    <path d="M15.5 3H19v3.5" />
   </svg>
 );
 

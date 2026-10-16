@@ -48,3 +48,8 @@ export function useReactions(itemKey: string) {
   const toggle = useCallback((r: string) => setMine(toggleReaction(itemKey, r)), [itemKey]);
   return { mine, toggle };
 }
+
+/** Quantas conquistas o usuário já curtiu (para os Méritos). */
+export function countReactedItems(): number {
+  return Object.keys(readAll()).length;
+}
