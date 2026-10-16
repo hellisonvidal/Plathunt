@@ -73,14 +73,28 @@ export function StatTile({
   label,
   values,
   names,
+  selected,
+  onSelect,
 }: {
   label: string;
   values: string[];
   names: string[];
+  /** Com `onSelect`, o quadro vira um botão (ex.: abre o mural da categoria). */
+  selected?: boolean;
+  onSelect?: () => void;
 }) {
+  const Tag = onSelect ? "button" : "div";
   return (
-    <div className="rounded-2xl border border-line bg-surface p-3">
-      <p className="text-xs text-muted">{label}</p>
+    <Tag
+      {...(onSelect ? { onClick: onSelect, "aria-pressed": !!selected, type: "button" as const } : {})}
+      className={`rounded-2xl border bg-surface p-3 text-left ${
+        selected ? "border-ps-blue-2 ring-1 ring-ps-blue-2" : "border-line"
+      } ${onSelect ? "active:bg-surface-2" : ""}`}
+    >
+      <p className="flex items-center justify-between gap-1 text-xs text-muted">
+        {label}
+        {onSelect && <span aria-hidden>{selected ? "▾" : "▸"}</span>}
+      </p>
       {values.length === 1 ? (
         <p className="mt-1 text-2xl font-bold tabular-nums">{values[0]}</p>
       ) : (
@@ -93,6 +107,6 @@ export function StatTile({
           ))}
         </div>
       )}
-    </div>
+    </Tag>
   );
 }
