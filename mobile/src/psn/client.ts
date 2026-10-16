@@ -14,7 +14,14 @@ import { cached, createLimiter, mapLimit } from "../lib/cache";
 import { getSettings } from "../lib/settings";
 import { parseDuration, platformFromCategory } from "../lib/stats";
 import { translateTexts } from "../lib/translate";
-import { feedItemsFromTrophies, mergeTrophies, pickFeedSources, sortFeed, type FeedSource } from "../lib/feed";
+import {
+  feedItemsFromTrophies,
+  mergeTrophies,
+  pickFeedSources,
+  sortFeed,
+  type FeedSource,
+  type RawTrophyEarned,
+} from "../lib/feed";
 import { getAccessToken } from "./auth";
 import type { FeedItem, PlayedGame, Profile, PsnClient, Title } from "./types";
 
@@ -213,7 +220,9 @@ export function createPsnClient(): PsnClient {
       const earned = await cached(
         `earned:${accountId}:${game.id}`,
         5 * MIN,
-        async () => (await getUserTrophiesEarnedForTitle(await auth(), accountId, game.id, "all", opts)).trophies,
+        // A resposta traz também o "progress" dos contadores de objetivo (PS5).
+        async () =>
+          (await getUserTrophiesEarnedForTitle(await auth(), accountId, game.id, "all", opts)).trophies as RawTrophyEarned[],
         force,
       );
       return mergeTrophies(shown, earned);

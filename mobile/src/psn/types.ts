@@ -67,6 +67,11 @@ export interface TrophyRow {
   earnedAt: string | null;
   /** % de jogadores que têm o troféu. */
   rate: number | null;
+  /**
+   * Contador de objetivo (ex.: 12 de 50 inimigos), quando o jogo registra o
+   * progresso do troféu na PSN (só PS5).
+   */
+  progress?: { current: number; target: number } | null;
 }
 
 export interface FeedItem {

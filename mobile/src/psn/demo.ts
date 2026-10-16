@@ -118,6 +118,13 @@ function playedOf(profileKey: string): PlayedGame[] {
   }));
 }
 
+/** Contador de objetivo de exemplo: troféus com número na descrição ("Encontre 10 artefatos"). */
+function demoProgress(detail: string, earned: boolean): TrophyRow["progress"] {
+  const target = Number(detail.match(/\d+/)?.[0]);
+  if (!target || target < 2) return null;
+  return { current: earned ? target : Math.floor(target * 0.6), target };
+}
+
 function trophiesOf(profileKey: string, gameId: string): TrophyRow[] {
   const play = PLAYS.find((p) => p[0] === profileKey && GAMES[p[1]].id === gameId);
   const earned = new Map((play?.[6] ?? []).map(([id, h, rate]) => [id, { h, rate }]));
@@ -134,6 +141,7 @@ function trophiesOf(profileKey: string, gameId: string): TrophyRow[] {
       earned: !!e,
       earnedAt: e ? hoursAgo(e.h) : null,
       rate: e?.rate ?? null,
+      progress: demoProgress(detail, !!e),
     };
   });
 }

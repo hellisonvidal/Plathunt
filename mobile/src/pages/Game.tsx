@@ -245,6 +245,19 @@ function TrophyItem({ trophy: t, gameName }: { trophy: TrophyRow; gameName: stri
           )}
         </div>
       </div>
+      {t.progress && !t.earned && !secret && (
+        <div className="ml-15 mt-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted">Progresso do objetivo</span>
+            <span className="font-semibold tabular-nums">
+              {t.progress.current.toLocaleString("pt-BR")}/{t.progress.target.toLocaleString("pt-BR")}
+            </span>
+          </div>
+          <div className="mt-1">
+            <ProgressBar value={(t.progress.current / t.progress.target) * 100} />
+          </div>
+        </div>
+      )}
       {/* Abre no app do YouTube (ou no navegador) a busca por um vídeo de dicas.
           Usa o nome original do troféu: a tradução automática acha menos vídeos. */}
       <a
