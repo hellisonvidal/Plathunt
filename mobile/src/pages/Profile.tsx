@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useApp } from "../app";
+import { CompletionSummary } from "../components/Completion";
 import { PageHeader } from "../components/PageHeader";
 import { TitleList } from "../components/TitleList";
 import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge } from "../components/ui";
@@ -84,6 +85,7 @@ export function ProfilePage() {
                     {data.titles?.length ?? 0} jogos
                     {totalPlay > 0 && ` · ⏱ ${formatDuration(totalPlay)} jogados`}
                   </p>
+                  {data.titles && <CompletionSummary titles={data.titles} />}
                 </>
               ) : (
                 <p className="mt-3 text-sm text-muted">Os troféus deste perfil são privados.</p>

@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { formatDuration } from "../lib/stats";
 import type { Title } from "../psn/types";
-import { GameIcon, ProgressBar, TrophyBadge } from "./ui";
+import { CompletionBadge, completionTier } from "./Completion";
+import { GameIcon, TrophyBadge } from "./ui";
 
 export function TitleList({
   titles,
@@ -17,11 +18,14 @@ export function TitleList({
     <ul className="space-y-3">
       {titles.map((t) => {
         const secs = playtime?.get(t.id);
+        const tier = completionTier(t.progress);
         return (
           <li key={t.id}>
             <Link
               to={`/game/${accountId}/${t.id}?service=${t.service}`}
-              className="flex gap-3 rounded-2xl border border-line bg-surface p-3 active:border-muted"
+              className={`flex gap-3 rounded-2xl border bg-surface p-3 active:border-muted ${
+                t.progress >= 100 ? "border-gold/50" : "border-line"
+              }`}
             >
               <GameIcon src={t.iconUrl} />
               <div className="min-w-0 flex-1">
@@ -36,9 +40,12 @@ export function TitleList({
                   <TrophyBadge type="bronze" count={t.earned.bronze} />
                   {secs ? <span className="ml-auto text-xs text-muted">⏱ {formatDuration(secs)}</span> : null}
                 </div>
+                {/* Marcação de conclusão: barra e selo na cor da faixa (ouro = 100%). */}
                 <div className="mt-2 flex items-center gap-2">
-                  <ProgressBar value={t.progress} />
-                  <span className="w-10 text-right text-xs text-muted">{t.progress}%</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
+                    <div className={`h-full rounded-full ${tier.bg}`} style={{ width: `${Math.min(100, t.progress)}%` }} />
+                  </div>
+                  <CompletionBadge progress={t.progress} />
                 </div>
                 {t.hasGroups && <p className="mt-1 text-[0.6875rem] text-muted">Inclui DLCs</p>}
               </div>
