@@ -27,8 +27,8 @@ export function StatsPage() {
   const { client } = useApp();
   const [platform, setPlatform] = useState<string | null>(null);
   const [friendId, setFriendId] = useState<string>("");
-  // Categoria tocada nos quadros: abre o mural de jogos logo abaixo.
-  const [mural, setMural] = useState<MuralCategory>("platinas");
+  // Categoria tocada nos quadros: abre o mural de jogos em um pop-up.
+  const [mural, setMural] = useState<MuralCategory | null>(null);
 
   const mine = useData(
     async (force) => {
@@ -165,25 +165,28 @@ export function StatsPage() {
               ))}
             </div>
 
-            <Mural
-              key={`${mural}:${friendId}`}
-              category={mural}
-              platform={platform}
-              players={[
-                { name: names[0], accountId: "me", titles: data.titles, playtime: data.playtime, playedOn: data.playedOn },
-                ...(friend && friendTitles && friendPlay
-                  ? [
-                      {
-                        name: friend.onlineId,
-                        accountId: friend.accountId,
-                        titles: friendTitles,
-                        playtime: friendPlay.playtime,
-                        playedOn: friendPlay.playedOn,
-                      },
-                    ]
-                  : []),
-              ]}
-            />
+            {mural && (
+              <Mural
+                key={`${mural}:${friendId}`}
+                category={mural}
+                onClose={() => setMural(null)}
+                platform={platform}
+                players={[
+                  { name: names[0], accountId: "me", titles: data.titles, playtime: data.playtime, playedOn: data.playedOn },
+                  ...(friend && friendTitles && friendPlay
+                    ? [
+                        {
+                          name: friend.onlineId,
+                          accountId: friend.accountId,
+                          titles: friendTitles,
+                          playtime: friendPlay.playtime,
+                          playedOn: friendPlay.playedOn,
+                        },
+                      ]
+                    : []),
+                ]}
+              />
+            )}
 
             <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
               <h2 className="font-semibold">Troféus por tipo</h2>

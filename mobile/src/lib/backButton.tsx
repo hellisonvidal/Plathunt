@@ -14,6 +14,24 @@ export function decideBack(canGoBack: boolean, lastPressAt: number, now: number)
   return now - lastPressAt <= EXIT_WINDOW_MS ? "exit" : "warn";
 }
 
+/** Telas sobrepostas abertas (ex.: pop-ups): o voltar fecha a de cima primeiro. */
+const interceptors: (() => void)[] = [];
+
+/** Enquanto `active`, o botão voltar do Android chama `onBack` (ex.: fechar um pop-up). */
+export function useBackInterceptor(active: boolean, onBack: () => void) {
+  const latest = useRef(onBack);
+  latest.current = onBack;
+  useEffect(() => {
+    if (!active) return;
+    const handler = () => latest.current();
+    interceptors.push(handler);
+    return () => {
+      const i = interceptors.lastIndexOf(handler);
+      if (i >= 0) interceptors.splice(i, 1);
+    };
+  }, [active]);
+}
+
 /**
  * Liga o botão voltar do Android. `canGoBack()` diz se há uma tela para onde
  * voltar (ex.: dentro de um jogo); nas abas principais e no login, é preciso
@@ -29,6 +47,7 @@ export function useDoubleBackToExit(canGoBack: () => boolean, goBack: () => void
     if (!Capacitor.isNativePlatform()) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const sub = CapApp.addListener("backButton", () => {
+      if (interceptors.length) return interceptors[interceptors.length - 1]();
       const now = Date.now();
       const action = decideBack(latest.current.canGoBack(), lastPress.current, now);
       if (action === "back") return latest.current.goBack();

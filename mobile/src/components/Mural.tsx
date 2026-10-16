@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useBackInterceptor } from "../lib/backButton";
 import { Link } from "react-router-dom";
 import { filterByPlatform, formatDuration, withEarnedTrophies, type PlayedOn } from "../lib/stats";
 import type { Title } from "../psn/types";
@@ -67,18 +68,31 @@ export function muralTiles(
 const PREVIEW = 12;
 
 /**
- * Mural da categoria escolhida nas Estatísticas: as capas dos jogos que
- * entram nela, de você e (se estiver comparando) do amigo.
+ * Mural da categoria escolhida nas Estatísticas, em um pop-up que sobe da
+ * parte de baixo da tela: as capas dos jogos que entram nela, de você e (se
+ * estiver comparando) do amigo. Fecha no ✕, tocando fora ou no voltar.
  */
 export function Mural({
   category,
   players,
   platform,
+  onClose,
 }: {
   category: MuralCategory;
   players: MuralPlayer[];
   platform: string | null;
+  onClose: () => void;
 }) {
+  useBackInterceptor(true, onClose);
+  // A página de trás não rola enquanto o pop-up está aberto.
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
   const [who, setWho] = useState(0);
   const [showAll, setShowAll] = useState(false);
   const index = Math.min(who, players.length - 1);
@@ -87,83 +101,103 @@ export function Mural({
   const shown = showAll ? tiles : tiles.slice(0, PREVIEW);
 
   return (
-    <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="font-semibold">Mural · {MURAL_LABELS[category]}</h2>
-        <span className="text-xs text-muted">
-          {tiles.length} {tiles.length === 1 ? "jogo" : "jogos"}
-          {platform && ` · ${platform}`}
-        </span>
-      </div>
-
-      {players.length > 1 && (
-        <div className="flex gap-2 text-sm" role="tablist" aria-label="Jogador">
-          {players.map((p, i) => (
-            <button
-              key={p.accountId}
-              role="tab"
-              aria-selected={i === index}
-              onClick={() => {
-                setWho(i);
-                setShowAll(false);
-              }}
-              className={`flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 ${
-                i === index ? "bg-surface-2 font-semibold" : "border border-line text-muted"
-              }`}
-            >
-              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: SERIES_COLORS[i] }} />
-              <span className="truncate">{p.name}</span>
-            </button>
-          ))}
+    <div className="fixed inset-0 z-40 flex items-end justify-center" data-no-pull>
+      <button aria-label="Fechar mural" onClick={onClose} className="absolute inset-0 bg-black/60" />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Mural · ${MURAL_LABELS[category]}`}
+        className="safe-bottom relative flex max-h-[85dvh] w-full max-w-2xl animate-[sheet-up_200ms_ease-out] flex-col rounded-t-3xl border border-line bg-surface shadow-2xl"
+      >
+        <div className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-line" aria-hidden />
+        <div className="flex shrink-0 items-center gap-2 px-4 pb-2 pt-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="font-semibold">Mural · {MURAL_LABELS[category]}</h2>
+            <p className="text-xs text-muted">
+              {tiles.length} {tiles.length === 1 ? "jogo" : "jogos"}
+              {platform && ` · ${platform}`}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Fechar"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-lg text-muted"
+          >
+            ✕
+          </button>
         </div>
-      )}
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 pb-4">
 
-      {tiles.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted">Nenhum jogo nesta categoria por enquanto.</p>
-      ) : (
-        <ul className="grid grid-cols-3 gap-2">
-          {shown.map(({ title, metric }) => (
-            <li key={title.id}>
-              <Link
-                to={`/game/${player.accountId}/${title.id}?service=${title.service}`}
-                className={`block overflow-hidden rounded-xl border bg-surface-2 ${
-                  title.earned.platinum > 0 ? "border-platinum/60" : "border-line"
-                }`}
-              >
-                <RemoteImage
-                  src={title.iconUrl}
-                  alt=""
-                  className="aspect-square w-full object-cover"
-                  fallback={
-                    <span className="flex aspect-square w-full items-center justify-center text-3xl" aria-hidden>
-                      🎮
-                    </span>
-                  }
-                />
-                <span className="block px-1.5 pb-1.5 pt-1">
-                  <span className="line-clamp-2 text-[0.6875rem] font-semibold leading-tight">{title.name}</span>
-                  <span
-                    className={`mt-0.5 block text-[0.6875rem] tabular-nums ${
-                      category === "platinas" ? "text-platinum" : "text-muted"
+          {players.length > 1 && (
+            <div className="flex gap-2 text-sm" role="tablist" aria-label="Jogador">
+              {players.map((p, i) => (
+                <button
+                  key={p.accountId}
+                  role="tab"
+                  aria-selected={i === index}
+                  onClick={() => {
+                    setWho(i);
+                    setShowAll(false);
+                  }}
+                  className={`flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 ${
+                    i === index ? "bg-surface-2 font-semibold" : "border border-line text-muted"
+                  }`}
+                >
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: SERIES_COLORS[i] }} />
+                  <span className="truncate">{p.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {tiles.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted">Nenhum jogo nesta categoria por enquanto.</p>
+          ) : (
+            <ul className="grid grid-cols-3 gap-2">
+              {shown.map(({ title, metric }) => (
+                <li key={title.id}>
+                  <Link
+                    to={`/game/${player.accountId}/${title.id}?service=${title.service}`}
+                    className={`block overflow-hidden rounded-xl border bg-surface-2 ${
+                      title.earned.platinum > 0 ? "border-platinum/60" : "border-line"
                     }`}
                   >
-                    {metric}
-                  </span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+                    <RemoteImage
+                      src={title.iconUrl}
+                      alt=""
+                      className="aspect-square w-full object-cover"
+                      fallback={
+                        <span className="flex aspect-square w-full items-center justify-center text-3xl" aria-hidden>
+                          🎮
+                        </span>
+                      }
+                    />
+                    <span className="block px-1.5 pb-1.5 pt-1">
+                      <span className="line-clamp-2 text-[0.6875rem] font-semibold leading-tight">{title.name}</span>
+                      <span
+                        className={`mt-0.5 block text-[0.6875rem] tabular-nums ${
+                          category === "platinas" ? "text-platinum" : "text-muted"
+                        }`}
+                      >
+                        {metric}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
 
-      {tiles.length > PREVIEW && (
-        <button
-          onClick={() => setShowAll((s) => !s)}
-          className="w-full rounded-xl py-2 text-sm font-semibold text-ps-blue-2 active:bg-surface-2"
-        >
-          {showAll ? "Mostrar menos" : `Ver todos os ${tiles.length}`}
-        </button>
-      )}
-    </section>
+          {tiles.length > PREVIEW && (
+            <button
+              onClick={() => setShowAll((s) => !s)}
+              className="w-full rounded-xl py-2 text-sm font-semibold text-ps-blue-2 active:bg-surface-2"
+            >
+              {showAll ? "Mostrar menos" : `Ver todos os ${tiles.length}`}
+            </button>
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
