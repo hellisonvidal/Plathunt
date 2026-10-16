@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { GroupedBars, Legend, SERIES_COLORS, StatTile, type Series } from "../components/charts";
 import { Mural, MURAL_LABELS, type MuralCategory } from "../components/Mural";
 import { PageHeader } from "../components/PageHeader";
+import { RankingView, useRanking } from "./Ranking";
 import { ErrorBox, Spinner, TrophyBadge } from "../components/ui";
 import {
   compareTitles,
@@ -25,6 +26,11 @@ const TYPES = ["platinum", "gold", "silver", "bronze"] as const;
 
 export function StatsPage() {
   const { client } = useApp();
+  // O Ranking fica dentro de Estatísticas (/stats?view=ranking).
+  const [params, setParams] = useSearchParams();
+  const view = params.get("view") === "ranking" ? "ranking" : "stats";
+  const setView = (v: "stats" | "ranking") => setParams(v === "ranking" ? { view: "ranking" } : {}, { replace: true });
+  const ranking = useRanking();
   const [platform, setPlatform] = useState<string | null>(null);
   const [friendId, setFriendId] = useState<string>("");
   // Categoria tocada nos quadros: abre o mural de jogos em um pop-up.
@@ -94,151 +100,180 @@ export function StatsPage() {
 
   return (
     <>
-      <PageHeader title="Estatísticas" onRefresh={() => (mine.refresh(), theirs.refresh())} refreshing={mine.loading} />
+      <PageHeader
+        title={view === "ranking" ? "Ranking" : "Estatísticas"}
+        onRefresh={view === "ranking" ? ranking.refresh : () => (mine.refresh(), theirs.refresh())}
+        refreshing={view === "ranking" ? ranking.loading : mine.loading}
+      />
       <div className="space-y-4 px-4 pt-4">
-        {mine.error ? <ErrorBox error={mine.error} onRetry={mine.refresh} /> : null}
-        {mine.loading && !data && <Spinner label="Calculando suas estatísticas…" />}
+        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-surface p-1 text-sm" role="tablist">
+          {(
+            [
+              ["stats", "📊 Estatísticas"],
+              ["ranking", "🏆 Ranking"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={view === key}
+              onClick={() => setView(key)}
+              className={`rounded-xl py-2 font-semibold ${view === key ? "bg-ps-blue" : "text-muted"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
-        {data && meStats && (
+        {view === "ranking" ? (
+          <RankingView ranking={ranking} />
+        ) : (
           <>
-            <PlatformPicker
-              platforms={platforms}
-              selected={platform}
-              onSelect={setPlatform}
-              counts={[
-                { name: names[0] ?? "Você", titles: data.titles, playedOn: data.playedOn },
-                ...(friend && friendTitles && friendPlay
-                  ? [{ name: friend.onlineId, titles: friendTitles, playedOn: friendPlay.playedOn }]
-                  : []),
-              ]}
-            />
+            {mine.error ? <ErrorBox error={mine.error} onRetry={mine.refresh} /> : null}
+            {mine.loading && !data && <Spinner label="Calculando suas estatísticas…" />}
 
-            <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2 text-sm">
-              <span className="text-muted">Comparar com</span>
-              <select
-                value={friendId}
-                onChange={(e) => setFriendId(e.target.value)}
-                className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
-              >
-                <option value="">ninguém</option>
-                {[...data.friends]
-                  .sort((a, b) => a.onlineId.localeCompare(b.onlineId, "pt-BR", { sensitivity: "base" }))
-                  .map((f) => (
-                    <option key={f.accountId} value={f.accountId}>
-                      {f.onlineId}
-                    </option>
-                  ))}
-              </select>
-            </label>
-
-            {friend && (friendLoading || theirs.loading) && (
-              <Spinner label={`Buscando os jogos de ${friend.onlineId}…`} />
-            )}
-            {friend && theirs.error ? <ErrorBox error={theirs.error} onRetry={theirs.refresh} /> : null}
-            {friend && friendData && !friendTitles && (
-              <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
-                Os troféus de {friend.onlineId} são privados, então não dá para comparar.
-              </p>
-            )}
-
-            <Legend series={series(() => [])} />
-
-            <div className="grid grid-cols-2 gap-3">
-              {(
-                [
-                  ["jogos", all.map((s) => s.games.toLocaleString("pt-BR"))],
-                  ["platinas", all.map((s) => s.platinums.toLocaleString("pt-BR"))],
-                  ["completos", all.map((s) => s.completed.toLocaleString("pt-BR"))],
-                  ["conclusao", all.map((s) => `${s.avgProgress}%`)],
-                  ["trofeus", all.map((s) => s.totalTrophies.toLocaleString("pt-BR"))],
-                  ["tempo", all.map((s) => formatDuration(s.playSeconds))],
-                ] as [MuralCategory, string[]][]
-              ).map(([key, values]) => (
-                <StatTile
-                  key={key}
-                  label={MURAL_LABELS[key]}
-                  names={names}
-                  values={values}
-                  selected={mural === key}
-                  onSelect={() => setMural(key)}
+            {data && meStats && (
+              <>
+                <PlatformPicker
+                  platforms={platforms}
+                  selected={platform}
+                  onSelect={setPlatform}
+                  counts={[
+                    { name: names[0] ?? "Você", titles: data.titles, playedOn: data.playedOn },
+                    ...(friend && friendTitles && friendPlay
+                      ? [{ name: friend.onlineId, titles: friendTitles, playedOn: friendPlay.playedOn }]
+                      : []),
+                  ]}
                 />
-              ))}
-            </div>
 
-            {mural && (
-              <Mural
-                key={`${mural}:${friendId}`}
-                category={mural}
-                onClose={() => setMural(null)}
-                platform={platform}
-                players={[
-                  { name: names[0], accountId: "me", titles: data.titles, playtime: data.playtime, playedOn: data.playedOn },
-                  ...(friend && friendTitles && friendPlay
-                    ? [
-                        {
-                          name: friend.onlineId,
-                          accountId: friend.accountId,
-                          titles: friendTitles,
-                          playtime: friendPlay.playtime,
-                          playedOn: friendPlay.playedOn,
-                        },
-                      ]
-                    : []),
-                ]}
-              />
-            )}
+                <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2 text-sm">
+                  <span className="text-muted">Comparar com</span>
+                  <select
+                    value={friendId}
+                    onChange={(e) => setFriendId(e.target.value)}
+                    className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
+                  >
+                    <option value="">ninguém</option>
+                    {[...data.friends]
+                      .sort((a, b) => a.onlineId.localeCompare(b.onlineId, "pt-BR", { sensitivity: "base" }))
+                      .map((f) => (
+                        <option key={f.accountId} value={f.accountId}>
+                          {f.onlineId}
+                        </option>
+                      ))}
+                  </select>
+                </label>
 
-            <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
-              <h2 className="font-semibold">Troféus por tipo</h2>
-              <GroupedBars
-                categories={TYPES.map((t) => (
-                  <TrophyBadge key={t} type={t} />
-                ))}
-                series={series((s) => TYPES.map((t) => s.trophies[t]))}
-              />
-            </section>
-
-            <PlatformTitles
-              players={[
-                { name: names[0], accountId: "me", titles: data.titles, playedOn: data.playedOn },
-                ...(friend && friendTitles && friendPlay
-                  ? [
-                      {
-                        name: friend.onlineId,
-                        accountId: friend.accountId,
-                        titles: friendTitles,
-                        playedOn: friendPlay.playedOn,
-                      },
-                    ]
-                  : []),
-              ]}
-              platform={platform}
-            />
-
-            {all.map((s, i) =>
-              s.topPlayed.length ? (
-                <section key={names[i]} className="space-y-3 rounded-2xl border border-line bg-surface p-4">
-                  <h2 className="font-semibold">Mais jogados{all.length > 1 && ` · ${names[i]}`}</h2>
-                  <GroupedBars
-                    categories={s.topPlayed.map((t) => (
-                      <Link
-                        key={t.title.id}
-                        to={`/game/${i === 0 ? "me" : friendId}/${t.title.id}?service=${t.title.service}`}
-                        className="line-clamp-2 text-xs"
-                      >
-                        {t.title.name}
-                      </Link>
-                    ))}
-                    series={[{ name: names[i], values: s.topPlayed.map((t) => t.seconds) }]}
-                    format={formatDuration}
-                    colorOffset={i}
-                  />
-                  <p className="text-[0.6875rem] text-muted">
-                    Tempo disponível para {s.gamesWithPlaytime} de {s.games} jogos (PS3 e Vita não registram).
+                {friend && (friendLoading || theirs.loading) && (
+                  <Spinner label={`Buscando os jogos de ${friend.onlineId}…`} />
+                )}
+                {friend && theirs.error ? <ErrorBox error={theirs.error} onRetry={theirs.refresh} /> : null}
+                {friend && friendData && !friendTitles && (
+                  <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
+                    Os troféus de {friend.onlineId} são privados, então não dá para comparar.
                   </p>
+                )}
+
+                <Legend series={series(() => [])} />
+
+                <div className="grid grid-cols-2 gap-3">
+                  {(
+                    [
+                      ["jogos", all.map((s) => s.games.toLocaleString("pt-BR"))],
+                      ["platinas", all.map((s) => s.platinums.toLocaleString("pt-BR"))],
+                      ["completos", all.map((s) => s.completed.toLocaleString("pt-BR"))],
+                      ["conclusao", all.map((s) => `${s.avgProgress}%`)],
+                      ["trofeus", all.map((s) => s.totalTrophies.toLocaleString("pt-BR"))],
+                      ["tempo", all.map((s) => formatDuration(s.playSeconds))],
+                    ] as [MuralCategory, string[]][]
+                  ).map(([key, values]) => (
+                    <StatTile
+                      key={key}
+                      label={MURAL_LABELS[key]}
+                      names={names}
+                      values={values}
+                      selected={mural === key}
+                      onSelect={() => setMural(key)}
+                    />
+                  ))}
+                </div>
+
+                {mural && (
+                  <Mural
+                    key={`${mural}:${friendId}`}
+                    category={mural}
+                    onClose={() => setMural(null)}
+                    platform={platform}
+                    players={[
+                      { name: names[0], accountId: "me", titles: data.titles, playtime: data.playtime, playedOn: data.playedOn },
+                      ...(friend && friendTitles && friendPlay
+                        ? [
+                            {
+                              name: friend.onlineId,
+                              accountId: friend.accountId,
+                              titles: friendTitles,
+                              playtime: friendPlay.playtime,
+                              playedOn: friendPlay.playedOn,
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
+                )}
+
+                <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+                  <h2 className="font-semibold">Troféus por tipo</h2>
+                  <GroupedBars
+                    categories={TYPES.map((t) => (
+                      <TrophyBadge key={t} type={t} />
+                    ))}
+                    series={series((s) => TYPES.map((t) => s.trophies[t]))}
+                  />
                 </section>
-              ) : null,
-            )}
+
+                <PlatformTitles
+                  players={[
+                    { name: names[0], accountId: "me", titles: data.titles, playedOn: data.playedOn },
+                    ...(friend && friendTitles && friendPlay
+                      ? [
+                          {
+                            name: friend.onlineId,
+                            accountId: friend.accountId,
+                            titles: friendTitles,
+                            playedOn: friendPlay.playedOn,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  platform={platform}
+                />
+
+                {all.map((s, i) =>
+                  s.topPlayed.length ? (
+                    <section key={names[i]} className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+                      <h2 className="font-semibold">Mais jogados{all.length > 1 && ` · ${names[i]}`}</h2>
+                      <GroupedBars
+                        categories={s.topPlayed.map((t) => (
+                          <Link
+                            key={t.title.id}
+                            to={`/game/${i === 0 ? "me" : friendId}/${t.title.id}?service=${t.title.service}`}
+                            className="line-clamp-2 text-xs"
+                          >
+                            {t.title.name}
+                          </Link>
+                        ))}
+                        series={[{ name: names[i], values: s.topPlayed.map((t) => t.seconds) }]}
+                        format={formatDuration}
+                        colorOffset={i}
+                      />
+                      <p className="text-[0.6875rem] text-muted">
+                        Tempo disponível para {s.gamesWithPlaytime} de {s.games} jogos (PS3 e Vita não registram).
+                      </p>
+                    </section>
+                  ) : null,
+                )}
+          </>
+        )}
           </>
         )}
       </div>

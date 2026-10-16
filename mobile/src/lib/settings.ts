@@ -14,7 +14,7 @@ export interface Settings {
   /** Tema de cores (Configurações → Aparência). */
   theme: "playstation" | "light" | "oled" | "green" | "crimson" | "purple" | "spiderman" | "uncharted" | "deathstranding" | "horizon";
   /** Aba em que o app abre. */
-  startTab: "/" | "/stats" | "/friends" | "/activity" | "/ranking";
+  startTab: "/" | "/stats" | "/friends" | "/activity";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -36,6 +36,8 @@ export function getSettings(): Settings {
     const known = Object.keys(DEFAULT_SETTINGS).filter((k) => k in saved);
     // O tema "Grafite" virou "Verde △".
     if (saved.theme === "graphite") saved.theme = "green";
+    // A aba Ranking virou parte de Estatísticas.
+    if (saved.startTab === "/ranking") saved.startTab = "/stats";
     return { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) };
   } catch {
     return DEFAULT_SETTINGS;

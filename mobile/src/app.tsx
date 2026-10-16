@@ -6,13 +6,12 @@ import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
 import { createDemoClient } from "./psn/demo";
 import type { PsnClient } from "./psn/types";
-import { ControllerIcon, FriendsIcon, ProfileIcon, RankingIcon, StatsIcon } from "./components/icons";
+import { ControllerIcon, FriendsIcon, ProfileIcon, StatsIcon } from "./components/icons";
 import { ActivityPage } from "./pages/Activity";
 import { FriendsPage } from "./pages/Friends";
 import { GamePage } from "./pages/Game";
 import { LoginPage } from "./pages/Login";
 import { ProfilePage } from "./pages/Profile";
-import { RankingPage } from "./pages/Ranking";
 import { SettingsPage, ThemesPage } from "./pages/Settings";
 import { StatsPage } from "./pages/Stats";
 import { persistRemove, persistSet } from "./lib/persist";
@@ -94,7 +93,7 @@ export function App() {
             <Route path="/stats" element={<StatsPage />} />
             <Route path="/friends" element={<FriendsPage />} />
             <Route path="/activity" element={<ActivityPage />} />
-            <Route path="/ranking" element={<RankingPage />} />
+            <Route path="/ranking" element={<Navigate to="/stats?view=ranking" replace />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/themes" element={<ThemesPage />} />
             <Route path="/u/me" element={<Navigate to="/" replace />} />
@@ -109,7 +108,7 @@ export function App() {
 }
 
 /** Voltar do Android: nas abas principais, dois toques fecham o app. */
-const TAB_PATHS = new Set(["/", "/stats", "/friends", "/activity", "/ranking"]);
+const TAB_PATHS = new Set(["/", "/stats", "/friends", "/activity"]);
 function BackButton() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -140,7 +139,6 @@ const TABS = [
   { to: "/stats", icon: <StatsIcon />, label: "Estatísticas" },
   { to: "/friends", icon: <FriendsIcon />, label: "Amigos" },
   { to: "/activity", icon: <ControllerIcon />, label: "Atividades" },
-  { to: "/ranking", icon: <RankingIcon />, label: "Ranking" },
 ];
 
 function TabBar() {
