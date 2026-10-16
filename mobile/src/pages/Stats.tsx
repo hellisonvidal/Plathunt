@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { GroupedBars, Legend, SERIES_COLORS, StatTile, type Series } from "../components/charts";
+import { Mural, MURAL_LABELS, type MuralCategory } from "../components/Mural";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, Spinner, TrophyBadge } from "../components/ui";
 import {
@@ -26,6 +27,8 @@ export function StatsPage() {
   const { client } = useApp();
   const [platform, setPlatform] = useState<string | null>(null);
   const [friendId, setFriendId] = useState<string>("");
+  // Categoria tocada nos quadros: abre o mural de jogos logo abaixo.
+  const [mural, setMural] = useState<MuralCategory>("platinas");
 
   const mine = useData(
     async (force) => {
@@ -141,17 +144,46 @@ export function StatsPage() {
             <Legend series={series(() => [])} />
 
             <div className="grid grid-cols-2 gap-3">
-              <StatTile label="Jogos" names={names} values={all.map((s) => s.games.toLocaleString("pt-BR"))} />
-              <StatTile label="Platinas" names={names} values={all.map((s) => s.platinums.toLocaleString("pt-BR"))} />
-              <StatTile label="Jogos 100%" names={names} values={all.map((s) => s.completed.toLocaleString("pt-BR"))} />
-              <StatTile label="Conclusão média" names={names} values={all.map((s) => `${s.avgProgress}%`)} />
-              <StatTile
-                label="Troféus"
-                names={names}
-                values={all.map((s) => s.totalTrophies.toLocaleString("pt-BR"))}
-              />
-              <StatTile label="Tempo de jogo" names={names} values={all.map((s) => formatDuration(s.playSeconds))} />
+              {(
+                [
+                  ["jogos", all.map((s) => s.games.toLocaleString("pt-BR"))],
+                  ["platinas", all.map((s) => s.platinums.toLocaleString("pt-BR"))],
+                  ["completos", all.map((s) => s.completed.toLocaleString("pt-BR"))],
+                  ["conclusao", all.map((s) => `${s.avgProgress}%`)],
+                  ["trofeus", all.map((s) => s.totalTrophies.toLocaleString("pt-BR"))],
+                  ["tempo", all.map((s) => formatDuration(s.playSeconds))],
+                ] as [MuralCategory, string[]][]
+              ).map(([key, values]) => (
+                <StatTile
+                  key={key}
+                  label={MURAL_LABELS[key]}
+                  names={names}
+                  values={values}
+                  selected={mural === key}
+                  onSelect={() => setMural(key)}
+                />
+              ))}
             </div>
+
+            <Mural
+              key={`${mural}:${friendId}`}
+              category={mural}
+              platform={platform}
+              players={[
+                { name: names[0], accountId: "me", titles: data.titles, playtime: data.playtime, playedOn: data.playedOn },
+                ...(friend && friendTitles && friendPlay
+                  ? [
+                      {
+                        name: friend.onlineId,
+                        accountId: friend.accountId,
+                        titles: friendTitles,
+                        playtime: friendPlay.playtime,
+                        playedOn: friendPlay.playedOn,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
 
             <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
               <h2 className="font-semibold">Troféus por tipo</h2>
