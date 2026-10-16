@@ -22,7 +22,6 @@ const START_TABS: { value: Settings["startTab"]; label: string }[] = [
   { value: "/stats", label: "Estatísticas" },
   { value: "/friends", label: "Amigos" },
   { value: "/activity", label: "Atividades" },
-  { value: "/ranking", label: "Ranking" },
 ];
 
 export function SettingsPage() {

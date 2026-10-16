@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
-import { PageHeader } from "../components/PageHeader";
 import { Avatar, ErrorBox, Spinner } from "../components/ui";
 import { useData } from "../lib/useData";
 import type { Profile } from "../psn/types";
@@ -17,13 +16,16 @@ const METRICS = {
 type Metric = keyof typeof METRICS;
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-export function RankingPage() {
+/** Dados do ranking (você e os amigos). Fica em Estatísticas → Ranking. */
+export function useRanking() {
   const { client } = useApp();
+  return useData(async (force) => ({ me: await client.me(force), friends: await client.friends(force) }), [client]);
+}
+
+/** Ranking de platinas, nível ou troféus entre você e os amigos (sem cabeçalho). */
+export function RankingView({ ranking }: { ranking: ReturnType<typeof useRanking> }) {
+  const { data, error, loading, refresh } = ranking;
   const [metric, setMetric] = useState<Metric>("platinas");
-  const { data, error, loading, refresh } = useData(
-    async (force) => ({ me: await client.me(force), friends: await client.friends(force) }),
-    [client],
-  );
 
   const value = METRICS[metric].value;
   const rows = data
@@ -36,8 +38,7 @@ export function RankingPage() {
 
   return (
     <>
-      <PageHeader title="Ranking de platinas" onRefresh={refresh} refreshing={loading} />
-      <div className="space-y-4 px-4 pt-4">
+      <div className="space-y-4">
         {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
         {loading && !data && <Spinner label="Montando o ranking com seus amigos…" />}
 
