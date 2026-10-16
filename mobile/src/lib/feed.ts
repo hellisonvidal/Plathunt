@@ -79,6 +79,8 @@ export interface RawTrophyMeta {
   trophyIconUrl?: string;
   trophyHidden: boolean;
   trophyGroupId?: string;
+  /** Meta do contador de objetivo (PS5), em texto: "50". */
+  trophyProgressTargetValue?: string;
 }
 
 export interface RawTrophyEarned {
@@ -86,6 +88,18 @@ export interface RawTrophyEarned {
   earned?: boolean;
   earnedDateTime?: string;
   trophyEarnedRate?: string;
+  trophyProgressTargetValue?: string;
+  /** Progresso do jogador no contador, em texto: "12". A PSN manda, a psn-api não tipa. */
+  progress?: string;
+}
+
+/** Contador de objetivo do troféu: meta da PSN e quanto o jogador já fez. */
+export function trophyProgress(meta: RawTrophyMeta, earned?: RawTrophyEarned): TrophyRow["progress"] {
+  const target = Number(meta.trophyProgressTargetValue ?? earned?.trophyProgressTargetValue);
+  if (!Number.isFinite(target) || target <= 0) return null;
+  if (earned?.earned) return { current: target, target };
+  const current = Number(earned?.progress);
+  return { current: Number.isFinite(current) ? Math.max(0, Math.min(current, target)) : 0, target };
 }
 
 /** Junta os metadados do jogo com o status de conquista do jogador. */
@@ -106,6 +120,7 @@ export function mergeTrophies(meta: RawTrophyMeta[], earned: RawTrophyEarned[]):
       earned: !!e?.earned,
       earnedAt: e?.earned ? (e.earnedDateTime ?? null) : null,
       rate: Number.isFinite(rate) ? rate : null,
+      progress: trophyProgress(m, e),
     };
   });
 }

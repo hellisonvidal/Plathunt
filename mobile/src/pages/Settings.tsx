@@ -68,23 +68,6 @@ export function SettingsPage() {
           <ThemesButton current={settings.theme} />
         </Section>
 
-        <Section title="Atualizações">
-          <div className="flex items-center justify-between gap-3 p-4">
-            <div>
-              <p className="text-sm">Versão instalada</p>
-              <p className="text-xs text-muted">{APP_VERSION}</p>
-            </div>
-            <button
-              onClick={check}
-              disabled={checking}
-              className="rounded-full bg-ps-blue px-4 py-2 text-sm font-semibold disabled:opacity-60"
-            >
-              {checking ? "Verificando…" : "Verificar atualizações"}
-            </button>
-          </div>
-          {update && <UpdateStatus result={update} />}
-        </Section>
-
         <Section title="Atividades">
           <Choice
             label="Período das atividades"
@@ -152,6 +135,23 @@ export function SettingsPage() {
             PlayStation Trophy Mania {APP_VERSION}. Sem servidor: os dados vão direto do celular para a PSN e ficam só
             no aparelho. Não é afiliado à Sony Interactive Entertainment; PlayStation é marca da Sony.
           </p>
+        </Section>
+
+        <Section title="Atualizações">
+          <div className="flex items-center justify-between gap-3 p-4">
+            <div>
+              <p className="text-sm">Versão instalada</p>
+              <p className="text-xs text-muted">{APP_VERSION}</p>
+            </div>
+            <button
+              onClick={check}
+              disabled={checking}
+              className="rounded-full bg-ps-blue px-4 py-2 text-sm font-semibold disabled:opacity-60"
+            >
+              {checking ? "Verificando…" : "Verificar atualizações"}
+            </button>
+          </div>
+          {update && <UpdateStatus result={update} />}
         </Section>
       </div>
 

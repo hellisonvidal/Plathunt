@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { feedItemsFromTrophies, groupFeed, mergeTrophies, pickFeedSources, sortFeed, type FeedSource } from "../src/lib/feed";
+import { feedItemsFromTrophies, groupFeed, mergeTrophies, pickFeedSources, sortFeed, trophyProgress, type FeedSource } from "../src/lib/feed";
 import type { Title } from "../src/psn/types";
 
 const NOW = new Date("2026-10-15T12:00:00Z").getTime();
@@ -134,5 +134,20 @@ describe("groupFeed", () => {
     ]);
     expect(groups[0].counts).toEqual({ platinum: 1, gold: 1, silver: 0, bronze: 0 });
     expect(groups[0].items.map((i) => i.trophy.id)).toEqual([1, 3]);
+  });
+});
+
+describe("contador de objetivo dos troféus (PS5)", () => {
+  const meta = (target?: string) => ({ trophyId: 1, trophyType: "bronze" as const, trophyHidden: false, trophyProgressTargetValue: target });
+  it("lê a meta e o progresso do jogador", () => {
+    expect(trophyProgress(meta("50"), { trophyId: 1, earned: false, progress: "12" })).toEqual({ current: 12, target: 50 });
+  });
+  it("troféu conquistado fica com o contador cheio; sem progresso começa em 0", () => {
+    expect(trophyProgress(meta("50"), { trophyId: 1, earned: true })).toEqual({ current: 50, target: 50 });
+    expect(trophyProgress(meta("50"), undefined)).toEqual({ current: 0, target: 50 });
+  });
+  it("troféu sem contador não tem progresso", () => {
+    expect(trophyProgress(meta(), { trophyId: 1, progress: "3" })).toBeNull();
+    expect(mergeTrophies([meta("10")], [{ trophyId: 1, progress: "99" }])[0].progress).toEqual({ current: 10, target: 10 });
   });
 });
