@@ -285,7 +285,7 @@ export function createPsnClient(): PsnClient {
               return [] as FeedItem[];
             }
           });
-          return sortFeed(items.flat());
+          return sortFeed(items.flat(), 80, now);
         },
         force,
       );

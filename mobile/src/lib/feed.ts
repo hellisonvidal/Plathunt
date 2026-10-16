@@ -2,6 +2,10 @@ import type { FeedItem, Title, TrophyRow, TrophyType } from "../psn/types";
 
 /** Janela de tempo do feed de atividade. */
 export const FEED_WINDOW_DAYS = 30;
+/** As Atividades sempre trazem tudo dos últimos 7 dias, sem cortar pelo limite. */
+export const FEED_MIN_DAYS = 7;
+/** Teto de segurança de jogos consultados dentro dos 7 dias (limite de chamadas da PSN). */
+export const FEED_MAX_RECENT_SOURCES = 80;
 
 export interface FeedSource {
   owner: FeedItem["owner"];
@@ -10,8 +14,9 @@ export interface FeedSource {
 
 /**
  * Escolhe quais pares (jogador, jogo) valem a pena consultar: só os que
- * tiveram troféus dentro da janela, os mais recentes primeiro, até `max`
- * (cada par custa duas chamadas à PSN).
+ * tiveram troféus dentro da janela, os mais recentes primeiro (cada par custa
+ * duas chamadas à PSN). Todos os jogos com troféus nos últimos 7 dias entram
+ * (até o teto de segurança); `max` limita só os mais antigos que isso.
  */
 export function pickFeedSources(
   sources: FeedSource[],
@@ -20,10 +25,13 @@ export function pickFeedSources(
   days: number = FEED_WINDOW_DAYS,
 ): FeedSource[] {
   const since = now - days * 86_400_000;
-  return sources
+  const recentSince = now - FEED_MIN_DAYS * 86_400_000;
+  const sorted = sources
     .filter((s) => new Date(s.title.lastUpdated).getTime() >= since)
-    .sort((a, b) => new Date(b.title.lastUpdated).getTime() - new Date(a.title.lastUpdated).getTime())
-    .slice(0, max);
+    .sort((a, b) => new Date(b.title.lastUpdated).getTime() - new Date(a.title.lastUpdated).getTime());
+  const recent = sorted.filter((s) => new Date(s.title.lastUpdated).getTime() >= recentSince);
+  const older = sorted.filter((s) => new Date(s.title.lastUpdated).getTime() < recentSince);
+  return [...recent.slice(0, FEED_MAX_RECENT_SOURCES), ...older.slice(0, Math.max(0, max - recent.length))];
 }
 
 /** Troféus conquistados dentro da janela, prontos para o feed. */
@@ -47,12 +55,18 @@ export function feedItemsFromTrophies(
     }));
 }
 
-export function sortFeed(items: FeedItem[], limit = 80): FeedItem[] {
+/**
+ * Ordena do mais novo, sem repetidos. Tudo dos últimos 7 dias fica; `limit`
+ * só corta os troféus mais antigos que isso.
+ */
+export function sortFeed(items: FeedItem[], limit = 80, now: number = Date.now()): FeedItem[] {
   const seen = new Set<string>();
-  return items
+  const recentSince = now - FEED_MIN_DAYS * 86_400_000;
+  const sorted = items
     .filter((i) => (seen.has(i.key) ? false : (seen.add(i.key), true)))
-    .sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime())
-    .slice(0, limit);
+    .sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime());
+  const recent = sorted.filter((i) => new Date(i.earnedAt).getTime() >= recentSince).length;
+  return sorted.slice(0, Math.max(limit, recent));
 }
 
 export interface RawTrophyMeta {
