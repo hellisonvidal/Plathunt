@@ -23,8 +23,8 @@ const headers = () => ({ "Accept-Language": getSettings().language });
 const MIN = 60_000;
 /** A PSN devolve a lista de amigos em páginas; percorremos todas. */
 const FRIENDS_PAGE = 1000;
-/** As Atividades olham só os primeiros amigos da lista, para não estourar o limite de chamadas da PSN. */
-const FEED_FRIENDS = 60;
+/** Nas Atividades, os jogos mais recentes de cada amigo que entram na busca. */
+const FEED_GAMES_PER_FRIEND = 5;
 const MAX_FEED_SOURCES = 20;
 const CONCURRENCY = 5;
 
@@ -251,28 +251,35 @@ export function createPsnClient(): PsnClient {
         10 * MIN,
         async () => {
           const me = await client.me(force);
-          const friendIds = (await client.friendIds(force)).slice(0, FEED_FRIENDS);
-          const friends = (
-            await mapLimit(friendIds, CONCURRENCY, (id) => client.profile(id).catch(() => null))
-          ).filter((p): p is Profile => p !== null);
           const now = Date.now();
+          const since = now - days * 86_400_000;
 
           const mine: FeedSource[] = (await client.titles("me", force)).map((title) => ({
             owner: { accountId: me.accountId, onlineId: me.onlineId, avatarUrl: me.avatarUrl, isMe: true },
             title,
           }));
-          // Para amigos, só os 3 jogos mais recentes de cada um (troféus privados são ignorados).
-          const theirs = (
-            await mapLimit(friends, CONCURRENCY, async (f) => {
+          // Todos os amigos com troféus públicos: primeiro os jogos recentes de
+          // cada um (perfis privados dão erro e ficam de fora); o perfil (nome e
+          // avatar) só é buscado para quem jogou dentro do período.
+          const friendIds = await client.friendIds(force);
+          const active = (
+            await mapLimit(friendIds, CONCURRENCY, async (id) => {
               try {
-                const res = await getUserTitles(await auth(), f.accountId, { limit: 3, headerOverrides: headers() });
-                return res.trophyTitles.map((t) => ({
-                  owner: { accountId: f.accountId, onlineId: f.onlineId, avatarUrl: f.avatarUrl, isMe: false },
-                  title: toTitle(t),
-                }));
+                const titles = (await client.recentTitles(id, force))
+                  .filter((t) => new Date(t.lastUpdated).getTime() >= since)
+                  .slice(0, FEED_GAMES_PER_FRIEND);
+                return { id, titles };
               } catch {
-                return [];
+                return { id, titles: [] as Title[] };
               }
+            })
+          ).filter((f) => f.titles.length > 0);
+          const theirs = (
+            await mapLimit(active, CONCURRENCY, async ({ id, titles }) => {
+              const f = await client.profile(id).catch(() => null);
+              if (!f) return [];
+              const owner = { accountId: f.accountId, onlineId: f.onlineId, avatarUrl: f.avatarUrl, isMe: false };
+              return titles.map((title) => ({ owner, title }));
             })
           ).flat();
 

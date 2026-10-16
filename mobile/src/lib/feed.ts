@@ -1,11 +1,11 @@
-import type { FeedItem, Title, TrophyRow, TrophyType } from "../psn/types";
+import type { Counts, FeedItem, Title, TrophyRow, TrophyType } from "../psn/types";
 
 /** Janela de tempo do feed de atividade. */
 export const FEED_WINDOW_DAYS = 30;
 /** As Atividades sempre trazem tudo dos últimos 7 dias, sem cortar pelo limite. */
 export const FEED_MIN_DAYS = 7;
 /** Teto de segurança de jogos consultados dentro dos 7 dias (limite de chamadas da PSN). */
-export const FEED_MAX_RECENT_SOURCES = 80;
+export const FEED_MAX_RECENT_SOURCES = 150;
 
 export interface FeedSource {
   owner: FeedItem["owner"];
@@ -108,4 +108,48 @@ export function mergeTrophies(meta: RawTrophyMeta[], earned: RawTrophyEarned[]):
       rate: Number.isFinite(rate) ? rate : null,
     };
   });
+}
+
+/** Conquistas de um jogador em um jogo, no mesmo dia (um cartão nas Atividades). */
+export interface FeedGroup {
+  key: string;
+  owner: FeedItem["owner"];
+  game: FeedItem["game"];
+  /** Do mais novo para o mais antigo. */
+  items: FeedItem[];
+  latest: string;
+  counts: Counts;
+}
+
+/** Dia local (aaaa-mm-dd) de uma data ISO. */
+function localDay(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Agrupa as conquistas por jogador, jogo e dia: em vez de um cartão por
+ * troféu, um cartão por sessão de jogo. Os grupos vêm do mais recente.
+ */
+export function groupFeed(items: FeedItem[]): FeedGroup[] {
+  const groups = new Map<string, FeedGroup>();
+  const sorted = [...items].sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime());
+  for (const item of sorted) {
+    const key = `${item.owner.accountId}:${item.game.id}:${localDay(item.earnedAt)}`;
+    let g = groups.get(key);
+    if (!g) {
+      g = {
+        key,
+        owner: item.owner,
+        game: item.game,
+        items: [],
+        latest: item.earnedAt,
+        counts: { platinum: 0, gold: 0, silver: 0, bronze: 0 },
+      };
+      groups.set(key, g);
+    }
+    g.items.push(item);
+    g.counts[item.trophy.type] += 1;
+  }
+  return [...groups.values()];
 }
