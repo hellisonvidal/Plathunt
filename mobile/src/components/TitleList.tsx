@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { formatDuration } from "../lib/stats";
 import type { Title } from "../psn/types";
-import { CompletionBadge, completionTier } from "./Completion";
+import { CompletionBadge, completionTier, TierFill } from "./Completion";
 import { GameIcon, TrophyBadge } from "./ui";
 
 export function TitleList({
@@ -24,7 +24,7 @@ export function TitleList({
             <Link
               to={`/game/${accountId}/${t.id}?service=${t.service}`}
               className={`flex gap-3 rounded-2xl border bg-surface p-3 active:border-muted ${
-                t.progress >= 100 ? "border-gold/50" : "border-line"
+                t.progress >= 100 ? "border-ps-blue-2/60" : "border-line"
               }`}
             >
               <GameIcon src={t.iconUrl} />
@@ -40,10 +40,10 @@ export function TitleList({
                   <TrophyBadge type="bronze" count={t.earned.bronze} />
                   {secs ? <span className="ml-auto text-xs text-muted">⏱ {formatDuration(secs)}</span> : null}
                 </div>
-                {/* Marcação de conclusão: barra e selo na cor da faixa (ouro = 100%). */}
+                {/* Marcação de conclusão: barra e selo na cor do tema, mais forte perto de 100%. */}
                 <div className="mt-2 flex items-center gap-2">
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
-                    <div className={`h-full rounded-full ${tier.bg}`} style={{ width: `${Math.min(100, t.progress)}%` }} />
+                    <TierFill tier={tier} className="h-full rounded-full" style={{ width: `${Math.min(100, t.progress)}%` }} />
                   </div>
                   <CompletionBadge progress={t.progress} />
                 </div>
