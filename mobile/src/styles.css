@@ -168,6 +168,42 @@ html[data-theme="spiderman"] {
   --color-silver: #c4c8d6;
 }
 
+/* Uncharted: bege de mapa antigo e areia, com detalhes em verde militar. */
+html[data-theme="uncharted"] {
+  color-scheme: light;
+  --color-bg: #efe6d2;
+  --color-surface: #faf5ea;
+  --color-surface-2: #e6dcc4;
+  --color-line: #d4c6a6;
+  --color-ink: #2a2418;
+  --color-muted: #5f523a;
+  --color-ps-blue: #3d5a2a;
+  --color-ps-blue-2: #3a5526;
+  --color-on-accent: #ffffff;
+  --color-gold: #7a5900;
+  --color-bronze: #8a4d22;
+  --color-silver: #56606c;
+  --color-platinum: #22607f;
+}
+
+/* Death Stranding: claro como os trajes da Bridges, com o laranja dos detalhes. */
+html[data-theme="deathstranding"] {
+  color-scheme: light;
+  --color-bg: #f1f3f4;
+  --color-surface: #ffffff;
+  --color-surface-2: #e6eaec;
+  --color-line: #cfd6da;
+  --color-ink: #14191c;
+  --color-muted: #525d66;
+  --color-ps-blue: #c25400;
+  --color-ps-blue-2: #a84700;
+  --color-on-accent: #ffffff;
+  --color-gold: #7a5900;
+  --color-bronze: #8a4d22;
+  --color-silver: #56606c;
+  --color-platinum: #22607f;
+}
+
 /* Botões cheios na cor de destaque sempre com texto branco (contraste em todos os temas). */
 .bg-ps-blue {
   color: var(--color-on-accent);
@@ -193,8 +229,10 @@ body {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
 }
 
-/* Vermelho de erro/sair mais escuro no Astro Bot (contraste sobre branco). */
-html:not([data-theme]) .text-red-400 {
+/* Vermelho de erro/sair mais escuro nos temas claros (contraste sobre fundo claro). */
+html:not([data-theme]) .text-red-400,
+html[data-theme="uncharted"] .text-red-400,
+html[data-theme="deathstranding"] .text-red-400 {
   color: #c0262d;
 }
 

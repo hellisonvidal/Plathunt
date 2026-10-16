@@ -12,6 +12,8 @@ export const THEMES: { value: Settings["theme"]; label: string; description: str
   { value: "crimson", label: "God of War", description: "Cinza das cinzas de Kratos com a tatuagem vermelha", swatch: ["#171615", "#2e2b29", "#b3121f"] },
   { value: "purple", label: "Ratchet & Clank", description: "Pelo dourado de Ratchet sobre marrom", swatch: ["#1a1207", "#342411", "#e0a11b"] },
   { value: "spiderman", label: "Marvel's Spider-Man", description: "Azul do traje de Peter com o vermelho da máscara", swatch: ["#0b1238", "#1d2a6b", "#d01f2e"] },
+  { value: "uncharted", label: "Uncharted", description: "Bege de mapa antigo com verde militar", swatch: ["#efe6d2", "#faf5ea", "#3d5a2a"] },
+  { value: "deathstranding", label: "Death Stranding", description: "Claro como a Bridges, com detalhes em laranja", swatch: ["#f1f3f4", "#ffffff", "#c25400"] },
   { value: "horizon", label: "Horizon", description: "Azul-petróleo do Focus com o ruivo de Aloy", swatch: ["#0a1a1f", "#173540", "#d9621b"] },
 ];
 
