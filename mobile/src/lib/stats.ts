@@ -246,3 +246,31 @@ export function groupTrophies(trophies: TrophyRow[], groups: TrophyGroup[]): Gro
   }
   return sections.filter((s) => s.trophies.length > 0);
 }
+
+export interface TitleComparison {
+  /** Jogos que os dois jogaram (casados pelo nome). */
+  common: { mine: Title; theirs: Title }[];
+  onlyMine: Title[];
+  onlyTheirs: Title[];
+}
+
+/** Compara as listas de jogos de dois jogadores (pelo nome normalizado), em ordem alfabética. */
+export function compareTitles(mine: Title[], theirs: Title[]): TitleComparison {
+  const byName = (a: Title, b: Title) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" });
+  const theirsByName = new Map(theirs.map((t) => [normalizeName(t.name), t]));
+  const used = new Set<Title>();
+  const common: TitleComparison["common"] = [];
+  const onlyMine: Title[] = [];
+  for (const t of mine) {
+    const match = theirsByName.get(normalizeName(t.name));
+    if (match && !used.has(match)) {
+      used.add(match);
+      common.push({ mine: t, theirs: match });
+    } else onlyMine.push(t);
+  }
+  return {
+    common: common.sort((a, b) => byName(a.mine, b.mine)),
+    onlyMine: onlyMine.sort(byName),
+    onlyTheirs: theirs.filter((t) => !used.has(t)).sort(byName),
+  };
+}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
+import { MeritsView } from "../components/Merits";
 import { PageHeader } from "../components/PageHeader";
 import { ReactionBar } from "../components/Reactions";
 import { Avatar, ErrorBox, GameIcon, RemoteImage, Spinner, TrophyBadge, rarityLabel, timeAgo } from "../components/ui";
@@ -20,6 +21,7 @@ export function ActivityPage() {
   const { feedDays } = useSettings();
   const { data, error, loading, refresh } = useData((force) => client.feed(force), [client, feedDays]);
   const [filter, setFilter] = useState<FilterKey>("todos");
+  const [view, setView] = useState<"feed" | "merits">("feed");
 
   const items = (data ?? []).filter((i) => {
     const types = FILTERS[filter].types as readonly string[] | null;
@@ -29,39 +31,68 @@ export function ActivityPage() {
 
   return (
     <>
-      <PageHeader title="Atividades" onRefresh={refresh} refreshing={loading} />
+      <PageHeader
+        title="Atividades"
+        onRefresh={view === "feed" ? refresh : undefined}
+        refreshing={view === "feed" && loading}
+      />
       <div className="space-y-4 px-4 pt-4">
-        <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm">
-          {(Object.keys(FILTERS) as FilterKey[]).map((k) => (
+        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-surface p-1 text-sm" role="tablist">
+          {(
+            [
+              ["feed", "🎮 Conquistas"],
+              ["merits", "🏅 Méritos"],
+            ] as const
+          ).map(([key, label]) => (
             <button
-              key={k}
-              onClick={() => setFilter(k)}
-              className={`shrink-0 rounded-full px-3 py-1.5 ${
-                filter === k ? "bg-ps-blue font-semibold" : "border border-line text-muted"
-              }`}
+              key={key}
+              role="tab"
+              aria-selected={view === key}
+              onClick={() => setView(key)}
+              className={`rounded-xl py-2 font-semibold ${view === key ? "bg-ps-blue" : "text-muted"}`}
             >
-              {FILTERS[k].label}
+              {label}
             </button>
           ))}
-        </nav>
+        </div>
 
-        {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
-        {loading && !data && <Spinner label="Buscando os troféus seus e dos seus amigos…" />}
+        {view === "merits" ? (
+          <MeritsView />
+        ) : (
+          <>
+            <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm">
+              {(Object.keys(FILTERS) as FilterKey[]).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setFilter(k)}
+                  className={`shrink-0 rounded-full px-3 py-1.5 ${
+                    filter === k ? "bg-ps-blue font-semibold" : "border border-line text-muted"
+                  }`}
+                >
+                  {FILTERS[k].label}
+                </button>
+              ))}
+            </nav>
 
-        {data && items.length === 0 && (
-          <p className="py-12 text-center text-sm text-muted">
-            Nenhum troféu nos últimos {feedDays} dias por aqui. Bora jogar! 🎮
-          </p>
-        )}
+            {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
+            {loading && !data && <Spinner label="Buscando os troféus seus e dos seus amigos…" />}
 
-        {groups.map((group) => (
-          <GroupCard key={group.key} group={group} />
-        ))}
+            {data && items.length === 0 && (
+              <p className="py-12 text-center text-sm text-muted">
+                Nenhum troféu nos últimos {feedDays} dias por aqui. Bora jogar! 🎮
+              </p>
+            )}
 
-        {data && items.length > 0 && (
-          <p className="pb-2 text-center text-[0.6875rem] text-muted">
-            Suas curtidas ficam salvas neste celular.
-          </p>
+            {groups.map((group) => (
+              <GroupCard key={group.key} group={group} />
+            ))}
+
+            {data && items.length > 0 && (
+              <p className="pb-2 text-center text-[0.6875rem] text-muted">
+                Suas curtidas ficam salvas neste celular.
+              </p>
+            )}
+          </>
         )}
       </div>
     </>
