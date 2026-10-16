@@ -28,38 +28,66 @@ export function CompletionBadge({ progress }: { progress: number }) {
 }
 
 /**
- * Resumo de conclusão do perfil: média, jogos 100% e uma barra com quantos
- * jogos há em cada faixa.
+ * Resumo de conclusão do perfil: gráfico circular com quantos jogos há em
+ * cada faixa e a média no centro; as legendas ficam empilhadas à direita.
  */
 export function CompletionSummary({ titles }: { titles: Title[] }) {
   if (!titles.length) return null;
   const avg = Math.round(titles.reduce((a, t) => a + t.progress, 0) / titles.length);
   const counts = COMPLETION_TIERS.map((tier) => ({ tier, n: titles.filter((t) => completionTier(t.progress) === tier).length }));
+
+  // Rosca: cada faixa é um arco proporcional ao número de jogos.
+  const r = 40;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  const arcs = counts
+    .filter(({ n }) => n > 0)
+    .map(({ tier, n }) => {
+      const length = (n / titles.length) * circumference;
+      const arc = { tier, length, offset };
+      offset += length;
+      return arc;
+    });
+
   return (
-    <div className="mt-4 rounded-xl bg-surface-2 p-3">
-      <div className="flex items-center justify-between gap-2 text-sm">
-        <span className="text-muted">Conclusão dos jogos</span>
-        <span className="flex items-center gap-2">
-          <CompletionBadge progress={avg} />
-          <span className="text-xs text-muted">média</span>
-        </span>
+    <div className="mt-4 flex items-center gap-4 rounded-xl bg-surface-2 p-3">
+      <div className="relative h-28 w-28 shrink-0">
+        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" role="img" aria-label={`Conclusão média ${avg}%`}>
+          <circle cx="50" cy="50" r={r} fill="none" strokeWidth="12" className="stroke-surface" />
+          {arcs.map(({ tier, length, offset }) => (
+            <circle
+              key={tier.min}
+              cx="50"
+              cy="50"
+              r={r}
+              fill="none"
+              strokeWidth="12"
+              stroke="currentColor"
+              className={tier.text}
+              strokeDasharray={`${length} ${circumference - length}`}
+              strokeDashoffset={-offset}
+            />
+          ))}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xl font-bold tabular-nums">{avg}%</span>
+          <span className="text-[0.625rem] uppercase tracking-wide text-muted">média</span>
+        </div>
       </div>
-      <div className="mt-2 flex h-2.5 overflow-hidden rounded-full bg-surface" role="img" aria-label="Jogos por faixa de conclusão">
-        {counts.map(({ tier, n }) =>
-          n ? <span key={tier.min} className={tier.bg} style={{ width: `${(n / titles.length) * 100}%` }} /> : null,
-        )}
+      <div className="min-w-0 flex-1">
+        <p className="mb-1.5 text-xs font-semibold text-muted">Conclusão dos jogos</p>
+        <ul className="space-y-1 text-xs">
+          {counts.map(({ tier, n }) => (
+            <li key={tier.min} className="flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tier.bg}`} />
+              <span className="min-w-0 flex-1 truncate">
+                {tier.name} <span className="text-muted">{tier.label}</span>
+              </span>
+              <span className="font-semibold tabular-nums">{n}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-      <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[0.6875rem] text-muted">
-        {counts.map(({ tier, n }) => (
-          <li key={tier.min} className="flex items-center gap-1.5">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${tier.bg}`} />
-            <span className="flex-1">
-              {tier.name} <span className="opacity-70">({tier.label})</span>
-            </span>
-            <span className="font-semibold tabular-nums text-ink">{n}</span>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

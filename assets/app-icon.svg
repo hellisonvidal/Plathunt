@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Troféu de platina em 2D (mesmo modelo do ícone anterior), fundo transparente. -->
+  <defs>
+    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#aeb9c7"/>
+      <stop offset="0.5" stop-color="#eef2f7"/>
+      <stop offset="1" stop-color="#aeb9c7"/>
+    </linearGradient>
+  </defs>
+  <g stroke="#0b2a5c" stroke-width="6" stroke-linejoin="round">
+    <!-- Braços: prata por fora, azul por dentro -->
+    <g id="arm">
+      <path d="M236 374 C 176 336, 82 306, 82 228 C 82 160, 118 106, 172 68 C 140 118, 128 172, 140 226 C 152 282, 208 318, 250 342 Z" fill="#d9e0ea"/>
+      <path d="M242 356 C 196 330, 124 298, 118 232 C 113 180, 128 140, 150 108 C 138 150, 136 190, 148 234 C 162 284, 214 316, 254 336 Z" fill="#2f7bf0" stroke-width="0"/>
+    </g>
+    <use href="#arm" transform="translate(512 0) scale(-1 1)"/>
+    <!-- Haste cruzada -->
+    <path d="M208 248 L 236 248 L 300 372 L 272 372 Z" fill="#c3ccd8"/>
+    <path d="M304 248 L 276 248 L 212 372 L 240 372 Z" fill="#eef2f7"/>
+    <!-- Esfera com os símbolos -->
+    <circle cx="256" cy="168" r="104" fill="#1f6fe6"/>
+    <circle cx="256" cy="168" r="84" fill="#3d8bff" stroke-width="0"/>
+    <path d="M190 122 A 84 84 0 0 1 248 86" fill="none" stroke="#cfe4ff" stroke-width="10" stroke-linecap="round"/>
+    <g fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M226 118 L 250 156 L 202 156 Z"/>
+      <circle cx="292" cy="137" r="20"/>
+      <path d="M208 184 L 244 220 M 244 184 L 208 220"/>
+      <rect x="272" y="182" width="40" height="40" rx="2"/>
+    </g>
+    <!-- Base em degraus -->
+    <rect x="176" y="362" width="160" height="18" rx="6" fill="#2f7bf0"/>
+    <path d="M186 380 L 326 380 L 350 442 L 162 442 Z" fill="url(#silver)"/>
+    <rect x="128" y="442" width="256" height="34" rx="10" fill="url(#silver)"/>
+    <rect x="140" y="476" width="232" height="10" rx="5" fill="#2f7bf0"/>
+  </g>
+</svg>
