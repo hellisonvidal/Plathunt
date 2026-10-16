@@ -5,7 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, GameIcon, ProgressBar, RemoteImage, Spinner, TrophyBadge, rarityLabel } from "../components/ui";
 import type { GroupSection } from "../lib/stats";
 import { useSettings } from "../lib/settings";
-import { trophyGuideUrl } from "../lib/tips";
+import { gameWrittenGuideUrl, trophyGuideUrl, trophyWrittenGuideUrl } from "../lib/tips";
 import { formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import type { Title, TrophyRow } from "../psn/types";
@@ -85,6 +85,17 @@ export function GamePage() {
                 <p className="mt-1 text-xs text-muted">
                   {earnedCount} de {all.length} troféus
                 </p>
+                {data.title && (
+                  <a
+                    href={gameWrittenGuideUrl(data.title.name)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
+                  >
+                    <span aria-hidden>📖</span>
+                    Guia completo (PlayStationTrophies)
+                  </a>
+                )}
               </div>
             </header>
 
@@ -260,17 +271,29 @@ function TrophyItem({ trophy: t, gameName }: { trophy: TrophyRow; gameName: stri
       )}
       {/* Abre no app do YouTube (ou no navegador) a busca por um vídeo de dicas.
           Usa o nome original do troféu: a tradução automática acha menos vídeos. */}
-      <a
-        href={trophyGuideUrl(gameName, t.originalName ?? t.name, language)}
-        target="_blank"
-        rel="noreferrer"
-        className="ml-15 mt-2 inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
-      >
-        <span className="text-[#ff3d3d]" aria-hidden>
-          ▶
-        </span>
-        {secret ? "Dicas no YouTube (pode ter spoiler)" : "Dicas no YouTube"}
-      </a>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <a
+          href={trophyGuideUrl(gameName, t.originalName ?? t.name, language)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
+        >
+          <span className="text-[#ff3d3d]" aria-hidden>
+            ▶
+          </span>
+          {secret ? "Dica em vídeo (spoiler)" : "Dica em vídeo"}
+        </a>
+        {/* Guia escrito do PlayStationTrophies.org (o site usa os nomes em inglês). */}
+        <a
+          href={trophyWrittenGuideUrl(gameName, t.originalName ?? t.name)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
+        >
+          <span aria-hidden>📖</span>
+          Guia escrito
+        </a>
+      </div>
     </li>
   );
 }
