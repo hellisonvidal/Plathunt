@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { feedItemsFromTrophies, mergeTrophies, pickFeedSources, sortFeed, type FeedSource } from "../src/lib/feed";
+import { feedItemsFromTrophies, groupFeed, mergeTrophies, pickFeedSources, sortFeed, type FeedSource } from "../src/lib/feed";
 import type { Title } from "../src/psn/types";
 
 const NOW = new Date("2026-10-15T12:00:00Z").getTime();
@@ -107,5 +107,32 @@ describe("Atividades: no mínimo 7 dias", () => {
     }));
     expect(sortFeed(items, 80, NOW)).toHaveLength(100);
     expect(sortFeed(items.slice(100), 80, NOW)).toHaveLength(20);
+  });
+});
+
+describe("groupFeed", () => {
+  const item = (owner: string, game: string, id: number, hoursAgo: number, type: "platinum" | "gold" | "bronze" = "bronze") => ({
+    key: `${owner}:${game}:${id}`,
+    owner: { accountId: owner, onlineId: owner, avatarUrl: null, isMe: owner === "me" },
+    game: { id: game, service: "trophy2" as const, name: game, iconUrl: null, platform: "PS5" },
+    trophy: { id, type, name: `T${id}`, detail: null, iconUrl: null },
+    earnedAt: new Date(NOW - hoursAgo * 3_600_000).toISOString(),
+    rate: null,
+  });
+
+  it("junta jogador + jogo + dia em um grupo, do mais recente, com a contagem por tipo", () => {
+    const groups = groupFeed([
+      item("f1", "G", 1, 1, "gold"),
+      item("f2", "H", 2, 2),
+      item("f1", "G", 3, 1.5, "platinum"),
+      item("f1", "G", 4, 72),
+    ]);
+    expect(groups.map((g) => [g.owner.accountId, g.game.id, g.items.length])).toEqual([
+      ["f1", "G", 2],
+      ["f2", "H", 1],
+      ["f1", "G", 1],
+    ]);
+    expect(groups[0].counts).toEqual({ platinum: 1, gold: 1, silver: 0, bronze: 0 });
+    expect(groups[0].items.map((i) => i.trophy.id)).toEqual([1, 3]);
   });
 });

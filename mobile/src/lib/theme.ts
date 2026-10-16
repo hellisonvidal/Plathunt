@@ -5,8 +5,8 @@ import { getSettings, onSettingsChange, type Settings } from "./settings";
  * de jogos de PlayStation. O id de cada tema não muda (fica salvo no celular).
  */
 export const THEMES: { value: Settings["theme"]; label: string; description: string; swatch: [string, string, string] }[] = [
-  { value: "playstation", label: "Astro Bot", description: "Visor escuro com o ciano dos olhos do Astro, o padrão", swatch: ["#050a14", "#142036", "#00a6e6"] },
-  { value: "light", label: "Gran Turismo", description: "Claro, branco de pista com azul", swatch: ["#f3f5f9", "#ffffff", "#0062c4"] },
+  { value: "playstation", label: "Astro Bot", description: "Branco do robô, preto do visor e azul dos olhos, o padrão", swatch: ["#f2f4f8", "#0b0d12", "#1463ff"] },
+  { value: "light", label: "Gran Turismo", description: "Branco de pista com o vermelho do logo", swatch: ["#f5f5f5", "#ffffff", "#d0021b"] },
   { value: "oled", label: "Demon's Souls", description: "Preto puro (OLED) com o prata da armadura do Slayer", swatch: ["#000000", "#1c1c1c", "#b9c0ca"] },
   { value: "green", label: "The Last of Us", description: "Verde-oliva de Ellie com o cáqui de Joel", swatch: ["#13140c", "#282b1a", "#5e7a24"] },
   { value: "crimson", label: "God of War", description: "Cinza das cinzas de Kratos com a tatuagem vermelha", swatch: ["#171615", "#2e2b29", "#b3121f"] },
@@ -20,7 +20,8 @@ export function applyTheme(theme: Settings["theme"] = getSettings().theme) {
   const root = document.documentElement;
   if (theme === "playstation") delete root.dataset.theme;
   else root.dataset.theme = theme;
-  const bg = THEMES.find((t) => t.value === theme)?.swatch[0] ?? "#050a14";
+  // No Astro Bot as barras são pretas (o visor), então a barra do sistema também.
+  const bg = theme === "playstation" ? "#0b0d12" : (THEMES.find((t) => t.value === theme)?.swatch[0] ?? "#0b0d12");
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bg);
 }
 

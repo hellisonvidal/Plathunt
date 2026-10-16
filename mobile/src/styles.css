@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Tema padrão, Astro Bot: visor escuro com o azul-ciano dos olhos de LED do Astro. */
+/* Cores base dos temas escuros (cada tema troca o que precisa). */
 @theme {
   --color-bg: #050a14;
   --color-surface: #0c1424;
@@ -35,21 +35,53 @@ html {
  * "ps-blue" é a cor de destaque do tema. Contraste de texto verificado
  * (WCAG ≥ 4.5:1) contra a superfície de cada tema.
  */
+/* Gran Turismo: branco de pista com o vermelho do logo. */
 html[data-theme="light"] {
   color-scheme: light;
-  --color-bg: #f3f5f9;
+  --color-bg: #f5f5f5;
   --color-surface: #ffffff;
-  --color-surface-2: #e9edf4;
-  --color-line: #d5dbe6;
-  --color-ink: #111827;
-  --color-muted: #5b6475;
-  --color-ps-blue: #0062c4;
-  --color-ps-blue-2: #0b5fc4;
+  --color-surface-2: #ececec;
+  --color-line: #d9d9d9;
+  --color-ink: #111111;
+  --color-muted: #5c5c5c;
+  --color-ps-blue: #d0021b;
+  --color-ps-blue-2: #c00018;
   --color-bronze: #97562a;
   --color-silver: #5f6b7a;
-  --color-gold: #946800;
-  --color-platinum: #2a7299;
+  --color-gold: #846000;
+  --color-platinum: #256a8e;
   --color-on-accent: #ffffff;
+}
+
+/*
+ * Astro Bot (padrão): corpo branco do robô, barras de cima e de baixo pretas
+ * como o visor, e o azul dos olhos de LED como destaque.
+ */
+html:not([data-theme]) {
+  color-scheme: light;
+  --color-bg: #f2f4f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #e8ecf3;
+  --color-line: #d3d9e4;
+  --color-ink: #0d1117;
+  --color-muted: #556070;
+  --color-ps-blue: #1463ff;
+  --color-ps-blue-2: #0a55e0;
+  --color-bronze: #97562a;
+  --color-silver: #5f6b7a;
+  --color-gold: #846000;
+  --color-platinum: #256a8e;
+  --color-on-accent: #ffffff;
+}
+
+html:not([data-theme]) header.sticky,
+html:not([data-theme]) nav.fixed {
+  --color-bg: #0b0d12;
+  --color-ink: #ffffff;
+  --color-muted: #a9b3c4;
+  --color-line: #1f2430;
+  --color-ps-blue-2: #4d9bff;
+  color: var(--color-ink);
 }
 
 /* Demon's Souls: preto do Slayer of Demons com o prata da armadura; texto escuro nos botões prata. */
