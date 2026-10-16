@@ -76,7 +76,7 @@ export function LoginPage({
     <div className="safe-top safe-bottom mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 py-8">
       {/* Bloco principal centralizado na vertical; o aviso de privacidade fica no rodapé. */}
       <div className="my-auto flex flex-col items-center pt-6 text-center">
-        <img src="./icon.png" alt="" className="h-24 w-24 rounded-3xl shadow-[0_8px_40px_-8px] shadow-ps-blue/60" />
+        <img src="./icon.png" alt="" className="h-28 w-28 drop-shadow-[0_8px_24px_rgba(0,112,209,0.45)]" />
         <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-ps-blue-2">PlayStation</p>
         <h1 className="text-3xl font-bold tracking-tight">Trophy Mania</h1>
         <p className="mt-2 max-w-xs text-muted">
