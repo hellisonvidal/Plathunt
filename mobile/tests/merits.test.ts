@@ -13,8 +13,8 @@ const profile: Profile = {
 };
 
 describe("méritos", () => {
-  it("tem cerca de 100 méritos, ids únicos e todas as categorias conhecidas", () => {
-    expect(MERITS.length).toBeGreaterThanOrEqual(100);
+  it("tem 500 méritos, ids únicos e todas as categorias conhecidas", () => {
+    expect(MERITS.length).toBe(500);
     expect(new Set(MERITS.map((m) => m.id)).size).toBe(MERITS.length);
     const cats = new Set(MERIT_CATEGORIES.map((c) => c.id));
     expect(MERITS.every((m) => cats.has(m.category))).toBe(true);
@@ -33,14 +33,19 @@ describe("méritos", () => {
     expect(done("platinas-10")).toBe(true);
     expect(done("platinas-25")).toBe(false);
     expect(done("nivel-100")).toBe(true);
-    expect(done("plataforma-ps5")).toBe(true);
-    expect(done("plataforma-vita")).toBe(false); // lista PS4,PSVITA conta como PS4
+    expect(done("ps5-jogos-1")).toBe(true);
+    expect(done("vita-jogos-1")).toBe(false); // lista PS4,PSVITA conta como PS4
     expect(done("tempo-jogo-100")).toBe(true);
-    expect(done("conclusao-quase")).toBe(true);
-    expect(done("especial-ouro-10")).toBe(true);
-    expect(done("especial-5-anos")).toBe(true);
+    expect(done("conclusao-quase-1")).toBe(true);
+    expect(done("curioso-ouro-jogo-10")).toBe(true);
+    expect(done("veterano-5")).toBe(true);
     expect(done("social-25")).toBe(true);
     expect(done("curtidas-10")).toBe(false);
+    expect(done("ps4-platinas-1")).toBe(false);
+    expect(done("ps5-platinas-1")).toBe(true);
+    expect(done("temporada-2026")).toBe(true);
+    expect(done("temporada-platina-2026")).toBe(true);
+    expect(done("tempo-10h-1")).toBe(true);
     const partial = results.find((r) => r.merit.id === "platinas-25")!;
     expect(partial.ratio).toBeCloseTo(12 / 25);
   });
