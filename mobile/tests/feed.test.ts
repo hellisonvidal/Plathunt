@@ -73,3 +73,39 @@ describe("mergeTrophies com tradução", () => {
     expect(rows[1].originalName).toBeUndefined();
   });
 });
+
+describe("Atividades: no mínimo 7 dias", () => {
+  it("todos os jogos com troféus nos últimos 7 dias entram, mesmo passando do limite", () => {
+    const sources: FeedSource[] = Array.from({ length: 30 }, (_, i) => ({
+      owner: owner(`f${i}`),
+      title: title(`R${i}`, daysAgo(1 + (i % 6))),
+    }));
+    sources.push({ owner: owner("old"), title: title("OLD", daysAgo(20)) });
+    const picked = pickFeedSources(sources, NOW, 20, 30).map((s) => s.title.id);
+    expect(picked).toHaveLength(30);
+    expect(picked).not.toContain("OLD");
+  });
+
+  it("o limite vale para os jogos mais antigos que 7 dias", () => {
+    const sources: FeedSource[] = [
+      { owner: owner("a"), title: title("NEW", daysAgo(1)) },
+      { owner: owner("b"), title: title("OLD1", daysAgo(10)) },
+      { owner: owner("c"), title: title("OLD2", daysAgo(12)) },
+    ];
+    expect(pickFeedSources(sources, NOW, 2, 30).map((s) => s.title.id)).toEqual(["NEW", "OLD1"]);
+  });
+
+  it("sortFeed não corta troféus dos últimos 7 dias", () => {
+    const source = { owner: owner("f"), title: title("G", daysAgo(1)) };
+    const items = Array.from({ length: 120 }, (_, i) => ({
+      key: `k${i}`,
+      owner: source.owner,
+      game: { id: "G", service: "trophy2" as const, name: "G", iconUrl: null, platform: "PS5" },
+      trophy: { id: i, type: "bronze" as const, name: "t", detail: null, iconUrl: null },
+      earnedAt: new Date(NOW - (i < 100 ? 2 : 20) * 86_400_000 - i * 1000).toISOString(),
+      rate: null,
+    }));
+    expect(sortFeed(items, 80, NOW)).toHaveLength(100);
+    expect(sortFeed(items.slice(100), 80, NOW)).toHaveLength(20);
+  });
+});
