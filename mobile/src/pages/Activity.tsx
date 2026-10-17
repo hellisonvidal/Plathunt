@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { BoostView } from "../components/Boost";
 import { ChallengesView } from "../components/Challenges";
@@ -28,7 +28,10 @@ export function ActivityPage() {
   const { feedDays } = useSettings();
   const { data, error, loading, refresh } = useData((force) => client.feed(force), [client, feedDays]);
   const [filter, setFilter] = useState<FilterKey>("todos");
-  const [view, setView] = useState<"feed" | "merits" | "boost" | "challenges">("feed");
+  // ?view=boost-inbox: aberto por um link de pedido de boost.
+  const [params] = useSearchParams();
+  const fromLink = params.get("view") === "boost-inbox";
+  const [view, setView] = useState<"feed" | "merits" | "boost" | "challenges">(fromLink ? "boost" : "feed");
   // O catálogo do Boost e dos Desafios começa a carregar em segundo plano.
   usePrefetchGameCatalog();
 
@@ -73,7 +76,7 @@ export function ActivityPage() {
         {view === "merits" ? (
           <MeritsView />
         ) : view === "boost" ? (
-          <BoostView />
+          <BoostView key={String(fromLink)} initialTab={fromLink ? "recebidos" : "meus"} />
         ) : view === "challenges" ? (
           <ChallengesView />
         ) : (

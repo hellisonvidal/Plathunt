@@ -52,27 +52,30 @@ html[data-theme="light"] {
   --color-bronze: #ffc8a0;
   --color-silver: #eef1f5;
   --color-platinum: #d4f0ff;
+  --color-online: #b8ffcf;
 }
 
 /*
- * Astro Bot (padrão): corpo branco do robô, barras de cima e de baixo pretas
- * como o visor, e o azul dos olhos de LED como destaque.
+ * Astro Bot: azul-céu claro do mundo do robô com o corpo branco nos cartões,
+ * barras de cima e de baixo pretas como o visor e o azul dos olhos de LED
+ * como destaque (bem diferente do Claro, que é cinza neutro).
  */
 html:not([data-theme]) {
   color-scheme: only light;
-  --color-bg: #f2f4f8;
+  --color-bg: #e4eeff;
   --color-surface: #ffffff;
-  --color-surface-2: #e8ecf3;
-  --color-line: #d3d9e4;
-  --color-ink: #0d1117;
-  --color-muted: #556070;
-  --color-ps-blue: #1463ff;
-  --color-ps-blue-2: #0a55e0;
+  --color-surface-2: #d9e6ff;
+  --color-line: #b9cdf2;
+  --color-ink: #0a1630;
+  --color-muted: #42547a;
+  --color-ps-blue: #0a6cff;
+  --color-ps-blue-2: #0057d6;
   --color-bronze: #97562a;
-  --color-silver: #5f6b7a;
-  --color-gold: #846000;
-  --color-platinum: #256a8e;
+  --color-silver: #56637a;
+  --color-gold: #7d5b00;
+  --color-platinum: #1f6488;
   --color-on-accent: #ffffff;
+  --color-online: #157a3a;
 }
 
 html:not([data-theme]) header.sticky,
@@ -81,12 +84,12 @@ html:not([data-theme]) nav.fixed {
   --rgb-ink: 255 255 255;
   --rgb-muted: 169 179 196;
   --rgb-line: 31 36 48;
-  --rgb-ps-blue-2: 77 155 255;
+  --rgb-ps-blue-2: 62 200 255;
   --color-bg: #0b0d12;
   --color-ink: #ffffff;
   --color-muted: #a9b3c4;
   --color-line: #1f2430;
-  --color-ps-blue-2: #4d9bff;
+  --color-ps-blue-2: #3ec8ff;
   color: var(--color-ink);
 }
 
@@ -191,6 +194,7 @@ html[data-theme="uncharted"] {
   --color-bronze: #8a4d22;
   --color-silver: #56606c;
   --color-platinum: #22607f;
+  --color-online: #157a3a;
 }
 
 /* Death Stranding: claro como os trajes da Bridges, com o laranja dos detalhes. */
@@ -209,6 +213,7 @@ html[data-theme="deathstranding"] {
   --color-bronze: #8a4d22;
   --color-silver: #56606c;
   --color-platinum: #22607f;
+  --color-online: #157a3a;
 }
 
 /* Claro (padrão): neutro, com o azul PlayStation. */
@@ -227,6 +232,7 @@ html[data-theme="claro"] {
   --color-bronze: #97562a;
   --color-silver: #5f6b7a;
   --color-platinum: #256a8e;
+  --color-online: #157a3a;
 }
 
 /* Escuro (padrão): grafite neutro, com o azul PlayStation. */
@@ -237,7 +243,7 @@ html[data-theme="escuro"] {
   --color-line: #2c333d;
   --color-ink: #eef1f5;
   --color-muted: #9aa4b2;
-  --color-ps-blue: #2d7ff9;
+  --color-ps-blue: #1f6fe5;
   --color-ps-blue-2: #6aa8ff;
   --color-on-accent: #ffffff;
 }

@@ -1,7 +1,10 @@
 package com.hellisonvidal.perseus;
 
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.webkit.WebView;
+import androidx.annotation.NonNull;
+import com.getcapacitor.WebViewListener;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 import com.getcapacitor.BridgeActivity;
@@ -18,6 +21,44 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         applyTextZoom();
         disableForcedDarkening();
+        // Avisa a página se o sistema está no modo escuro (tema "Automático") a cada carregamento.
+        try {
+            if (getBridge() != null) {
+                getBridge().addWebViewListener(new WebViewListener() {
+                    @Override
+                    public void onPageLoaded(WebView webView) {
+                        publishSystemTheme();
+                    }
+                });
+            }
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // O usuário trocou claro/escuro com o app aberto.
+        publishSystemTheme();
+    }
+
+    /**
+     * Com o escurecimento automático desligado, WebViews mais antigos sempre
+     * respondem "claro" para prefers-color-scheme. Por isso o app informa o
+     * modo do sistema diretamente: window.__tmSystemDark e o evento
+     * "tm-system-theme" (lib/theme.ts).
+     */
+    private void publishSystemTheme() {
+        try {
+            if (getBridge() == null) return;
+            WebView webView = getBridge().getWebView();
+            if (webView == null) return;
+            int mode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+            boolean dark = mode == Configuration.UI_MODE_NIGHT_YES;
+            webView.post(() -> webView.evaluateJavascript(
+                "window.__tmSystemDark=" + dark + ";window.dispatchEvent(new Event('tm-system-theme'));", null));
+        } catch (RuntimeException ignored) {
+        }
     }
 
     /**
@@ -48,6 +89,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        publishSystemTheme();
         // O usuário pode ter mudado o tamanho da fonte do Android com o app aberto.
         applyTextZoom();
     }

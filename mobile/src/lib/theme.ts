@@ -18,7 +18,7 @@ export const THEMES: {
   { value: "auto", label: "Automático", description: "Claro ou escuro, como o sistema do celular", swatch: ["#f5f6f8", "#0d0f13", "#2d7ff9"], standard: true },
   { value: "claro", label: "Claro", description: "Fundo claro com o azul PlayStation", swatch: ["#f5f6f8", "#ffffff", "#0070d1"], standard: true },
   { value: "escuro", label: "Escuro", description: "Fundo escuro com o azul PlayStation", swatch: ["#0d0f13", "#1f242c", "#2d7ff9"], standard: true },
-  { value: "playstation", label: "Astro Bot", description: "Branco do robô, preto do visor e azul dos olhos", swatch: ["#f2f4f8", "#ffffff", "#1463ff"], bars: "#0b0d12" },
+  { value: "playstation", label: "Astro Bot", description: "Azul-céu, branco do robô, preto do visor e azul dos olhos", swatch: ["#e4eeff", "#ffffff", "#0a6cff"], bars: "#0b0d12" },
   { value: "light", label: "Gran Turismo", description: "Vermelho do logo com branco de pista", swatch: ["#8c0013", "#b3001a", "#ffffff"] },
   { value: "oled", label: "Demon's Souls", description: "Preto puro (OLED) com o prata da armadura do Slayer", swatch: ["#000000", "#1c1c1c", "#b9c0ca"] },
   { value: "green", label: "The Last of Us", description: "Verde-oliva de Ellie com o cáqui de Joel", swatch: ["#13140c", "#282b1a", "#5e7a24"] },
@@ -78,8 +78,14 @@ const darkQuery = () =>
     ? window.matchMedia("(prefers-color-scheme: dark)")
     : null;
 
+/** Modo escuro do sistema: o que o app Android informa ou, no navegador, prefers-color-scheme. */
+function systemIsDark(): boolean {
+  const fromApp = (window as { __tmSystemDark?: unknown }).__tmSystemDark;
+  return typeof fromApp === "boolean" ? fromApp : !!darkQuery()?.matches;
+}
+
 /** "Automático" vira claro ou escuro conforme o sistema do aparelho. */
-export function resolveTheme(theme: Settings["theme"], systemDark = !!darkQuery()?.matches): Settings["theme"] {
+export function resolveTheme(theme: Settings["theme"], systemDark = typeof window !== "undefined" && systemIsDark()): Settings["theme"] {
   if (theme !== "auto") return theme;
   return systemDark ? "escuro" : "claro";
 }
@@ -107,4 +113,5 @@ export function initTheme() {
   };
   if (query?.addEventListener) query.addEventListener("change", onSystemChange);
   else query?.addListener?.(onSystemChange);
+  window.addEventListener("tm-system-theme", onSystemChange);
 }

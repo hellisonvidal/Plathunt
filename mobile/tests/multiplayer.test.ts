@@ -21,3 +21,16 @@ describe("tema automático", () => {
     expect(resolveTheme("horizon", true)).toBe("horizon");
   });
 });
+
+describe("lembrete do boost", async () => {
+  const { boostReminderTime } = await import("../src/components/Boost");
+  it("hoje à noite às 20h, amanhã às 20h, fim de semana no sábado às 15h", () => {
+    const thu = new Date(2026, 9, 15, 10, 0); // quinta-feira
+    expect(boostReminderTime("Hoje à noite", thu)?.getHours()).toBe(20);
+    expect(boostReminderTime("Amanhã", thu)?.getDate()).toBe(16);
+    const sat = boostReminderTime("Fim de semana", thu)!;
+    expect([sat.getDay(), sat.getHours()]).toEqual([6, 15]);
+    expect(boostReminderTime("Hoje à noite", new Date(2026, 9, 15, 22, 0))).toBeNull();
+    expect(boostReminderTime("Agora", thu)).toBeNull();
+  });
+});

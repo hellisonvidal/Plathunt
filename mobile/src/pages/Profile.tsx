@@ -115,7 +115,7 @@ export function ProfilePage() {
                     className="rounded-full border border-line bg-surface-2 px-3 text-sm"
                   >
                     <option value="recentes">{t("Recentes")}</option>
-                    <option value="antigos">{t("Menos recentes")}</option>
+                    <option value="antigos">{t("Mais antigos")}</option>
                     <option value="progresso">{t("Progresso")}</option>
                     <option value="tempo">{t("Tempo de jogo")}</option>
                   </select>

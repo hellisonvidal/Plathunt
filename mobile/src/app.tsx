@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { HashRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ExitToast, useDoubleBackToExit } from "./lib/backButton";
 import { t } from "./i18n";
+import { App as CapApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
+import { importBoost } from "./lib/boostInbox";
+import { runBackgroundChecks } from "./lib/checks";
 import { getSettings } from "./lib/settings";
 import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
@@ -81,6 +85,8 @@ export function App() {
       <HashRouter>
         <StartTab />
         <BackButton />
+        <BoostLinks />
+        <BackgroundChecks />
         <div className="safe-top mx-auto min-h-[100dvh] max-w-2xl pb-24">
           {state.mode === "demo" && (
             <div className="bg-gold/15 px-4 py-2 text-center text-xs text-gold">
@@ -120,6 +126,49 @@ function BackButton() {
     () => navigate(-1),
   );
   return <ExitToast show={warning} />;
+}
+
+/**
+ * Links de pedido de boost (trophymania://boost?d=…): guardam o pedido em
+ * "Pedidos recebidos" e abrem essa tela.
+ */
+function BoostLinks() {
+  const navigate = useNavigate();
+  const { client } = useApp();
+  useEffect(() => {
+    const open = async (url: string | undefined) => {
+      if (!url?.startsWith("trophymania://boost")) return;
+      const me = await client.me().catch(() => null);
+      importBoost(url, me?.onlineId ?? null);
+      navigate("/activity?view=boost-inbox");
+    };
+    let remove: (() => void) | undefined;
+    if (Capacitor.isNativePlatform()) {
+      void CapApp.getLaunchUrl()
+        .then((launch) => open(launch?.url))
+        .catch(() => {});
+      void CapApp.addListener("appUrlOpen", ({ url }) => void open(url)).then((h) => (remove = () => void h.remove()));
+    }
+    return () => remove?.();
+  }, [client, navigate]);
+  return null;
+}
+
+/** Verificações para as notificações: ao abrir o app e ao voltar para ele. */
+function BackgroundChecks() {
+  const { client, mode } = useApp();
+  useEffect(() => {
+    if (mode === "demo") return;
+    const run = () => void runBackgroundChecks(client).catch(() => {});
+    const timer = setTimeout(run, 5000);
+    const onVisible = () => document.visibilityState === "visible" && run();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [client, mode]);
+  return null;
 }
 
 /** Abre o app na aba escolhida em Configurações (só ao iniciar). */

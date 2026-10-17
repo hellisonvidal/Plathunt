@@ -19,11 +19,26 @@ O repositório tem duas versões:
 
 ## Versão e temas
 
-No Perfil aparece o **nome verdadeiro** do jogador, quando ele compartilha o nome na PSN, e a lista de jogos pode ser ordenada por recentes, **menos recentes**, progresso ou tempo de jogo.
+No Perfil aparece o **nome verdadeiro** do jogador, quando ele compartilha o nome na PSN, e a lista de jogos pode ser ordenada por recentes, **mais antigos**, progresso ou tempo de jogo.
 
 Versão **1.1.0** (o número do build vai junto: "1.1.0 (build N)"). Na tela de Temas, os temas aparecem em ordem alfabética e cada miniatura mostra uma tela do tema (barras, fundo, cartão e destaque), com o Automático metade claro e metade escuro. Além dos temas de jogos, há dois temas padrão, **Claro** e **Escuro**, e o **Automático** (padrão em instalações novas), que segue o claro/escuro do sistema do celular e acompanha a troca com o app aberto. No Perfil, o gráfico de conclusão dos jogos usa uma cor por faixa (verde, azul, roxo, laranja e vermelho) em todos os temas; as listas de jogos abaixo continuam nas cores do tema.
 
 **Boost só com jogos multiplayer:** a PSN e a PlayStation Store não informam se um jogo tem modo online. O app considera multiplayer os jogos com troféus online, cooperativos, de partidas ranqueadas ou de versus (no idioma da PSN), que são justamente os que precisam de boost. A lista de troféus de cada jogo é verificada em segundo plano (seus jogos primeiro, depois os mais comuns entre os amigos) e a resposta fica guardada no celular; jogos só da loja, sem lista de troféus conhecida, ficam de fora desse filtro, que pode ser desligado.
+
+## Pedidos de boost recebidos e notificações
+
+**Pedidos recebidos (Boost):** a aba Boost tem "Meus pedidos" e "Pedidos recebidos". Sem servidor, o pedido viaja dentro da própria mensagem: a convocação enviada leva um link `trophymania://boost?d=…`. Quem recebe toca no link (o app abre direto em "Pedidos recebidos") ou cola a mensagem no painel. Só entram pedidos de outros jogadores; ao aceitar, o app monta a resposta oferecendo ajuda, pronta para enviar no WhatsApp, Telegram ou copiar.
+
+**Notificações** (Configurações → Notificações, com chave geral e uma por tipo):
+- **Novos méritos** liberados;
+- **Desafios:** quando alguém vence e um dia antes do fim do prazo;
+- **Lembretes de boost** no horário do pedido (hoje à noite e amanhã às 20h, fim de semana no sábado às 15h);
+- **Platinas dos amigos**;
+- **Novas versões do app**.
+
+As verificações rodam ao abrir o app e ao voltar para ele (no máximo a cada 15 minutos); lembretes e prazos ficam agendados no Android mesmo com o app fechado. Desligar a chave geral cancela os agendados.
+
+**Temas:** o Astro Bot ganhou fundo azul-céu (bem diferente do Claro, que é cinza neutro) com as barras pretas do visor. O contraste de texto, destaques e do verde "online" foi conferido em todos os temas, e o Automático passou a receber do Android se o sistema está no modo escuro (WebViews antigos sempre respondiam "claro").
 
 ## Idiomas
 
