@@ -215,6 +215,16 @@ export function browseCatalog(catalog: BoostCandidate[], platform: string | null
     );
 }
 
+/** Origem dos jogos no seletor: todos, só os seus, os dos amigos ou os da loja. */
+export type CatalogSource = "todos" | "meus" | "amigos" | "loja";
+
+export function bySource(catalog: BoostCandidate[], source: CatalogSource): BoostCandidate[] {
+  if (source === "meus") return catalog.filter((c) => c.myProgress !== null);
+  if (source === "amigos") return catalog.filter((c) => c.friends > 0);
+  if (source === "loja") return catalog.filter((c) => c.inStore);
+  return catalog;
+}
+
 /** Plataformas presentes no catálogo, na ordem PS5, PS4, PS3, PS Vita. */
 export function catalogPlatforms(catalog: BoostCandidate[]): string[] {
   const all = new Set(catalog.flatMap((c) => c.platforms));

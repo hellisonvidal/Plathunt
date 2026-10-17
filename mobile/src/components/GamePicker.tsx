@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../app";
-import { browseCatalog, buildBoostCatalog, catalogPlatforms, type BoostCandidate } from "../lib/boost";
+import {
+  browseCatalog,
+  buildBoostCatalog,
+  bySource,
+  catalogPlatforms,
+  type BoostCandidate,
+  type CatalogSource,
+} from "../lib/boost";
 import { mapLimit } from "../lib/cache";
 import { useSettings } from "../lib/settings";
 import { ALL_ID } from "../lib/store";
@@ -59,14 +66,15 @@ export function GamePicker({
   const catalog = useGameCatalog();
   const [platform, setPlatform] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [source, setSource] = useState<CatalogSource>("todos");
   const [shown, setShown] = useState(PAGE);
   const usable = useMemo(
-    () => (onlyWithTrophies ? catalog.all.filter((c) => c.title) : catalog.all),
-    [catalog.all, onlyWithTrophies],
+    () => bySource(onlyWithTrophies ? catalog.all.filter((c) => c.title) : catalog.all, source),
+    [catalog.all, onlyWithTrophies, source],
   );
   const platforms = catalogPlatforms(usable);
   const list = useMemo(() => browseCatalog(usable, platform, query), [usable, platform, query]);
-  useEffect(() => setShown(PAGE), [platform, query]);
+  useEffect(() => setShown(PAGE), [platform, query, source]);
 
   const sentinel = useRef<HTMLLIElement>(null);
   const more = list.length > shown;
@@ -86,6 +94,24 @@ export function GamePicker({
 
   return (
     <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-1 rounded-xl border border-line p-1 text-xs" role="radiogroup" aria-label="Origem dos jogos">
+        {(
+          [
+            ["todos", "🌐 Todo o catálogo"],
+            ["meus", "🎮 Só os meus jogos"],
+          ] as const
+        ).map(([k, label]) => (
+          <button
+            key={k}
+            role="radio"
+            aria-checked={source === k}
+            onClick={() => setSource(k)}
+            className={`rounded-lg py-1.5 font-semibold ${source === k ? "bg-ps-blue" : "text-muted"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <nav className="-mx-4 flex gap-2 overflow-x-auto px-4" aria-label="Plataforma do jogo">
         {[null, ...platforms].map((p) => (
           <button key={p ?? "todas"} onClick={() => setPlatform(p)} className={chip(platform === p)} aria-pressed={platform === p}>

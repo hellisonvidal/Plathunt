@@ -46,9 +46,11 @@ export function recordMeritDates(accountId: string, doneIds: string[], now = new
   return dates;
 }
 
-/** "Conquistado em 18/10/2026" ou "Conquistado até 17/10/2026". */
+/** "Conquistado em 18/10/2026 às 21:05" ou "Conquistado até 17/10/2026 às 09:41". */
 export function meritDateLabel(d: MeritDate | undefined): string | null {
   if (!d) return null;
-  const day = new Date(d.at).toLocaleDateString("pt-BR");
-  return d.before ? `Conquistado até ${day}` : `Conquistado em ${day}`;
+  const at = new Date(d.at);
+  const day = at.toLocaleDateString("pt-BR");
+  const time = at.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return d.before ? `Conquistado até ${day} às ${time}` : `Conquistado em ${day} às ${time}`;
 }

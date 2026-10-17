@@ -2,6 +2,8 @@ package com.hellisonvidal.perseus;
 
 import android.os.Bundle;
 import android.webkit.WebView;
+import androidx.webkit.WebSettingsCompat;
+import androidx.webkit.WebViewFeature;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -15,6 +17,32 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AppUpdaterPlugin.class);
         super.onCreate(savedInstanceState);
         applyTextZoom();
+        disableForcedDarkening();
+    }
+
+    /**
+     * Com o modo escuro do Android (ou o "escurecer apps" de algumas marcas),
+     * o WebView pode recolorir a página sozinho, e os temas do app apareciam
+     * com cores erradas (principalmente os claros). O app tem os próprios
+     * temas, então esse escurecimento automático fica desligado.
+     */
+    @SuppressWarnings("deprecation")
+    private void disableForcedDarkening() {
+        try {
+            if (getBridge() == null) return;
+            WebView webView = getBridge().getWebView();
+            if (webView == null) return;
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
+                WebSettingsCompat.setAlgorithmicDarkeningAllowed(webView.getSettings(), false);
+            }
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
+                WebSettingsCompat.setForceDark(webView.getSettings(), WebSettingsCompat.FORCE_DARK_OFF);
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                webView.setForceDarkAllowed(false);
+            }
+        } catch (RuntimeException ignored) {
+        }
     }
 
     @Override

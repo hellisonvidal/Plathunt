@@ -59,7 +59,7 @@ html[data-theme="light"] {
  * como o visor, e o azul dos olhos de LED como destaque.
  */
 html:not([data-theme]) {
-  color-scheme: light;
+  color-scheme: only light;
   --color-bg: #f2f4f8;
   --color-surface: #ffffff;
   --color-surface-2: #e8ecf3;
@@ -177,7 +177,7 @@ html[data-theme="spiderman"] {
 
 /* Uncharted: bege de mapa antigo e areia, com detalhes em verde militar. */
 html[data-theme="uncharted"] {
-  color-scheme: light;
+  color-scheme: only light;
   --color-bg: #efe6d2;
   --color-surface: #faf5ea;
   --color-surface-2: #e6dcc4;
@@ -195,7 +195,7 @@ html[data-theme="uncharted"] {
 
 /* Death Stranding: claro como os trajes da Bridges, com o laranja dos detalhes. */
 html[data-theme="deathstranding"] {
-  color-scheme: light;
+  color-scheme: only light;
   --color-bg: #f1f3f4;
   --color-surface: #ffffff;
   --color-surface-2: #e6eaec;

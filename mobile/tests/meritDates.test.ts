@@ -18,11 +18,11 @@ describe("data dos méritos", () => {
   it("na primeira consulta marca como 'até'; depois registra a data exata", () => {
     const d1 = recordMeritDates("acc", ["a", "b"], new Date("2026-10-17T12:00:00Z"));
     expect(d1.a).toEqual({ at: "2026-10-17T12:00:00.000Z", before: true });
-    expect(meritDateLabel(d1.a)).toBe("Conquistado até 17/10/2026");
+    expect(meritDateLabel(d1.a)).toMatch(/^Conquistado até 17\/10\/2026 às \d{2}:\d{2}$/);
     const d2 = recordMeritDates("acc", ["a", "b", "c"], new Date("2026-10-20T12:00:00Z"));
     expect(d2.a.at).toBe("2026-10-17T12:00:00.000Z");
     expect(d2.c).toEqual({ at: "2026-10-20T12:00:00.000Z", before: false });
-    expect(meritDateLabel(d2.c)).toBe("Conquistado em 20/10/2026");
+    expect(meritDateLabel(d2.c)).toMatch(/^Conquistado em 20\/10\/2026 às \d{2}:\d{2}$/);
     expect(getMeritDates("outro")).toEqual({});
   });
 
