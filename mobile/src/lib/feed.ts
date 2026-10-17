@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { Counts, FeedItem, Title, TrophyRow, TrophyType } from "../psn/types";
 
 /** Janela de tempo do feed de atividade. */
@@ -111,7 +112,7 @@ export function mergeTrophies(meta: RawTrophyMeta[], earned: RawTrophyEarned[]):
     return {
       id: m.trophyId,
       type: m.trophyType,
-      name: m.trophyName ?? "Troféu oculto",
+      name: m.trophyName ?? t("Troféu oculto"),
       detail: m.trophyDetail ?? null,
       ...(m.originalName && m.originalName !== m.trophyName ? { originalName: m.originalName } : {}),
       iconUrl: m.trophyIconUrl ?? null,

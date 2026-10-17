@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { normalizeGameName } from "./boost";
+import { locale, t } from "../i18n";
 import { persistSet } from "./persist";
 import type { Title, TrophyRow, TrophyType } from "../psn/types";
 
@@ -24,7 +25,7 @@ export const CHALLENGE_DEADLINES = [
 export const PLATINUM_GOAL = -1;
 
 export function platinumGoal(): Challenge["trophy"] {
-  return { id: PLATINUM_GOAL, name: "Platina do jogo", detail: "Conquiste a platina", type: "platinum", iconUrl: null, rate: null };
+  return { id: PLATINUM_GOAL, name: t("Platina do jogo"), detail: t("Conquiste a platina"), type: "platinum", iconUrl: null, rate: null };
 }
 
 export interface ChallengePlayer {
@@ -177,13 +178,17 @@ export const STATUS_LABELS: Record<PlayerStatus, string> = {
 /** Texto para chamar os amigos para o desafio. */
 export function challengeMessage(c: Challenge, me: string): string {
   const lines = [
-    `🏁 DESAFIO: quem conquista primeiro "${c.trophy.name}"?`,
+    t("🏁 DESAFIO: quem conquista primeiro \"{trophy}\"?", { trophy: c.trophy.name }),
     `🎮 ${c.game.name} (${c.game.platform})`,
   ];
   if (c.trophy.detail) lines.push(`📜 ${c.trophy.detail}`);
-  lines.push(c.deadline ? `⏳ Prazo: ${new Date(c.deadline).toLocaleDateString("pt-BR")}` : "⏳ Sem prazo");
+  lines.push(
+    c.deadline
+      ? t("⏳ Prazo: {date}", { date: new Date(c.deadline).toLocaleDateString(locale()) })
+      : t("⏳ Sem prazo"),
+  );
   lines.push(`👥 ${c.players.map((p) => p.onlineId).join(", ")}`);
-  lines.push(`Desafio criado por ${me} no Trophy Mania`);
+  lines.push(t("Desafio criado por {me} no Trophy Mania", { me }));
   return lines.join("\n");
 }
 

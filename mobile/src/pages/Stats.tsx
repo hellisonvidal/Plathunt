@@ -7,6 +7,7 @@ import { ConsoleArt } from "../components/Consoles";
 import { Mural, MURAL_LABELS, type MuralCategory } from "../components/Mural";
 import { PageHeader } from "../components/PageHeader";
 import { RankingView, useRanking } from "./Ranking";
+import { locale, t } from "../i18n";
 import { ErrorBox, Spinner, TrophyBadge } from "../components/ui";
 import {
   compareTitles,
@@ -96,14 +97,14 @@ export function StatsPage() {
     friend && friendTitles && friendPlay ? stats(friendTitles, friendPlay.playtime, friendPlay.playedOn) : null;
 
   const all = [meStats, frStats].filter((s): s is NonNullable<typeof s> => s !== null);
-  const names = [data?.me.onlineId ?? "Você", friend?.onlineId ?? ""].slice(0, all.length);
+  const names = [data?.me.onlineId ?? t("Você"), friend?.onlineId ?? ""].slice(0, all.length);
   const series = (pick: (s: NonNullable<typeof meStats>) => number[]): Series[] =>
     all.map((s, i) => ({ name: names[i], values: pick(s) }));
 
   return (
     <>
       <PageHeader
-        title={view === "ranking" ? "Ranking" : "Estatísticas"}
+        title={view === "ranking" ? t("Ranking") : t("Estatísticas")}
         onRefresh={view === "ranking" ? ranking.refresh : () => (mine.refresh(), theirs.refresh())}
         refreshing={view === "ranking" ? ranking.loading : mine.loading}
       />
@@ -122,7 +123,7 @@ export function StatsPage() {
               onClick={() => setView(key)}
               className={`rounded-xl py-2 font-semibold ${view === key ? "bg-ps-blue" : "text-muted"}`}
             >
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
@@ -132,7 +133,7 @@ export function StatsPage() {
         ) : (
           <>
             {mine.error ? <ErrorBox error={mine.error} onRetry={mine.refresh} /> : null}
-            {mine.loading && !data && <Spinner label="Calculando suas estatísticas…" />}
+            {mine.loading && !data && <Spinner label={t("Calculando suas estatísticas…")} />}
 
             {data && meStats && (
               <>
@@ -141,7 +142,7 @@ export function StatsPage() {
                   selected={platform}
                   onSelect={setPlatform}
                   counts={[
-                    { name: names[0] ?? "Você", titles: data.titles, playedOn: data.playedOn },
+                    { name: names[0] ?? t("Você"), titles: data.titles, playedOn: data.playedOn },
                     ...(friend && friendTitles && friendPlay
                       ? [{ name: friend.onlineId, titles: friendTitles, playedOn: friendPlay.playedOn }]
                       : []),
@@ -149,15 +150,15 @@ export function StatsPage() {
                 />
 
                 <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2 text-sm">
-                  <span className="text-muted">Comparar com</span>
+                  <span className="text-muted">{t("Comparar com")}</span>
                   <select
                     value={friendId}
                     onChange={(e) => setFriendId(e.target.value)}
                     className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
                   >
-                    <option value="">ninguém</option>
+                    <option value="">{t("ninguém")}</option>
                     {[...data.friends]
-                      .sort((a, b) => a.onlineId.localeCompare(b.onlineId, "pt-BR", { sensitivity: "base" }))
+                      .sort((a, b) => a.onlineId.localeCompare(b.onlineId, locale(), { sensitivity: "base" }))
                       .map((f) => (
                         <option key={f.accountId} value={f.accountId}>
                           {f.onlineId}
@@ -167,12 +168,12 @@ export function StatsPage() {
                 </label>
 
                 {friend && (friendLoading || theirs.loading) && (
-                  <Spinner label={`Buscando os jogos de ${friend.onlineId}…`} />
+                  <Spinner label={t("Buscando os jogos de {name}…", { name: friend.onlineId })} />
                 )}
                 {friend && theirs.error ? <ErrorBox error={theirs.error} onRetry={theirs.refresh} /> : null}
                 {friend && friendData && !friendTitles && (
                   <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
-                    Os troféus de {friend.onlineId} são privados, então não dá para comparar.
+                    {t("Os troféus de {name} são privados, então não dá para comparar.", { name: friend.onlineId })}
                   </p>
                 )}
 
@@ -181,17 +182,17 @@ export function StatsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {(
                     [
-                      ["jogos", all.map((s) => s.games.toLocaleString("pt-BR"))],
-                      ["platinas", all.map((s) => s.platinums.toLocaleString("pt-BR"))],
-                      ["completos", all.map((s) => s.completed.toLocaleString("pt-BR"))],
+                      ["jogos", all.map((s) => s.games.toLocaleString(locale()))],
+                      ["platinas", all.map((s) => s.platinums.toLocaleString(locale()))],
+                      ["completos", all.map((s) => s.completed.toLocaleString(locale()))],
                       ["conclusao", all.map((s) => `${s.avgProgress}%`)],
-                      ["trofeus", all.map((s) => s.totalTrophies.toLocaleString("pt-BR"))],
+                      ["trofeus", all.map((s) => s.totalTrophies.toLocaleString(locale()))],
                       ["tempo", all.map((s) => formatDuration(s.playSeconds))],
                     ] as [MuralCategory, string[]][]
                   ).map(([key, values]) => (
                     <StatTile
                       key={key}
-                      label={MURAL_LABELS[key]}
+                      label={t(MURAL_LABELS[key])}
                       names={names}
                       values={values}
                       selected={mural === key}
@@ -224,7 +225,7 @@ export function StatsPage() {
                 )}
 
                 <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
-                  <h2 className="font-semibold">Troféus por tipo</h2>
+                  <h2 className="font-semibold">{t("Troféus por tipo")}</h2>
                   <GroupedBars
                     categories={TYPES.map((t) => (
                       <TrophyBadge key={t} type={t} />
@@ -255,7 +256,7 @@ export function StatsPage() {
                 {all.map((s, i) =>
                   s.topPlayed.length ? (
                     <section key={names[i]} className="space-y-3 rounded-2xl border border-line bg-surface p-4">
-                      <h2 className="font-semibold">Mais jogados{all.length > 1 && ` · ${names[i]}`}</h2>
+                      <h2 className="font-semibold">{t("Mais jogados")}{all.length > 1 && ` · ${names[i]}`}</h2>
                       <GroupedBars
                         categories={s.topPlayed.map((t) => (
                           <Link
@@ -271,7 +272,10 @@ export function StatsPage() {
                         colorOffset={i}
                       />
                       <p className="text-[0.6875rem] text-muted">
-                        Tempo disponível para {s.gamesWithPlaytime} de {s.games} jogos (PS3 e Vita não registram).
+                        {t("Tempo disponível para {n} de {total} jogos (PS3 e Vita não registram).", {
+                          n: s.gamesWithPlaytime,
+                          total: s.games,
+                        })}
                       </p>
                     </section>
                   ) : null,
@@ -342,15 +346,15 @@ function PlatformPicker({
         <ConsoleArt platform={selected} className="h-11 w-11" />
         <span className="min-w-0 flex-1">
           <span className="block text-xs text-muted">
-            Plataformas jogadas · {platforms.length}
+            {t("Plataformas jogadas · {n}", { n: platforms.length })}
           </span>
-          <span className="block font-semibold">{selected ?? "Todas as plataformas"}</span>
+          <span className="block font-semibold">{selected ?? t("Todas as plataformas")}</span>
         </span>
-        <span className="text-xs text-muted">{open ? "Fechar" : "Expandir"}</span>
+        <span className="text-xs text-muted">{open ? t("Fechar") : t("Expandir")}</span>
         <Chevron open={open} />
       </button>
       {open && (
-        <div className="grid grid-cols-2 gap-2 border-t border-line p-3" role="radiogroup" aria-label="Plataforma">
+        <div className="grid grid-cols-2 gap-2 border-t border-line p-3" role="radiogroup" aria-label={t("Plataforma")}>
           {[null, ...platforms].map((p) => (
             <button
               key={p ?? "todas"}
@@ -362,12 +366,12 @@ function PlatformPicker({
               }`}
             >
               <ConsoleArt platform={p} className="h-16 w-16" />
-              <span className="mt-2 block font-semibold">{p ?? "Todas"}</span>
+              <span className="mt-2 block font-semibold">{p ?? t("Todas")}</span>
               <span className="mt-1 flex flex-wrap justify-center gap-x-3 gap-y-0.5 text-xs text-muted">
                 {totalOf(p).map((n, i) => (
                   <span key={counts[i].name} className="flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />
-                    {n} {n === 1 ? "jogo" : "jogos"}
+                    {n === 1 ? t("{n} jogo", { n }) : t("{n} jogos", { n })}
                   </span>
                 ))}
               </span>
@@ -409,7 +413,9 @@ function PlatformTitles({ players, platform }: { players: PlatformPlayer[]; plat
   return (
     <section className="overflow-hidden rounded-2xl border border-line bg-surface">
       <h2 className="px-4 pb-2 pt-4 font-semibold">
-        {players.length > 1 ? `Comparação por plataforma · ${players[1].name}` : "Títulos por plataforma"}
+        {players.length > 1
+          ? t("Comparação por plataforma · {name}", { name: players[1].name })
+          : t("Títulos por plataforma")}
       </h2>
       {platforms.map((p) => {
         const expanded = platform !== null || open.has(p);
@@ -449,7 +455,7 @@ function PlatformTitles({ players, platform }: { players: PlatformPlayer[]; plat
 }
 
 function TitleLinks({ list, accountId }: { list: Title[]; accountId: string }) {
-  if (!list.length) return <p className="text-xs text-muted">Nenhum jogo com troféus nesta plataforma.</p>;
+  if (!list.length) return <p className="text-xs text-muted">{t("Nenhum jogo com troféus nesta plataforma.")}</p>;
   return (
     <ul className="divide-y divide-line">
       {list.map((t) => (
@@ -497,25 +503,25 @@ function PlatformComparison({
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="rounded-xl bg-surface-2 p-2">
           <p className="text-lg font-bold">{common.length}</p>
-          <p className="text-[0.6875rem] text-muted">em comum</p>
+          <p className="text-[0.6875rem] text-muted">{t("em comum")}</p>
         </div>
         <div className="rounded-xl bg-surface-2 p-2">
           <p className="text-lg font-bold" style={{ color: SERIES_COLORS[0] }}>
             {ahead}
           </p>
-          <p className="text-[0.6875rem] text-muted">você na frente</p>
+          <p className="text-[0.6875rem] text-muted">{t("você na frente")}</p>
         </div>
         <div className="rounded-xl bg-surface-2 p-2">
           <p className="text-lg font-bold" style={{ color: SERIES_COLORS[1] }}>
             {behind}
           </p>
-          <p className="truncate text-[0.6875rem] text-muted">{friend.name} na frente</p>
+          <p className="truncate text-[0.6875rem] text-muted">{t("{name} na frente", { name: friend.name })}</p>
         </div>
       </div>
 
       {common.length > 0 && (
         <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Jogos em comum</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t("Jogos em comum")}</p>
           <ul className="divide-y divide-line">
             {common.map(({ mine: a, theirs: b }) => (
               <li key={a.id} className="py-2.5">
@@ -550,8 +556,8 @@ function PlatformComparison({
       )}
 
       {[
-        { title: `Só ${me.name}`, list: onlyMine, player: me, color: SERIES_COLORS[0] },
-        { title: `Só ${friend.name}`, list: onlyTheirs, player: friend, color: SERIES_COLORS[1] },
+        { title: t("Só {name}", { name: me.name }), list: onlyMine, player: me, color: SERIES_COLORS[0] },
+        { title: t("Só {name}", { name: friend.name }), list: onlyTheirs, player: friend, color: SERIES_COLORS[1] },
       ].map(({ title, list, player, color }) =>
         list.length ? (
           <div key={player.accountId}>

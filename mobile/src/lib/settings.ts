@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { deviceLanguage, LANGUAGES, setLanguage, t, type Language } from "../i18n";
 import { persistSet } from "./persist";
+import { deviceStoreRegion, STORE_REGIONS, type StoreRegion } from "./store";
 
 /** Preferências do app, salvas no celular. */
 export interface Settings {
-  /** Idioma dos nomes de jogos e troféus vindos da PSN. */
-  language: "pt-BR" | "en-US" | "es-ES";
+  /** Idioma do app e dos nomes de jogos e troféus vindos da PSN. */
+  language: Language;
   /** Período das Atividades, em dias. */
   feedDays: 7 | 30 | 90;
   /** Traduzir nomes e descrições de troféus que a Sony não traduziu. */
@@ -16,16 +18,18 @@ export interface Settings {
   /** Aba em que o app abre. */
   startTab: "/" | "/stats" | "/friends" | "/activity" | "/store";
   /** País da PlayStation Store (moeda e preços da aba Loja). */
-  storeRegion: "pt-BR" | "pt-PT" | "en-US" | "es-MX" | "es-AR" | "es-ES";
+  storeRegion: StoreRegion;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  language: "pt-BR",
+  // Na primeira abertura, o idioma do aparelho.
+  language: deviceLanguage(),
   feedDays: 30,
   revealSecrets: false,
   autoTranslate: true,
   startTab: "/",
-  storeRegion: "pt-BR",
+  // Na primeira abertura, o país do aparelho.
+  storeRegion: deviceStoreRegion(),
   theme: "playstation",
 };
 
@@ -43,7 +47,10 @@ export function getSettings(): Settings {
     if (saved.theme === "graphite") saved.theme = "green";
     // A aba Ranking virou parte de Estatísticas.
     if (saved.startTab === "/ranking") saved.startTab = "/stats";
-    return { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) };
+    const merged = { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) } as Settings;
+    if (!LANGUAGES.some((l) => l.value === merged.language)) merged.language = DEFAULT_SETTINGS.language;
+    if (!STORE_REGIONS.some((r) => r.value === merged.storeRegion)) merged.storeRegion = DEFAULT_SETTINGS.storeRegion;
+    return merged;
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -52,6 +59,7 @@ export function getSettings(): Settings {
 export function updateSettings(patch: Partial<Settings>): Settings {
   const next = { ...getSettings(), ...patch };
   persistSet(KEY, JSON.stringify(next));
+  setLanguage(next.language);
   listeners.forEach((l) => l());
   return next;
 }
@@ -74,4 +82,15 @@ export function useSettings(): Settings {
 
 /** Número do build (definido pelo GitHub Actions); "dev" em builds locais. */
 export const BUILD_NUMBER: string = import.meta.env.VITE_BUILD_NUMBER ?? "dev";
-export const APP_VERSION = BUILD_NUMBER === "dev" ? "1.0 (desenvolvimento)" : `1.0.${BUILD_NUMBER}`;
+const DEV_VERSION = "1.0 (desenvolvimento)";
+export const APP_VERSION = BUILD_NUMBER === "dev" ? DEV_VERSION : `1.0.${BUILD_NUMBER}`;
+
+/** APP_VERSION no idioma atual (para mostrar na tela). */
+export function appVersion(): string {
+  return BUILD_NUMBER === "dev" ? t(DEV_VERSION) : APP_VERSION;
+}
+
+/** Aplica o idioma salvo (chamado ao abrir o app e quando a cópia nativa é restaurada). */
+export function initLanguage() {
+  setLanguage(getSettings().language);
+}

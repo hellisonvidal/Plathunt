@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { HashRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { ExitToast, useDoubleBackToExit } from "./lib/backButton";
+import { t } from "./i18n";
 import { getSettings } from "./lib/settings";
 import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
@@ -83,9 +84,9 @@ export function App() {
         <div className="safe-top mx-auto min-h-[100dvh] max-w-2xl pb-24">
           {state.mode === "demo" && (
             <div className="bg-gold/15 px-4 py-2 text-center text-xs text-gold">
-              Modo demonstração ·{" "}
+              {t("Modo demonstração")} ·{" "}
               <button className="underline" onClick={() => state.signOut()}>
-                entrar com a PSN
+                {t("entrar com a PSN")}
               </button>
             </div>
           )}
@@ -148,17 +149,17 @@ function TabBar() {
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/95 backdrop-blur">
       <div className="mx-auto flex max-w-2xl">
-        {TABS.map((t) => (
+        {TABS.map((tab) => (
           <NavLink
-            key={t.to}
-            to={t.to}
-            end={t.to === "/"}
+            key={tab.to}
+            to={tab.to}
+            end={tab.to === "/"}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-1 pb-2 pt-2.5 text-[0.625rem] ${isActive ? "text-ps-blue-2" : "text-muted"}`
             }
           >
-            <span className="flex h-6 items-center">{t.icon}</span>
-            {t.label}
+            <span className="flex h-6 items-center">{tab.icon}</span>
+            {t(tab.label)}
           </NavLink>
         ))}
       </div>

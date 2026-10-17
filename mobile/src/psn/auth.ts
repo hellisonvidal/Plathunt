@@ -1,5 +1,6 @@
 import { exchangeAccessCodeForAuthTokens, exchangeRefreshTokenForAuthTokens, type AuthTokensResponse } from "psn-api";
 import { clearCache } from "../lib/cache";
+import { t } from "../i18n";
 import { isNativeApp, PsnLogin } from "./native";
 import { persistRemove, persistSet } from "../lib/persist";
 
@@ -15,7 +16,7 @@ const KEY = "tm.session" as const;
 
 export class SessionExpired extends Error {
   constructor() {
-    super("Sua sessão da PSN expirou. Entre novamente.");
+    super(t("Sua sessão da PSN expirou. Entre novamente."));
   }
 }
 

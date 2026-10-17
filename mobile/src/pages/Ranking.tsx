@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { Avatar, ErrorBox, Spinner } from "../components/ui";
+import { locale, t } from "../i18n";
 import { useData } from "../lib/useData";
 import type { Profile } from "../psn/types";
 
@@ -35,12 +36,14 @@ export function RankingView({ ranking }: { ranking: ReturnType<typeof useRanking
     : [];
   const leader = Math.max(1, ...rows.map((r) => r.score ?? 0));
   const myPosition = rows.findIndex((r) => r.isMe) + 1;
+  // A posição vai em negrito no meio da frase traduzida.
+  const [before, after] = t("Você está em {pos} de {total}", { total: rows.length }).split("{pos}");
 
   return (
     <>
       <div className="space-y-4">
         {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
-        {loading && !data && <Spinner label="Montando o ranking com seus amigos…" />}
+        {loading && !data && <Spinner label={t("Montando o ranking com seus amigos…")} />}
 
         {data && (
           <>
@@ -53,14 +56,16 @@ export function RankingView({ ranking }: { ranking: ReturnType<typeof useRanking
                   onClick={() => setMetric(m)}
                   className={`rounded-full py-1.5 ${metric === m ? "bg-ps-blue font-semibold" : "text-muted"}`}
                 >
-                  {METRICS[m].label}
+                  {t(METRICS[m].label)}
                 </button>
               ))}
             </div>
 
             {myPosition > 0 && (
               <p className="text-center text-sm text-muted">
-                Você está em <strong className="text-ink">{myPosition}º</strong> de {rows.length}
+                {before}
+                <strong className="text-ink">{t("{n}º", { n: myPosition })}</strong>
+                {after}
               </p>
             )}
 
@@ -78,7 +83,7 @@ export function RankingView({ ranking }: { ranking: ReturnType<typeof useRanking
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">
                         {r.onlineId}
-                        {r.isMe && <span className="font-normal text-muted"> (você)</span>}
+                        {r.isMe && <span className="font-normal text-muted"> {t("(você)")}</span>}
                       </p>
                       {r.score !== null ? (
                         <div className="mt-1 h-1.5 rounded-full bg-surface-2">
@@ -88,11 +93,11 @@ export function RankingView({ ranking }: { ranking: ReturnType<typeof useRanking
                           />
                         </div>
                       ) : (
-                        <p className="text-xs text-muted">troféus privados</p>
+                        <p className="text-xs text-muted">{t("troféus privados")}</p>
                       )}
                     </div>
                     <span className="w-14 text-right font-bold tabular-nums">
-                      {r.score?.toLocaleString("pt-BR") ?? "—"}
+                      {r.score?.toLocaleString(locale()) ?? "—"}
                     </span>
                   </Link>
                 </li>

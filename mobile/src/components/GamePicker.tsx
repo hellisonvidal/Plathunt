@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../app";
-import { browseCatalog, buildBoostCatalog, catalogPlatforms, type BoostCandidate } from "../lib/boost";
+import {
+  browseCatalog,
+  buildBoostCatalog,
+  bySource,
+  catalogPlatforms,
+  type BoostCandidate,
+  type CatalogSource,
+} from "../lib/boost";
+import { t } from "../i18n";
 import { mapLimit } from "../lib/cache";
 import { useSettings } from "../lib/settings";
 import { ALL_ID } from "../lib/store";
@@ -59,14 +67,15 @@ export function GamePicker({
   const catalog = useGameCatalog();
   const [platform, setPlatform] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [source, setSource] = useState<CatalogSource>("todos");
   const [shown, setShown] = useState(PAGE);
   const usable = useMemo(
-    () => (onlyWithTrophies ? catalog.all.filter((c) => c.title) : catalog.all),
-    [catalog.all, onlyWithTrophies],
+    () => bySource(onlyWithTrophies ? catalog.all.filter((c) => c.title) : catalog.all, source),
+    [catalog.all, onlyWithTrophies, source],
   );
   const platforms = catalogPlatforms(usable);
   const list = useMemo(() => browseCatalog(usable, platform, query), [usable, platform, query]);
-  useEffect(() => setShown(PAGE), [platform, query]);
+  useEffect(() => setShown(PAGE), [platform, query, source]);
 
   const sentinel = useRef<HTMLLIElement>(null);
   const more = list.length > shown;
@@ -86,24 +95,44 @@ export function GamePicker({
 
   return (
     <div className="space-y-2">
-      <nav className="-mx-4 flex gap-2 overflow-x-auto px-4" aria-label="Plataforma do jogo">
+      <div className="grid grid-cols-2 gap-1 rounded-xl border border-line p-1 text-xs" role="radiogroup" aria-label={t("Origem dos jogos")}>
+        {(
+          [
+            ["todos", t("🌐 Todo o catálogo")],
+            ["meus", t("🎮 Só os meus jogos")],
+          ] as const
+        ).map(([k, label]) => (
+          <button
+            key={k}
+            role="radio"
+            aria-checked={source === k}
+            onClick={() => setSource(k)}
+            className={`rounded-lg py-1.5 font-semibold ${source === k ? "bg-ps-blue" : "text-muted"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <nav className="-mx-4 flex gap-2 overflow-x-auto px-4" aria-label={t("Plataforma do jogo")}>
         {[null, ...platforms].map((p) => (
           <button key={p ?? "todas"} onClick={() => setPlatform(p)} className={chip(platform === p)} aria-pressed={platform === p}>
-            {p ?? "Todas"}
+            {p ?? t("Todas")}
           </button>
         ))}
       </nav>
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Buscar em todo o catálogo PlayStation"
+        placeholder={t("Buscar em todo o catálogo PlayStation")}
         className="w-full rounded-full border border-line bg-surface-2 px-4 py-2 text-sm outline-none focus:border-ps-blue-2"
       />
-      {!catalog.ready && <Spinner label="Carregando seus jogos…" />}
+      {!catalog.ready && <Spinner label={t("Carregando seus jogos…")} />}
       {catalog.ready && (
         <p className="text-[0.6875rem] text-muted">
-          {list.length.toLocaleString("pt-BR")} jogos{platform ? ` de ${platform}` : ""}
-          {catalog.loadingMore && " · carregando jogos dos amigos e da PlayStation Store…"}
+          {platform
+            ? t("{n} jogos de {platform}", { n: list.length, platform })
+            : t("{n} jogos", { n: list.length })}
+          {catalog.loadingMore && ` · ${t("carregando jogos dos amigos e da PlayStation Store…")}`}
         </p>
       )}
       <ul className="space-y-1.5">
@@ -119,8 +148,12 @@ export function GamePicker({
                 <span className="block truncate text-[0.6875rem] text-muted">
                   {[
                     g.platforms.join(" · "),
-                    g.myProgress !== null ? `seu: ${g.myProgress}%` : null,
-                    g.friends ? `${g.friends} ${g.friends === 1 ? "amigo tem" : "amigos têm"}` : null,
+                    g.myProgress !== null ? t("seu: {p}%", { p: g.myProgress }) : null,
+                    g.friends
+                      ? g.friends === 1
+                        ? t("{n} amigo tem", { n: g.friends })
+                        : t("{n} amigos têm", { n: g.friends })
+                      : null,
                     g.myProgress === null && !g.friends && g.inStore ? "PlayStation Store" : null,
                   ]
                     .filter(Boolean)
@@ -136,7 +169,7 @@ export function GamePicker({
         {more && <li ref={sentinel} className="h-8" aria-hidden />}
       </ul>
       {catalog.ready && list.length === 0 && !catalog.loadingMore && (
-        <p className="text-sm text-muted">Nenhum jogo encontrado.</p>
+        <p className="text-sm text-muted">{t("Nenhum jogo encontrado.")}</p>
       )}
     </div>
   );
@@ -176,11 +209,11 @@ export function TrophyPicker({
   if (!game.title)
     return (
       <p className="text-sm text-muted">
-        A PSN só mostra a lista de troféus de jogos que você ou algum amigo já jogou.
+        {t("A PSN só mostra a lista de troféus de jogos que você ou algum amigo já jogou.")}
       </p>
     );
-  if (trophies.loading && !trophies.data) return <Spinner label="Carregando a lista de troféus…" />;
-  if (!trophies.data) return <p className="text-sm text-muted">Não foi possível carregar a lista de troféus.</p>;
+  if (trophies.loading && !trophies.data) return <Spinner label={t("Carregando a lista de troféus…")} />;
+  if (!trophies.data) return <p className="text-sm text-muted">{t("Não foi possível carregar a lista de troféus.")}</p>;
 
   const earnedCount = trophies.data.filter((t) => t.earned).length;
   const list = trophies.data.filter((t) => (showEarned || !t.earned) && (type === "todos" || t.type === type));
@@ -200,11 +233,11 @@ export function TrophyPicker({
       <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1">
         {(
           [
-            ["todos", "Todos"],
-            ["platinum", "Platina"],
-            ["gold", "Ouro"],
-            ["silver", "Prata"],
-            ["bronze", "Bronze"],
+            ["todos", t("Todos")],
+            ["platinum", t("Platina")],
+            ["gold", t("Ouro")],
+            ["silver", t("Prata")],
+            ["bronze", t("Bronze")],
           ] as const
         ).map(([k, label]) => (
           <button key={k} onClick={() => setType(k)} className={chip(type === k)} aria-pressed={type === k}>
@@ -214,7 +247,7 @@ export function TrophyPicker({
       </div>
       {earnedCount > 0 && (
         <label className="flex items-center justify-between text-xs text-muted">
-          <span>Mostrar os {earnedCount} que você já tem</span>
+          <span>{t("Mostrar os {n} que você já tem", { n: earnedCount })}</span>
           <input
             type="checkbox"
             checked={showEarned}
@@ -223,29 +256,29 @@ export function TrophyPicker({
           />
         </label>
       )}
-      <ul className="max-h-[26rem] space-y-1.5 overflow-y-auto pr-1" aria-label="Troféus">
-        {list.map((t) => {
-          const on = selected.includes(t.id);
+      <ul className="max-h-[26rem] space-y-1.5 overflow-y-auto pr-1" aria-label={t("Troféus")}>
+        {list.map((tr) => {
+          const on = selected.includes(tr.id);
           return (
-            <li key={t.id}>
+            <li key={tr.id}>
               <button
-                onClick={() => toggle(t)}
+                onClick={() => toggle(tr)}
                 aria-pressed={on}
                 className={`flex w-full items-center gap-3 rounded-xl border p-2 text-left ${
                   on ? "border-ps-blue-2 bg-surface-2" : "border-line"
-                } ${t.earned ? "opacity-70" : ""}`}
+                } ${tr.earned ? "opacity-70" : ""}`}
               >
-                <RemoteImage src={t.iconUrl} alt="" className="h-10 w-10 shrink-0 rounded-lg" fallback={
+                <RemoteImage src={tr.iconUrl} alt="" className="h-10 w-10 shrink-0 rounded-lg" fallback={
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-2">🏆</span>
                 } />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-semibold">{t.name}</span>
-                    <TrophyBadge type={t.type} />
+                    <span className="truncate text-sm font-semibold">{tr.name}</span>
+                    <TrophyBadge type={tr.type} />
                   </span>
-                  {t.detail && <span className="line-clamp-2 text-[0.6875rem] text-muted">{t.detail}</span>}
+                  {tr.detail && <span className="line-clamp-2 text-[0.6875rem] text-muted">{tr.detail}</span>}
                   <span className="text-[0.625rem] text-ps-blue-2">
-                    {[t.earned ? "✔ você já tem" : null, rarityLabel(t.rate)].filter(Boolean).join(" · ")}
+                    {[tr.earned ? t("✔ você já tem") : null, rarityLabel(tr.rate)].filter(Boolean).join(" · ")}
                   </span>
                 </span>
                 <span
@@ -260,7 +293,7 @@ export function TrophyPicker({
             </li>
           );
         })}
-        {list.length === 0 && <li className="text-sm text-muted">Nenhum troféu aqui.</li>}
+        {list.length === 0 && <li className="text-sm text-muted">{t("Nenhum troféu aqui.")}</li>}
       </ul>
     </div>
   );

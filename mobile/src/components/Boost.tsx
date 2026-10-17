@@ -13,6 +13,7 @@ import {
   type Boost,
   type BoostCandidate,
 } from "../lib/boost";
+import { t } from "../i18n";
 import { mapLimit } from "../lib/cache";
 import { presenceRank, presenceText } from "../lib/presence";
 import { useData } from "../lib/useData";
@@ -38,7 +39,7 @@ export function BoostView() {
         <BoostForm onClose={() => setCreating(false)} />
       ) : (
         <button onClick={() => setCreating(true)} className="w-full rounded-2xl bg-ps-blue py-3 font-semibold">
-          📣 Nova convocação de boost
+          {t("📣 Nova convocação de boost")}
         </button>
       )}
 
@@ -48,7 +49,7 @@ export function BoostView() {
 
       {done.length > 0 && (
         <details className="rounded-2xl border border-line bg-surface p-3 text-sm">
-          <summary className="font-semibold">Concluídas ({done.length})</summary>
+          <summary className="font-semibold">{t("Concluídas ({n})", { n: done.length })}</summary>
           <div className="mt-3 space-y-3">
             {done.map((b) => (
               <BoostCard key={b.id} boost={b} />
@@ -58,8 +59,9 @@ export function BoostView() {
       )}
 
       <p className="pb-2 text-center text-[0.6875rem] text-muted">
-        A PSN não deixa outros apps enviarem mensagens: a convocação vira um texto pronto para mandar no WhatsApp,
-        Telegram, Discord ou nas mensagens da PSN. Suas convocações ficam salvas neste celular.
+        {t(
+          "A PSN não deixa outros apps enviarem mensagens: a convocação vira um texto pronto para mandar no WhatsApp, Telegram, Discord ou nas mensagens da PSN. Suas convocações ficam salvas neste celular.",
+        )}
       </p>
     </div>
   );
@@ -77,17 +79,17 @@ function BoostForm({ onClose }: { onClose: () => void }) {
     `rounded-full px-3 py-1 text-sm ${active ? "bg-ps-blue font-semibold" : "border border-line text-muted"}`;
 
   return (
-    <section className="space-y-4 rounded-2xl border border-line bg-surface p-4" aria-label="Nova convocação">
+    <section className="space-y-4 rounded-2xl border border-line bg-surface p-4" aria-label={t("Nova convocação")}>
       <div className="flex items-center justify-between">
-        <h2 className="font-bold">📣 Convocar boost</h2>
-        <button onClick={onClose} className="text-sm text-muted" aria-label="Fechar">
+        <h2 className="font-bold">{t("📣 Convocar boost")}</h2>
+        <button onClick={onClose} className="text-sm text-muted" aria-label={t("Fechar")}>
           ✕
         </button>
       </div>
 
       {!game ? (
         <div className="space-y-2">
-          <p className="text-xs text-muted">1. Escolha o jogo (por plataforma ou pela busca)</p>
+          <p className="text-xs text-muted">{t("1. Escolha o jogo (por plataforma ou pela busca)")}</p>
           <GamePicker onPick={setGame} />
         </div>
       ) : (
@@ -106,13 +108,14 @@ function BoostForm({ onClose }: { onClose: () => void }) {
               }}
               className="text-xs text-ps-blue-2 underline"
             >
-              Trocar
+              {t("Trocar")}
             </button>
           </div>
 
           <div>
             <p className="mb-1.5 text-xs text-muted">
-              2. Troféus que precisam de boost{trophies.length > 0 && ` · ${trophies.length} escolhidos`}
+              {t("2. Troféus que precisam de boost")}
+              {trophies.length > 0 && ` · ${t("{n} escolhidos", { n: trophies.length })}`}
             </p>
             <TrophyPicker
               game={game}
@@ -125,39 +128,39 @@ function BoostForm({ onClose }: { onClose: () => void }) {
           </div>
 
           <div>
-            <p className="mb-1.5 text-xs text-muted">3. Quantos jogadores faltam?</p>
+            <p className="mb-1.5 text-xs text-muted">{t("3. Quantos jogadores faltam?")}</p>
             <div className="flex items-center gap-3">
-              <button onClick={() => setPlayers((n) => Math.max(1, n - 1))} className={chip(false)} aria-label="Menos">
+              <button onClick={() => setPlayers((n) => Math.max(1, n - 1))} className={chip(false)} aria-label={t("Menos")}>
                 −
               </button>
               <span className="w-8 text-center text-lg font-bold" aria-live="polite">
                 {players}
               </span>
-              <button onClick={() => setPlayers((n) => Math.min(15, n + 1))} className={chip(false)} aria-label="Mais">
+              <button onClick={() => setPlayers((n) => Math.min(15, n + 1))} className={chip(false)} aria-label={t("Mais")}>
                 +
               </button>
             </div>
           </div>
 
           <div>
-            <p className="mb-1.5 text-xs text-muted">4. Quando?</p>
-            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Quando">
+            <p className="mb-1.5 text-xs text-muted">{t("4. Quando?")}</p>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("Quando")}>
               {BOOST_WHEN.map((w) => (
                 <button key={w} role="radio" aria-checked={when === w} onClick={() => setWhen(w)} className={chip(when === w)}>
-                  {w}
+                  {t(w)}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <p className="mb-1.5 text-xs text-muted">5. Recado (opcional)</p>
+            <p className="mb-1.5 text-xs text-muted">{t("5. Recado (opcional)")}</p>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={2}
               maxLength={300}
-              placeholder="Ex.: preciso de 2 vitórias no online, tenho microfone"
+              placeholder={t("Ex.: preciso de 2 vitórias no online, tenho microfone")}
               className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-ps-blue-2"
             />
           </div>
@@ -175,7 +178,7 @@ function BoostForm({ onClose }: { onClose: () => void }) {
             }}
             className="w-full rounded-xl bg-ps-blue py-3 font-semibold"
           >
-            Criar convocação
+            {t("Criar convocação")}
           </button>
         </>
       )}
@@ -188,7 +191,7 @@ function BoostCard({ boost: b }: { boost: Boost }) {
   const me = useData((force) => client.me(force), [client]);
   const [showFriends, setShowFriends] = useState(!b.done);
   const [copied, setCopied] = useState(false);
-  const text = boostMessage(b, me.data?.onlineId ?? "eu");
+  const text = boostMessage(b, me.data?.onlineId ?? t("eu"));
   const links = shareLinks(text);
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
@@ -212,11 +215,14 @@ function BoostCard({ boost: b }: { boost: Boost }) {
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{b.game.name}</p>
           <p className="text-xs text-muted">
-            👥 {b.players} {b.players === 1 ? "jogador" : "jogadores"} · 🕒 {b.when} · {timeAgo(b.createdAt)}
+            {b.players === 1 ? t("👥 {n} jogador", { n: b.players }) : t("👥 {n} jogadores", { n: b.players })} · 🕒{" "}
+            {t(b.when)} · {timeAgo(b.createdAt)}
           </p>
           {b.joined.length > 0 && (
             <p className="text-xs font-semibold text-online">
-              ✔ {b.joined.length} {b.joined.length === 1 ? "topou" : "toparam"}: {b.joined.join(", ")}
+              {b.joined.length === 1
+                ? t("✔ {n} topou: {names}", { n: b.joined.length, names: b.joined.join(", ") })
+                : t("✔ {n} toparam: {names}", { n: b.joined.length, names: b.joined.join(", ") })}
             </p>
           )}
         </div>
@@ -232,7 +238,7 @@ function BoostCard({ boost: b }: { boost: Boost }) {
       <div className="flex flex-wrap gap-2">
         {canShare && (
           <button onClick={() => navigator.share({ text }).catch(() => {})} className={`${btn} bg-ps-blue`}>
-            Compartilhar
+            {t("Compartilhar")}
           </button>
         )}
         <a href={links.whatsapp} target="_blank" rel="noreferrer" className={btn}>
@@ -242,7 +248,7 @@ function BoostCard({ boost: b }: { boost: Boost }) {
           Telegram
         </a>
         <button onClick={copy} className={btn}>
-          {copied ? "Copiado ✔" : "Copiar texto"}
+          {copied ? t("Copiado ✔") : t("Copiar texto")}
         </button>
       </div>
 
@@ -251,17 +257,17 @@ function BoostCard({ boost: b }: { boost: Boost }) {
         aria-expanded={showFriends}
         className="flex w-full items-center justify-between rounded-xl border border-line px-3 py-2 text-sm"
       >
-        <span>Amigos que têm este jogo</span>
+        <span>{t("Amigos que têm este jogo")}</span>
         <span className="text-muted">{showFriends ? "▴" : "▾"}</span>
       </button>
       {showFriends && <FriendsWithGame boost={b} />}
 
       <div className="flex justify-between text-xs">
         <button onClick={() => updateBoost(b.id, { done: !b.done })} className="font-semibold text-ps-blue-2">
-          {b.done ? "Reabrir" : "✔ Marcar como concluída"}
+          {b.done ? t("Reabrir") : t("✔ Marcar como concluída")}
         </button>
         <button onClick={() => removeBoost(b.id)} className="text-muted underline">
-          Apagar
+          {t("Apagar")}
         </button>
       </div>
     </article>
@@ -294,11 +300,13 @@ function FriendsWithGame({ boost: b }: { boost: Boost }) {
   );
 
   if (error) return <ErrorBox error={error} onRetry={refresh} />;
-  if (loading && !data) return <Spinner label="Procurando o jogo na lista dos seus amigos…" />;
+  if (loading && !data) return <Spinner label={t("Procurando o jogo na lista dos seus amigos…")} />;
   if (!data?.length)
     return (
       <p className="text-center text-sm text-muted">
-        Nenhum amigo com troféus públicos jogou {b.game.name} recentemente. Mande a convocação nos grupos!
+        {t("Nenhum amigo com troféus públicos jogou {game} recentemente. Mande a convocação nos grupos!", {
+          game: b.game.name,
+        })}
       </p>
     );
 
@@ -306,7 +314,9 @@ function FriendsWithGame({ boost: b }: { boost: Boost }) {
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted">
-        {data.length} {data.length === 1 ? "amigo tem" : "amigos têm"} o jogo · {online} online agora
+        {data.length === 1
+          ? t("{n} amigo tem o jogo · {online} online agora", { n: data.length, online })
+          : t("{n} amigos têm o jogo · {online} online agora", { n: data.length, online })}
       </p>
       <ul className="space-y-1.5">
         {data.map(({ id, progress, profile, presence }) => {
@@ -323,7 +333,7 @@ function FriendsWithGame({ boost: b }: { boost: Boost }) {
                 <p
                   className={`truncate text-[0.6875rem] ${presence?.status === "online" ? "font-semibold text-online" : "text-muted"}`}
                 >
-                  {presenceText(presence)} · {progress}% do jogo
+                  {presenceText(presence)} · {t("{p}% do jogo", { p: progress })}
                 </p>
               </div>
               <button
@@ -333,7 +343,7 @@ function FriendsWithGame({ boost: b }: { boost: Boost }) {
                 }
                 className={`rounded-full px-3 py-1 text-xs font-semibold ${joined ? "bg-online text-black" : "border border-line text-muted"}`}
               >
-                {joined ? "Topou ✔" : "Topou?"}
+                {joined ? t("Topou ✔") : t("Topou?")}
               </button>
             </li>
           );

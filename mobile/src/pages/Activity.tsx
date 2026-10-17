@@ -7,6 +7,7 @@ import { MeritsView } from "../components/Merits";
 import { PageHeader } from "../components/PageHeader";
 import { ReactionBar } from "../components/Reactions";
 import { Avatar, ErrorBox, GameIcon, RemoteImage, Spinner, TrophyBadge, rarityLabel, timeAgo } from "../components/ui";
+import { t } from "../i18n";
 import { groupFeed, type FeedGroup } from "../lib/feed";
 import { useSettings } from "../lib/settings";
 import { useData } from "../lib/useData";
@@ -34,7 +35,7 @@ export function ActivityPage() {
   return (
     <>
       <PageHeader
-        title="Atividades"
+        title={t("Atividades")}
         onRefresh={view === "feed" ? refresh : undefined}
         refreshing={view === "feed" && loading}
       />
@@ -42,10 +43,10 @@ export function ActivityPage() {
         <div className="grid grid-cols-4 gap-1 rounded-2xl border border-line bg-surface p-1 text-xs" role="tablist">
           {(
             [
-              ["feed", "🎮", "Conquistas"],
-              ["merits", "🏅", "Méritos"],
-              ["boost", "📣", "Boost"],
-              ["challenges", "🏁", "Desafios"],
+              ["feed", "🎮", t("Conquistas")],
+              ["merits", "🏅", t("Méritos")],
+              ["boost", "📣", t("Boost")],
+              ["challenges", "🏁", t("Desafios")],
             ] as const
           ).map(([key, icon, label]) => (
             <button
@@ -80,17 +81,17 @@ export function ActivityPage() {
                     filter === k ? "bg-ps-blue font-semibold" : "border border-line text-muted"
                   }`}
                 >
-                  {FILTERS[k].label}
+                  {t(FILTERS[k].label)}
                 </button>
               ))}
             </nav>
 
             {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
-            {loading && !data && <Spinner label="Buscando os troféus seus e dos seus amigos…" />}
+            {loading && !data && <Spinner label={t("Buscando os troféus seus e dos seus amigos…")} />}
 
             {data && items.length === 0 && (
               <p className="py-12 text-center text-sm text-muted">
-                Nenhum troféu nos últimos {feedDays} dias por aqui. Bora jogar! 🎮
+                {t("Nenhum troféu nos últimos {n} dias por aqui. Bora jogar! 🎮", { n: feedDays })}
               </p>
             )}
 
@@ -100,7 +101,7 @@ export function ActivityPage() {
 
             {data && items.length > 0 && (
               <p className="pb-2 text-center text-[0.6875rem] text-muted">
-                Suas curtidas ficam salvas neste celular.
+                {t("Suas curtidas ficam salvas neste celular.")}
               </p>
             )}
           </>
@@ -123,7 +124,11 @@ function GroupCard({ group }: { group: FeedGroup }) {
   const gameLink = `/game/${owner.isMe ? "me" : owner.accountId}/${game.id}?service=${game.service}`;
   const shown = expanded ? items : items.slice(0, PREVIEW);
   const total = items.length;
-  const verb = hasPlatinum ? "platinou" : total === 1 ? "conquistou 1 troféu em" : `conquistou ${total} troféus em`;
+  const verb = hasPlatinum
+    ? t("platinou")
+    : total === 1
+      ? t("conquistou 1 troféu em")
+      : t("conquistou {n} troféus em", { n: total });
 
   return (
     <article
@@ -138,7 +143,7 @@ function GroupCard({ group }: { group: FeedGroup }) {
         <div className="min-w-0 flex-1 text-sm">
           <p className="leading-snug">
             <Link to={profileLink} className="font-semibold">
-              {owner.isMe ? "Você" : owner.onlineId}
+              {owner.isMe ? t("Você") : owner.onlineId}
             </Link>{" "}
             <span className="text-muted">{verb}</span>{" "}
             <Link to={gameLink} className="font-semibold">
@@ -171,7 +176,11 @@ function GroupCard({ group }: { group: FeedGroup }) {
           aria-expanded={expanded}
           className="mx-4 mt-2 w-[calc(100%-2rem)] rounded-xl py-2 text-sm font-semibold text-ps-blue-2 active:bg-surface-2"
         >
-          {expanded ? "Mostrar menos" : `Ver mais ${total - PREVIEW} ${total - PREVIEW === 1 ? "troféu" : "troféus"}`}
+          {expanded
+            ? t("Mostrar menos")
+            : total - PREVIEW === 1
+              ? t("Ver mais {n} troféu", { n: total - PREVIEW })
+              : t("Ver mais {n} troféus", { n: total - PREVIEW })}
         </button>
       )}
 

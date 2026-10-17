@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { Title } from "../psn/types";
 
 /**
@@ -32,7 +33,7 @@ export function CompletionBadge({ progress }: { progress: number }) {
       className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-bold tabular-nums ${
         complete ? "border-ps-blue bg-ps-blue" : "border-ps-blue-2/40 bg-ps-blue-2/10 text-ps-blue-2"
       }`}
-      title={tier.name}
+      title={t(tier.name)}
     >
       {complete && <span aria-hidden>✓</span>}
       {progress}%
@@ -65,7 +66,7 @@ export function CompletionSummary({ titles }: { titles: Title[] }) {
   return (
     <div className="mt-4 flex items-center gap-4 rounded-xl bg-surface-2 p-3">
       <div className="relative h-28 w-28 shrink-0">
-        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" role="img" aria-label={`Conclusão média ${avg}%`}>
+        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" role="img" aria-label={t("Conclusão média {n}%", { n: avg })}>
           <circle cx="50" cy="50" r={r} fill="none" strokeWidth="12" className="stroke-surface" />
           {arcs.map(({ tier, length, offset }) => (
             <circle
@@ -85,17 +86,17 @@ export function CompletionSummary({ titles }: { titles: Title[] }) {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-xl font-bold tabular-nums">{avg}%</span>
-          <span className="text-[0.625rem] uppercase tracking-wide text-muted">média</span>
+          <span className="text-[0.625rem] uppercase tracking-wide text-muted">{t("média")}</span>
         </div>
       </div>
       <div className="min-w-0 flex-1">
-        <p className="mb-1.5 text-xs font-semibold text-muted">Conclusão dos jogos</p>
+        <p className="mb-1.5 text-xs font-semibold text-muted">{t("Conclusão dos jogos")}</p>
         <ul className="space-y-1 text-xs">
           {counts.map(({ tier, n }) => (
             <li key={tier.min} className="flex items-center gap-2">
               <TierFill tier={tier} className="h-2.5 w-2.5 shrink-0 rounded-full" />
               <span className="min-w-0 flex-1 truncate">
-                {tier.name} <span className="text-muted">{tier.label}</span>
+                {t(tier.name)} <span className="text-muted">{tier.label}</span>
               </span>
               <span className="font-semibold tabular-nums">{n}</span>
             </li>

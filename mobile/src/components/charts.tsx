@@ -1,3 +1,5 @@
+import { locale } from "../i18n";
+
 /**
  * Gráficos simples em HTML para as estatísticas. Cores validadas contra o fundo
  * escuro (protan/deutan/tritan e contraste): azul = você, laranja = amigo.
@@ -31,7 +33,7 @@ export function Legend({ series }: { series: Series[] }) {
 export function GroupedBars({
   categories,
   series,
-  format = (v) => v.toLocaleString("pt-BR"),
+  format = (v) => v.toLocaleString(locale()),
   colorOffset = 0,
 }: {
   categories: React.ReactNode[];

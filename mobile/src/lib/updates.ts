@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { BUILD_NUMBER } from "./settings";
 
 /** Repositório onde o GitHub Actions publica cada versão do APK (Releases). */
@@ -25,7 +26,7 @@ interface ReleaseJson {
 /** Decide, a partir da release mais recente, se há versão nova. */
 export function evaluateRelease(release: ReleaseJson, current: string): UpdateResult {
   const latest = parseBuildTag(release.tag_name);
-  if (latest === null) return { status: "unavailable", reason: "Versão publicada em formato desconhecido." };
+  if (latest === null) return { status: "unavailable", reason: t("Versão publicada em formato desconhecido.") };
   const installed = Number(current);
   if (Number.isFinite(installed) && installed >= latest) return { status: "up-to-date", latest };
   const apk = release.assets?.find((a) => a.name.endsWith(".apk"));
@@ -49,12 +50,12 @@ export async function checkForUpdate(): Promise<UpdateResult> {
     if (res.status === 404) {
       return {
         status: "unavailable",
-        reason: "O repositório é privado (ou ainda não há versão publicada). Veja as versões no GitHub.",
+        reason: t("O repositório é privado (ou ainda não há versão publicada). Veja as versões no GitHub."),
       };
     }
-    if (!res.ok) return { status: "unavailable", reason: `O GitHub respondeu ${res.status}.` };
+    if (!res.ok) return { status: "unavailable", reason: t("O GitHub respondeu {status}.", { status: String(res.status) }) };
     return evaluateRelease((await res.json()) as ReleaseJson, BUILD_NUMBER);
   } catch {
-    return { status: "unavailable", reason: "Sem conexão com o GitHub agora." };
+    return { status: "unavailable", reason: t("Sem conexão com o GitHub agora.") };
   }
 }

@@ -9,6 +9,7 @@ import { presenceRank, presenceText } from "../lib/presence";
 import { platformsOf } from "../lib/stats";
 import { useData } from "../lib/useData";
 import type { Presence, Profile, Title } from "../psn/types";
+import { locale, t } from "../i18n";
 
 type Sort = "nivel" | "platinas" | "nome";
 type StatusFilter = "todos" | "online" | "offline";
@@ -61,7 +62,7 @@ export function FriendsPage() {
       // Online sempre em cima; dentro de cada grupo, a ordem escolhida.
       const byStatus = presenceRank(presences[a.accountId]) - presenceRank(presences[b.accountId]);
       if (byStatus) return byStatus;
-      if (sort === "nome") return a.onlineId.localeCompare(b.onlineId);
+      if (sort === "nome") return a.onlineId.localeCompare(b.onlineId, locale());
       if (sort === "platinas") return (b.earned?.platinum ?? -1) - (a.earned?.platinum ?? -1);
       return (b.level ?? -1) - (a.level ?? -1);
     });
@@ -69,7 +70,7 @@ export function FriendsPage() {
   return (
     <>
       <PageHeader
-        title="Amigos"
+        title={t("Amigos")}
         onRefresh={() => {
           ids.refresh();
           presence.refresh();
@@ -79,9 +80,9 @@ export function FriendsPage() {
       />
       <div className="space-y-3 px-4 pt-4">
         {ids.error ? <ErrorBox error={ids.error} onRetry={ids.refresh} /> : null}
-        {ids.loading && !ids.data && <Spinner label="Carregando sua lista de amigos da PSN…" />}
+        {ids.loading && !ids.data && <Spinner label={t("Carregando sua lista de amigos da PSN…")} />}
         {ids.data && total === 0 && (
-          <p className="py-12 text-center text-sm text-muted">Sua lista de amigos da PSN está vazia.</p>
+          <p className="py-12 text-center text-sm text-muted">{t("Sua lista de amigos da PSN está vazia.")}</p>
         )}
 
         {total > 0 && (
@@ -90,27 +91,27 @@ export function FriendsPage() {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar amigo"
+                placeholder={t("Buscar amigo")}
                 className="min-w-0 flex-1 rounded-full border border-line bg-surface-2 px-4 py-2 text-sm outline-none focus:border-ps-blue-2"
               />
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as Sort)}
-                aria-label="Ordenar amigos"
+                aria-label={t("Ordenar amigos")}
                 className="rounded-full border border-line bg-surface-2 px-3 text-sm"
               >
-                <option value="nivel">Nível</option>
-                <option value="platinas">Platinas</option>
-                <option value="nome">Nome</option>
+                <option value="nivel">{t("Nível")}</option>
+                <option value="platinas">{t("Platinas")}</option>
+                <option value="nome">{t("Nome")}</option>
               </select>
             </div>
 
-            <div className="flex gap-2 text-sm" role="radiogroup" aria-label="Status">
+            <div className="flex gap-2 text-sm" role="radiogroup" aria-label={t("Status")}>
               {(
                 [
-                  ["todos", "Todos"],
-                  ["online", `🟢 Online${presence.data ? ` (${onlineCount})` : ""}`],
-                  ["offline", `⚪ Offline${presence.data ? ` (${total - onlineCount})` : ""}`],
+                  ["todos", t("Todos")],
+                  ["online", presence.data ? t("🟢 Online ({n})", { n: onlineCount }) : t("🟢 Online")],
+                  ["offline", presence.data ? t("⚪ Offline ({n})", { n: total - onlineCount }) : t("⚪ Offline")],
                 ] as const
               ).map(([k, label]) => (
                 <button
@@ -127,9 +128,9 @@ export function FriendsPage() {
 
             <div className="space-y-1">
               <p className="text-xs text-muted">
-                {total} amigos na PSN
-                {presence.data && ` · ${onlineCount} online agora`}
-                {done < total && ` · carregando perfis ${done} de ${total}…`}
+                {t("{n} amigos na PSN", { n: total })}
+                {presence.data && t(" · {n} online agora", { n: onlineCount })}
+                {done < total && t(" · carregando perfis {done} de {total}…", { done, total })}
               </p>
               {done < total && <ProgressBar value={(done / total) * 100} />}
             </div>
@@ -141,11 +142,11 @@ export function FriendsPage() {
         ))}
 
         {q && visible.length === 0 && done === total && (
-          <p className="py-8 text-center text-sm text-muted">Nenhum amigo com “{query}”.</p>
+          <p className="py-8 text-center text-sm text-muted">{t("Nenhum amigo com “{query}”.", { query })}</p>
         )}
         {!q && status !== "todos" && visible.length === 0 && done === total && presence.data && (
           <p className="py-8 text-center text-sm text-muted">
-            {status === "online" ? "Nenhum amigo online agora." : "Todos os seus amigos estão online!"}
+            {status === "online" ? t("Nenhum amigo online agora.") : t("Todos os seus amigos estão online!")}
           </p>
         )}
       </div>
@@ -221,14 +222,14 @@ function FriendCard({ friend: f, presence }: { friend: Profile; presence?: Prese
           </p>
           {f.level !== null ? (
             <div className="mt-1 flex items-center gap-2">
-              <span className="text-xs font-bold text-ps-blue-2">Nv. {f.level}</span>
+              <span className="text-xs font-bold text-ps-blue-2">{t("Nv. {n}", { n: f.level })}</span>
               <div className="flex-1">
                 <ProgressBar value={f.levelProgress ?? 0} />
               </div>
               <span className="text-[0.6875rem] text-muted">{f.levelProgress ?? 0}%</span>
             </div>
           ) : (
-            <p className="mt-1 text-xs text-muted">Troféus privados</p>
+            <p className="mt-1 text-xs text-muted">{t("Troféus privados")}</p>
           )}
           {presence && (
             <p
@@ -256,8 +257,12 @@ function FriendCard({ friend: f, presence }: { friend: Profile; presence?: Prese
               {p}
             </span>
           ))}
-          {titles && <span className="ml-auto text-muted">{titles.length >= 100 ? "100+" : titles.length} jogos</span>}
-          {loadingTitles && !titles && <span className="text-muted">carregando plataformas…</span>}
+          {titles && (
+            <span className="ml-auto text-muted">
+              {t("{n} jogos", { n: titles.length >= 100 ? "100+" : titles.length })}
+            </span>
+          )}
+          {loadingTitles && !titles && <span className="text-muted">{t("carregando plataformas…")}</span>}
         </div>
       )}
     </Link>

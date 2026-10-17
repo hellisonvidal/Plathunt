@@ -1,4 +1,5 @@
 import type { Presence } from "../psn/types";
+import { t } from "../i18n";
 
 /** Presença como a PSN devolve (em `basicPresence` ou na lista `basicPresences`). */
 export interface RawPresence {
@@ -38,19 +39,21 @@ export const presenceRank = (p: Presence | undefined) =>
 
 /** "Online · jogando X no PS5", "Offline · visto há 3 h", "Status oculto". */
 export function presenceText(p: Presence | undefined, now = Date.now()): string {
-  if (!p || p.status === "unknown") return "Status oculto";
+  if (!p || p.status === "unknown") return t("Status oculto");
   if (p.status === "online") {
-    const where = p.platform ? ` no ${p.platform}` : "";
-    return p.game ? `Online · jogando ${p.game.name}${where}` : `Online${where}`;
+    const platform = p.platform;
+    if (p.game) {
+      const game = p.game.name;
+      return platform
+        ? t("Online · jogando {game} no {platform}", { game, platform })
+        : t("Online · jogando {game}", { game });
+    }
+    return platform ? t("Online no {platform}", { platform }) : t("Online");
   }
-  if (!p.lastOnline) return "Offline";
+  if (!p.lastOnline) return t("Offline");
   const mins = Math.max(0, Math.round((now - new Date(p.lastOnline).getTime()) / 60_000));
-  if (!Number.isFinite(mins)) return "Offline";
-  const ago =
-    mins < 60
-      ? `${Math.max(1, mins)} min`
-      : mins < 48 * 60
-        ? `${Math.round(mins / 60)} h`
-        : `${Math.round(mins / 1440)} dias`;
-  return `Offline · visto há ${ago}`;
+  if (!Number.isFinite(mins)) return t("Offline");
+  if (mins < 60) return t("Offline · visto há {n} min", { n: Math.max(1, mins) });
+  if (mins < 48 * 60) return t("Offline · visto há {n} h", { n: Math.round(mins / 60) });
+  return t("Offline · visto há {n} dias", { n: Math.round(mins / 1440) });
 }

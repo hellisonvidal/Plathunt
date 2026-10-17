@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../app";
-import { evaluateMerits, MERIT_CATEGORIES, type MeritResult } from "../lib/merits";
+import { locale, t } from "../i18n";
+import { evaluateMerits, MERIT_CATEGORIES, meritDescription, meritName, type MeritResult } from "../lib/merits";
 import { challengeStats, getChallenges } from "../lib/challenges";
 import { meritDateLabel, recordMeritDates, type MeritDate } from "../lib/meritDates";
 import { countReactedItems } from "../lib/reactions";
@@ -66,15 +67,15 @@ export function MeritsView() {
   return (
     <div className="space-y-4">
       <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2 text-sm">
-        <span className="text-muted">Méritos de</span>
+        <span className="text-muted">{t("Méritos de")}</span>
         <select
           value={who}
           onChange={(e) => setWho(e.target.value)}
           className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
         >
-          <option value="me">Você</option>
+          <option value="me">{t("Você")}</option>
           {[...(friends.data ?? [])]
-            .sort((a, b) => a.onlineId.localeCompare(b.onlineId, "pt-BR", { sensitivity: "base" }))
+            .sort((a, b) => a.onlineId.localeCompare(b.onlineId, locale(), { sensitivity: "base" }))
             .map((f) => (
               <option key={f.accountId} value={f.accountId}>
                 {f.onlineId}
@@ -84,10 +85,10 @@ export function MeritsView() {
       </label>
 
       {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
-      {(loading || !current) && !error && <Spinner label="Calculando os méritos…" />}
+      {(loading || !current) && !error && <Spinner label={t("Calculando os méritos…")} />}
       {current && !results && (
         <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
-          Os troféus deste jogador são privados, então não dá para calcular os méritos.
+          {t("Os troféus deste jogador são privados, então não dá para calcular os méritos.")}
         </p>
       )}
 
@@ -96,7 +97,7 @@ export function MeritsView() {
           <section className="rounded-2xl border border-line bg-surface p-4">
             <div className="flex items-end justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted">Méritos desbloqueados</p>
+                <p className="text-xs uppercase tracking-wide text-muted">{t("Méritos desbloqueados")}</p>
                 <p className="text-3xl font-bold">
                   {unlocked}
                   <span className="text-base font-medium text-muted"> / {results.length}</span>
@@ -111,7 +112,7 @@ export function MeritsView() {
             </div>
             {recent.length > 0 && (
               <div className="mt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Conquistados recentemente</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t("Conquistados recentemente")}</p>
                 <ul className="space-y-2">
                   {recent.map((r) => (
                     <MeritRow key={r.merit.id} result={r} date={dates[r.merit.id]} />
@@ -121,7 +122,7 @@ export function MeritsView() {
             )}
             {next && next.length > 0 && (
               <div className="mt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Próximos objetivos</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t("Próximos objetivos")}</p>
                 <ul className="space-y-2">
                   {next.map((r) => (
                     <MeritRow key={r.merit.id} result={r} />
@@ -132,14 +133,16 @@ export function MeritsView() {
           </section>
 
           <p className="px-1 text-[0.6875rem] text-muted">
-            📅 A data de cada mérito é registrada quando o app o vê liberado pela primeira vez. Os que já estavam
-            liberados na primeira consulta aparecem como “conquistado até” aquela data.
+            📅{" "}
+            {t(
+              "A data de cada mérito é registrada quando o app o vê liberado pela primeira vez. Os que já estavam liberados na primeira consulta aparecem como “conquistado até” aquela data.",
+            )}
           </p>
 
           {MERIT_CATEGORIES.map((cat) => {
             const list = results.filter((r) => r.merit.category === cat.id);
             if (!list.length) return null;
-            return <CategorySection key={cat.id} label={cat.label} icon={cat.icon} list={list} dates={dates} />;
+            return <CategorySection key={cat.id} label={t(cat.label)} icon={cat.icon} list={list} dates={dates} />;
           })}
         </>
       )}
@@ -219,14 +222,14 @@ function MeritRow({ result, date }: { result: MeritResult; date?: MeritDate }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 text-sm font-semibold">
-          {merit.name}
+          {meritName(merit)}
           {done && <span className="text-gold">✓</span>}
         </p>
-        <p className="text-xs text-muted">{merit.description}</p>
+        <p className="text-xs text-muted">{meritDescription(merit)}</p>
         {done && date && (
           <p
             className="mt-0.5 text-[0.6875rem] font-semibold text-gold"
-            title={date.before ? "Já estava liberado quando o app começou a registrar as datas" : undefined}
+            title={date.before ? t("Já estava liberado quando o app começou a registrar as datas") : undefined}
           >
             📅 {meritDateLabel(date)}
           </p>
@@ -237,7 +240,7 @@ function MeritRow({ result, date }: { result: MeritResult; date?: MeritDate }) {
               <ProgressBar value={ratio * 100} />
             </div>
             <span className="text-[0.6875rem] tabular-nums text-muted">
-              {(value ?? 0).toLocaleString("pt-BR")}/{merit.target.toLocaleString("pt-BR")}
+              {(value ?? 0).toLocaleString(locale())}/{merit.target.toLocaleString(locale())}
             </span>
           </div>
         )}

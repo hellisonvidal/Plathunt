@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { t } from "../i18n";
 
 /** Distância (px, já amortecida) para soltar e atualizar. */
 const THRESHOLD = 70;
@@ -99,7 +100,7 @@ export function PullIndicator({ pull, refreshing }: { pull: number; refreshing?:
           ready || refreshing ? "text-ps-blue-2" : "text-muted"
         }`}
         style={{ opacity: refreshing ? 1 : Math.min(1, pull / THRESHOLD) }}
-        aria-label={refreshing ? "Atualizando" : ready ? "Solte para atualizar" : "Puxe para atualizar"}
+        aria-label={refreshing ? t("Atualizando") : ready ? t("Solte para atualizar") : t("Puxe para atualizar")}
       >
         <span
           className={refreshing ? "inline-block animate-spin" : "inline-block"}

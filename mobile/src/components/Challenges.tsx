@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { sameGame, shareLinks, type BoostCandidate } from "../lib/boost";
+import { locale, t } from "../i18n";
 import { mapLimit } from "../lib/cache";
 import {
   addChallenge,
@@ -39,18 +40,18 @@ export function ChallengesView() {
         <ChallengeForm onClose={() => setCreating(false)} />
       ) : (
         <button onClick={() => setCreating(true)} className="w-full rounded-2xl bg-ps-blue py-3 font-semibold">
-          🏁 Novo desafio
+          {t("🏁 Novo desafio")}
         </button>
       )}
 
-      {active.length > 0 && <h2 className="text-sm font-semibold text-muted">Em andamento ({active.length})</h2>}
+      {active.length > 0 && <h2 className="text-sm font-semibold text-muted">{t("Em andamento ({n})", { n: active.length })}</h2>}
       {active.map((c) => (
         <ChallengeCard key={c.id} challenge={c} />
       ))}
 
       {finished.length > 0 && (
         <details className="rounded-2xl border border-line bg-surface p-3 text-sm">
-          <summary className="font-semibold">Encerrados ({finished.length})</summary>
+          <summary className="font-semibold">{t("Encerrados ({n})", { n: finished.length })}</summary>
           <div className="mt-3 space-y-3">
             {finished.map((c) => (
               <ChallengeCard key={c.id} challenge={c} />
@@ -60,8 +61,9 @@ export function ChallengesView() {
       )}
 
       <p className="pb-2 text-center text-[0.6875rem] text-muted">
-        Vence quem conquistar o troféu primeiro depois do início do desafio (e dentro do prazo). Quem já tinha o troféu
-        não conta. Seus desafios ficam salvos neste celular e contam para os Méritos.
+        {t(
+          "Vence quem conquistar o troféu primeiro depois do início do desafio (e dentro do prazo). Quem já tinha o troféu não conta. Seus desafios ficam salvos neste celular e contam para os Méritos.",
+        )}
       </p>
     </div>
   );
@@ -91,7 +93,7 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
       return list
         .map((f, i) => ({ ...f, hasGame: owners[i] }))
         .filter((f) => f.level !== null)
-        .sort((a, b) => Number(b.hasGame) - Number(a.hasGame) || a.onlineId.localeCompare(b.onlineId, "pt-BR", { sensitivity: "base" }));
+        .sort((a, b) => Number(b.hasGame) - Number(a.hasGame) || a.onlineId.localeCompare(b.onlineId, locale(), { sensitivity: "base" }));
     },
     [client, game?.key],
   );
@@ -129,17 +131,19 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <section className="space-y-4 rounded-2xl border border-line bg-surface p-4" aria-label="Novo desafio">
+    <section className="space-y-4 rounded-2xl border border-line bg-surface p-4" aria-label={t("Novo desafio")}>
       <div className="flex items-center justify-between">
-        <h2 className="font-bold">🏁 Novo desafio</h2>
-        <button onClick={onClose} className="text-sm text-muted" aria-label="Fechar">
+        <h2 className="font-bold">{t("🏁 Novo desafio")}</h2>
+        <button onClick={onClose} className="text-sm text-muted" aria-label={t("Fechar")}>
           ✕
         </button>
       </div>
 
       {!game ? (
         <div className="space-y-2">
-          <p className="text-xs text-muted">1. Escolha o jogo (todo o catálogo PlayStation, por plataforma ou pela busca)</p>
+          <p className="text-xs text-muted">
+            {t("1. Escolha o jogo (todo o catálogo PlayStation, por plataforma ou pela busca)")}
+          </p>
           <GamePicker onPick={setGame} />
         </div>
       ) : (
@@ -158,12 +162,12 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
               }}
               className="text-xs text-ps-blue-2 underline"
             >
-              Trocar
+              {t("Trocar")}
             </button>
           </div>
 
           <div>
-            <p className="mb-1.5 text-xs text-muted">2. Escolha o troféu do desafio</p>
+            <p className="mb-1.5 text-xs text-muted">{t("2. Escolha o troféu do desafio")}</p>
             {trophy ? (
               <div className="flex items-center gap-3 rounded-xl border border-ps-blue-2 bg-surface-2 p-2">
                 <RemoteImage
@@ -180,7 +184,7 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
                   {trophy.detail && <span className="line-clamp-2 text-[0.6875rem] text-muted">{trophy.detail}</span>}
                 </span>
                 <button onClick={() => setTrophy(null)} className="text-xs text-ps-blue-2 underline">
-                  Trocar
+                  {t("Trocar")}
                 </button>
               </div>
             ) : game.title ? (
@@ -189,7 +193,7 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
                   onClick={() => setTrophy(platinumGoal())}
                   className="w-full rounded-xl border border-dashed border-line p-2 text-sm font-semibold text-ps-blue-2"
                 >
-                  🏆 Corrida da platina (quem platinar primeiro)
+                  {t("🏆 Corrida da platina (quem platinar primeiro)")}
                 </button>
                 <TrophyPicker
                   game={game}
@@ -205,11 +209,12 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
             ) : (
               <div className="space-y-2">
                 <p className="text-sm text-muted">
-                  Ninguém da sua lista jogou este jogo ainda, então a PSN não mostra a lista de troféus. O desafio pode ser
-                  a corrida da platina: vence quem platinar primeiro.
+                  {t(
+                    "Ninguém da sua lista jogou este jogo ainda, então a PSN não mostra a lista de troféus. O desafio pode ser a corrida da platina: vence quem platinar primeiro.",
+                  )}
                 </p>
                 <button onClick={() => setTrophy(platinumGoal())} className="w-full rounded-xl bg-ps-blue py-2.5 font-semibold">
-                  🏆 Desafio: platina do jogo
+                  {t("🏆 Desafio: platina do jogo")}
                 </button>
               </div>
             )}
@@ -219,16 +224,17 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
             <>
               <div className="space-y-2">
                 <p className="text-xs text-muted">
-                  3. Rivais{rivals.length > 0 && ` · ${rivals.length} escolhidos`}
+                  {t("3. Rivais")}
+                  {rivals.length > 0 && ` · ${t("{n} escolhidos", { n: rivals.length })}`}
                 </p>
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar amigo"
+                  placeholder={t("Buscar amigo")}
                   className="w-full rounded-full border border-line bg-surface-2 px-4 py-2 text-sm outline-none focus:border-ps-blue-2"
                 />
                 {friends.error ? <ErrorBox error={friends.error} onRetry={friends.refresh} /> : null}
-                {friends.loading && !friends.data && <Spinner label="Vendo quais amigos têm o jogo…" />}
+                {friends.loading && !friends.data && <Spinner label={t("Vendo quais amigos têm o jogo…")} />}
                 <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
                   {shownFriends.map((f) => {
                     const on = rivals.includes(f.accountId);
@@ -247,7 +253,7 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold">{f.onlineId}</span>
                             <span className={`text-[0.6875rem] ${f.hasGame ? "text-online" : "text-muted"}`}>
-                              {f.hasGame ? "Tem o jogo" : "Sem o jogo na lista recente"}
+                              {f.hasGame ? t("Tem o jogo") : t("Sem o jogo na lista recente")}
                             </span>
                           </span>
                           <span
@@ -266,8 +272,8 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
               </div>
 
               <div>
-                <p className="mb-1.5 text-xs text-muted">4. Prazo</p>
-                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Prazo">
+                <p className="mb-1.5 text-xs text-muted">{t("4. Prazo")}</p>
+                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("Prazo")}>
                   {CHALLENGE_DEADLINES.map((d) => (
                     <button
                       key={d.label}
@@ -276,7 +282,7 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
                       onClick={() => setDeadline(d.days)}
                       className={chip(deadline === d.days)}
                     >
-                      {d.label}
+                      {t(d.label)}
                     </button>
                   ))}
                 </div>
@@ -287,7 +293,7 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
                 disabled={rivals.length === 0 || !me.data}
                 className="w-full rounded-xl bg-ps-blue py-3 font-semibold disabled:opacity-50"
               >
-                {rivals.length === 0 ? "Escolha pelo menos um rival" : "Começar desafio"}
+                {rivals.length === 0 ? t("Escolha pelo menos um rival") : t("Começar desafio")}
               </button>
             </>
           )}
@@ -332,7 +338,7 @@ function ChallengeCard({ challenge: c }: { challenge: Challenge }) {
   const players = [...c.players].sort((a, b) => order(a.accountId) - order(b.accountId));
   const winner = c.players.find((p) => results[p.accountId]?.status === "venceu");
   const me = c.players.find((p) => p.accountId === "me");
-  const text = challengeMessage(c, me?.onlineId ?? "eu");
+  const text = challengeMessage(c, me?.onlineId ?? t("eu"));
   const left = c.deadline ? Math.ceil((Date.parse(c.deadline) - Date.now()) / 86_400_000) : null;
 
   const copy = async () => {
@@ -361,8 +367,14 @@ function ChallengeCard({ challenge: c }: { challenge: Challenge }) {
           <p className="truncate text-xs text-muted">{c.game.name}</p>
           <p className="text-[0.6875rem] text-muted">
             {[
-              `criado ${timeAgo(c.createdAt)}`,
-              finished ? "encerrado" : left !== null ? `${Math.max(0, left)} ${left === 1 ? "dia" : "dias"} restantes` : "sem prazo",
+              t("criado {time}", { time: timeAgo(c.createdAt) }),
+              finished
+                ? t("encerrado")
+                : left !== null
+                  ? left === 1
+                    ? t("{n} dia restante", { n: Math.max(0, left) })
+                    : t("{n} dias restantes", { n: Math.max(0, left) })
+                  : t("sem prazo"),
               rarityLabel(c.trophy.rate),
             ]
               .filter(Boolean)
@@ -374,27 +386,27 @@ function ChallengeCard({ challenge: c }: { challenge: Challenge }) {
 
       {winner && (
         <p className="rounded-xl bg-surface-2 p-2.5 text-sm font-semibold">
-          🏆 {winner.accountId === "me" ? "Você venceu!" : `${winner.onlineId} venceu!`}
+          🏆 {winner.accountId === "me" ? t("Você venceu!") : t("{name} venceu!", { name: winner.onlineId })}
         </p>
       )}
 
       {check.error ? <ErrorBox error={check.error} onRetry={check.refresh} /> : null}
-      {check.loading && !check.data && <p className="text-xs text-muted">Conferindo os troféus de cada jogador…</p>}
+      {check.loading && !check.data && <p className="text-xs text-muted">{t("Conferindo os troféus de cada jogador…")}</p>}
 
-      <ol className="space-y-1.5" aria-label="Classificação">
+      <ol className="space-y-1.5" aria-label={t("Classificação")}>
         {players.map((p) => {
           const r = results[p.accountId];
           return (
             <li key={p.accountId} className="flex items-center gap-3 rounded-xl border border-line p-2">
-              <span className="w-6 text-center text-sm font-bold text-muted">{r?.position ? `${r.position}º` : "–"}</span>
+              <span className="w-6 text-center text-sm font-bold text-muted">{r?.position ? t("{n}º", { n: r.position }) : "–"}</span>
               <Link to={p.accountId === "me" ? "/" : `/u/${p.accountId}`} className="shrink-0">
                 <Avatar src={p.avatarUrl} name={p.onlineId} size={36} />
               </Link>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{p.accountId === "me" ? `${p.onlineId} (você)` : p.onlineId}</p>
+                <p className="truncate text-sm font-semibold">{p.accountId === "me" ? t("{name} (você)", { name: p.onlineId }) : p.onlineId}</p>
                 <p className={`text-[0.6875rem] ${r?.status === "venceu" ? "font-semibold text-online" : "text-muted"}`}>
-                  {STATUS_LABELS[r?.status ?? "pendente"]}
-                  {r?.earnedAt && ` · ${new Date(r.earnedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`}
+                  {t(STATUS_LABELS[r?.status ?? "pendente"])}
+                  {r?.earnedAt && ` · ${new Date(r.earnedAt).toLocaleString(locale(), { dateStyle: "short", timeStyle: "short" })}`}
                 </p>
               </div>
             </li>
@@ -404,16 +416,16 @@ function ChallengeCard({ challenge: c }: { challenge: Challenge }) {
 
       <div className="flex flex-wrap gap-2">
         <a href={shareLinks(text).whatsapp} target="_blank" rel="noreferrer" className={btn}>
-          Chamar no WhatsApp
+          {t("Chamar no WhatsApp")}
         </a>
         <button onClick={copy} className={btn}>
-          {copied ? "Copiado ✔" : "Copiar convite"}
+          {copied ? t("Copiado ✔") : t("Copiar convite")}
         </button>
       </div>
       <div className="flex justify-between text-xs">
-        <span className="text-muted">{c.checkedAt ? `Conferido ${timeAgo(c.checkedAt)}` : ""}</span>
+        <span className="text-muted">{c.checkedAt ? t("Conferido {time}", { time: timeAgo(c.checkedAt) }) : ""}</span>
         <button onClick={() => removeChallenge(c.id)} className="text-muted underline">
-          Apagar
+          {t("Apagar")}
         </button>
       </div>
     </article>

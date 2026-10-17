@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useBackInterceptor } from "../lib/backButton";
 import { Link } from "react-router-dom";
 import { filterByPlatform, formatDuration, withEarnedTrophies, type PlayedOn } from "../lib/stats";
+import { t } from "../i18n";
 import type { Title } from "../psn/types";
 import { SERIES_COLORS } from "./charts";
 import { RemoteImage } from "./ui";
@@ -44,7 +45,7 @@ export function muralTiles(
       return titles
         .filter((t) => t.earned.platinum > 0)
         .sort(recent)
-        .map((t) => ({ title: t, metric: "Platina" }));
+        .map((g) => ({ title: g, metric: t("Platina") }));
     case "completos":
       return titles
         .filter((t) => t.progress >= 100)
@@ -55,7 +56,7 @@ export function muralTiles(
     case "trofeus":
       return [...titles]
         .sort((a, b) => total(b) - total(a))
-        .map((t) => ({ title: t, metric: `${total(t).toLocaleString("pt-BR")} troféus` }));
+        .map((g) => ({ title: g, metric: t("{n} troféus", { n: total(g) }) }));
     case "tempo":
       return titles
         .filter((t) => (player.playtime.get(t.id) ?? 0) > 0)
@@ -102,25 +103,25 @@ export function Mural({
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center" data-no-pull>
-      <button aria-label="Fechar mural" onClick={onClose} className="absolute inset-0 bg-black/60" />
+      <button aria-label={t("Fechar mural")} onClick={onClose} className="absolute inset-0 bg-black/60" />
       <section
         role="dialog"
         aria-modal="true"
-        aria-label={`Mural · ${MURAL_LABELS[category]}`}
+        aria-label={t("Mural · {label}", { label: t(MURAL_LABELS[category]) })}
         className="safe-bottom relative flex max-h-[85dvh] w-full max-w-2xl animate-[sheet-up_200ms_ease-out] flex-col rounded-t-3xl border border-line bg-surface shadow-2xl"
       >
         <div className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-line" aria-hidden />
         <div className="flex shrink-0 items-center gap-2 px-4 pb-2 pt-3">
           <div className="min-w-0 flex-1">
-            <h2 className="font-semibold">Mural · {MURAL_LABELS[category]}</h2>
+            <h2 className="font-semibold">{t("Mural · {label}", { label: t(MURAL_LABELS[category]) })}</h2>
             <p className="text-xs text-muted">
-              {tiles.length} {tiles.length === 1 ? "jogo" : "jogos"}
+              {tiles.length === 1 ? t("{n} jogo", { n: tiles.length }) : t("{n} jogos", { n: tiles.length })}
               {platform && ` · ${platform}`}
             </p>
           </div>
           <button
             onClick={onClose}
-            aria-label="Fechar"
+            aria-label={t("Fechar")}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-lg text-muted"
           >
             ✕
@@ -129,7 +130,7 @@ export function Mural({
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 pb-4">
 
           {players.length > 1 && (
-            <div className="flex gap-2 text-sm" role="tablist" aria-label="Jogador">
+            <div className="flex gap-2 text-sm" role="tablist" aria-label={t("Jogador")}>
               {players.map((p, i) => (
                 <button
                   key={p.accountId}
@@ -151,7 +152,7 @@ export function Mural({
           )}
 
           {tiles.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted">Nenhum jogo nesta categoria por enquanto.</p>
+            <p className="py-6 text-center text-sm text-muted">{t("Nenhum jogo nesta categoria por enquanto.")}</p>
           ) : (
             <ul className="grid grid-cols-3 gap-2">
               {shown.map(({ title, metric }) => (
@@ -193,7 +194,7 @@ export function Mural({
               onClick={() => setShowAll((s) => !s)}
               className="w-full rounded-xl py-2 text-sm font-semibold text-ps-blue-2 active:bg-surface-2"
             >
-              {showAll ? "Mostrar menos" : `Ver todos os ${tiles.length}`}
+              {showAll ? t("Mostrar menos") : t("Ver todos os {n}", { n: tiles.length })}
             </button>
           )}
         </div>

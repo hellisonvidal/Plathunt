@@ -1,8 +1,9 @@
 import type { Presence } from "../psn/types";
+import { t } from "../i18n";
 
 /** Bolinha no avatar: verde online, cinza offline, contorno quando o status é oculto. */
 export function StatusDot({ status }: { status: Presence["status"] }) {
-  const label = status === "online" ? "Online" : status === "offline" ? "Offline" : "Status oculto";
+  const label = status === "online" ? t("Online") : status === "offline" ? t("Offline") : t("Status oculto");
   const color = status === "online" ? "bg-online" : status === "offline" ? "bg-muted" : "bg-surface";
   return (
     <span

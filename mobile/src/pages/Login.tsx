@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "../i18n";
 import { ExitToast, useDoubleBackToExit } from "../lib/backButton";
 import { extractNpsso } from "../lib/npsso";
 import { signInWithCode, signInWithNpsso } from "../psn/auth";
@@ -30,7 +31,7 @@ export function LoginPage({
       onSignedIn("psn");
     } catch (e) {
       console.error(e);
-      setError("A PSN recusou o login. Tente de novo; se continuar, use a opção manual abaixo.");
+      setError(t("A PSN recusou o login. Tente de novo; se continuar, use a opção manual abaixo."));
     } finally {
       setBusy(false);
     }
@@ -62,7 +63,7 @@ export function LoginPage({
   function submitManual(e: React.FormEvent) {
     e.preventDefault();
     const npsso = extractNpsso(manual);
-    if (!npsso) setError("Isso não parece um código NPSSO válido. Cole o texto inteiro mostrado pela Sony.");
+    if (!npsso) setError(t("Isso não parece um código NPSSO válido. Cole o texto inteiro mostrado pela Sony."));
     else void finish({ npsso });
   }
 
@@ -80,7 +81,7 @@ export function LoginPage({
         <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-ps-blue-2">PlayStation</p>
         <h1 className="text-3xl font-bold tracking-tight">Trophy Mania</h1>
         <p className="mt-2 max-w-xs text-muted">
-          Seus troféus da PlayStation e as conquistas dos seus amigos, no celular.
+          {t("Seus troféus da PlayStation e as conquistas dos seus amigos, no celular.")}
         </p>
 
         {notice && <p className="mt-6 w-full rounded-xl border border-gold/40 bg-gold/10 p-3 text-sm">{notice}</p>}
@@ -92,11 +93,11 @@ export function LoginPage({
               disabled={busy || checking}
               className="w-full rounded-xl bg-ps-blue py-3.5 text-base font-semibold active:bg-ps-blue-2 disabled:opacity-60"
             >
-              {checking ? "Verificando login salvo…" : busy ? "Conectando à PSN…" : "Entrar com a PSN"}
+              {checking ? t("Verificando login salvo…") : busy ? t("Conectando à PSN…") : t("Entrar com a PSN")}
             </button>
           ) : (
             <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
-              O login com a PSN funciona no app Android. Aqui no navegador você pode ver a demonstração.
+              {t("O login com a PSN funciona no app Android. Aqui no navegador você pode ver a demonstração.")}
             </p>
           )}
 
@@ -105,7 +106,7 @@ export function LoginPage({
             disabled={busy}
             className="w-full rounded-xl border border-line py-3 text-sm text-muted active:bg-surface"
           >
-            Ver demonstração
+            {t("Ver demonstração")}
           </button>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
@@ -113,10 +114,10 @@ export function LoginPage({
 
         {native && (
           <details className="mt-8 w-full text-left text-sm text-muted">
-            <summary>Problemas? Entrar manualmente</summary>
+            <summary>{t("Problemas? Entrar manualmente")}</summary>
             <ol className="mt-3 list-decimal space-y-2 pl-5">
               <li>
-                Em um navegador, entre na sua conta em{" "}
+                {t("Em um navegador, entre na sua conta em")}{" "}
                 <a
                   className="text-ps-blue-2 underline"
                   href="https://www.playstation.com/"
@@ -128,18 +129,18 @@ export function LoginPage({
                 .
               </li>
               <li>
-                No mesmo navegador, abra{" "}
+                {t("No mesmo navegador, abra")}{" "}
                 <a
                   className="text-ps-blue-2 underline"
                   href="https://ca.account.sony.com/api/v1/ssocookie"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  este link da Sony
+                  {t("este link da Sony")}
                 </a>{" "}
-                e copie todo o texto.
+                {t("e copie todo o texto.")}
               </li>
-              <li>Cole aqui:</li>
+              <li>{t("Cole aqui:")}</li>
             </ol>
             <form onSubmit={submitManual} className="mt-2 flex gap-2">
               <input
@@ -159,8 +160,9 @@ export function LoginPage({
       </div>
 
       <p className="pt-8 text-center text-xs leading-relaxed text-muted">
-        🔒 Sem servidor: seus dados vão direto do celular para a PSN e ficam só no aparelho. O PlayStation Trophy Mania
-        não é afiliado à Sony Interactive Entertainment.
+        {t(
+          "🔒 Sem servidor: seus dados vão direto do celular para a PSN e ficam só no aparelho. O PlayStation Trophy Mania não é afiliado à Sony Interactive Entertainment.",
+        )}
       </p>
       <ExitToast show={exitWarning} />
     </div>

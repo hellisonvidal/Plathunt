@@ -1,3 +1,4 @@
+import { locale, t } from "../i18n";
 import { persistSet } from "./persist";
 
 /**
@@ -46,9 +47,13 @@ export function recordMeritDates(accountId: string, doneIds: string[], now = new
   return dates;
 }
 
-/** "Conquistado em 18/10/2026" ou "Conquistado até 17/10/2026". */
+/** "Conquistado em 18/10/2026 às 21:05" ou "Conquistado até 17/10/2026 às 09:41". */
 export function meritDateLabel(d: MeritDate | undefined): string | null {
   if (!d) return null;
-  const day = new Date(d.at).toLocaleDateString("pt-BR");
-  return d.before ? `Conquistado até ${day}` : `Conquistado em ${day}`;
+  const at = new Date(d.at);
+  const date = at.toLocaleDateString(locale());
+  const time = at.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
+  return d.before
+    ? t("Conquistado até {date} às {time}", { date, time })
+    : t("Conquistado em {date} às {time}", { date, time });
 }

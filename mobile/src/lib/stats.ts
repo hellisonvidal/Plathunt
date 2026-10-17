@@ -1,3 +1,4 @@
+import { locale, t } from "../i18n";
 import type { Counts, PlayedGame, Title, TrophyGroup, TrophyRow } from "../psn/types";
 
 /** "PT228H56M33S" → segundos. */
@@ -14,9 +15,9 @@ export function formatDuration(seconds: number): string {
   if (seconds <= 0) return "—";
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  if (h === 0) return `${m} min`;
-  if (h >= 100) return `${h.toLocaleString("pt-BR")} h`;
-  return m ? `${h} h ${m} min` : `${h} h`;
+  if (h === 0) return t("{m} min", { m });
+  if (h >= 100) return t("{h} h", { h });
+  return m ? t("{h} h {m} min", { h, m }) : t("{h} h", { h });
 }
 
 /** Normaliza nomes de jogos para casar a lista de troféus com a de "jogados". */
@@ -158,7 +159,7 @@ export function titlesByPlatform(titles: Title[], playedOn?: PlayedOn): Map<stri
     const p = primaryPlatform(t, playedOn?.get(t.id));
     out.set(p, [...(out.get(p) ?? []), t]);
   }
-  for (const list of out.values()) list.sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
+  for (const list of out.values()) list.sort((a, b) => a.name.localeCompare(b.name, locale(), { sensitivity: "base" }));
   return new Map([...out].sort(([a], [b]) => rank(a) - rank(b)));
 }
 
@@ -231,7 +232,7 @@ export interface GroupSection {
 export function groupTrophies(trophies: TrophyRow[], groups: TrophyGroup[]): GroupSection[] {
   const known = groups.length
     ? groups
-    : [{ id: "default", name: "Jogo base", iconUrl: null, defined: { bronze: 0, silver: 0, gold: 0, platinum: 0 } }];
+    : [{ id: "default", name: t("Jogo base"), iconUrl: null, defined: { bronze: 0, silver: 0, gold: 0, platinum: 0 } }];
   const sections = known.map((group) => {
     const rows = trophies.filter((t) => t.groupId === group.id);
     return { group, isBase: group.id === "default", trophies: rows, earned: rows.filter((t) => t.earned).length };
@@ -256,7 +257,7 @@ export interface TitleComparison {
 
 /** Compara as listas de jogos de dois jogadores (pelo nome normalizado), em ordem alfabética. */
 export function compareTitles(mine: Title[], theirs: Title[]): TitleComparison {
-  const byName = (a: Title, b: Title) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" });
+  const byName = (a: Title, b: Title) => a.name.localeCompare(b.name, locale(), { sensitivity: "base" });
   const theirsByName = new Map(theirs.map((t) => [normalizeName(t.name), t]));
   const used = new Set<Title>();
   const common: TitleComparison["common"] = [];
@@ -311,17 +312,19 @@ export function completionSpans(trophies: TrophyRow[]): { platinum: CompletionSp
 /** Duração longa e legível: "5 h", "12 dias", "3 meses e 4 dias", "1 ano e 2 meses". */
 export function formatSpan(ms: number): string {
   const hours = ms / 3_600_000;
-  if (hours < 1) return "menos de 1 h";
-  if (hours < 48) return `${Math.round(hours)} h`;
+  if (hours < 1) return t("menos de 1 h");
+  if (hours < 48) return t("{h} h", { h: Math.round(hours) });
   const days = Math.round(hours / 24);
-  if (days < 60) return `${days} dias`;
-  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  if (days < 60) return t("{n} dias", { n: days });
+  const dayText = (n: number) => (n === 1 ? t("{n} dia", { n }) : t("{n} dias", { n }));
+  const monthText = (n: number) => (n === 1 ? t("{n} mês", { n }) : t("{n} meses", { n }));
+  const yearText = (n: number) => (n === 1 ? t("{n} ano", { n }) : t("{n} anos", { n }));
   if (days < 365) {
     const months = Math.floor(days / 30);
     const rest = days - months * 30;
-    return rest ? `${plural(months, "mês", "meses")} e ${plural(rest, "dia", "dias")}` : plural(months, "mês", "meses");
+    return rest ? t("{a} e {b}", { a: monthText(months), b: dayText(rest) }) : monthText(months);
   }
   const years = Math.floor(days / 365);
   const months = Math.floor((days - years * 365) / 30);
-  return months ? `${plural(years, "ano", "anos")} e ${plural(months, "mês", "meses")}` : plural(years, "ano", "anos");
+  return months ? t("{a} e {b}", { a: yearText(years), b: monthText(months) }) : yearText(years);
 }
