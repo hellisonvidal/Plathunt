@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
+import { BoostView } from "../components/Boost";
 import { MeritsView } from "../components/Merits";
 import { PageHeader } from "../components/PageHeader";
 import { ReactionBar } from "../components/Reactions";
@@ -21,7 +22,7 @@ export function ActivityPage() {
   const { feedDays } = useSettings();
   const { data, error, loading, refresh } = useData((force) => client.feed(force), [client, feedDays]);
   const [filter, setFilter] = useState<FilterKey>("todos");
-  const [view, setView] = useState<"feed" | "merits">("feed");
+  const [view, setView] = useState<"feed" | "merits" | "boost">("feed");
 
   const items = (data ?? []).filter((i) => {
     const types = FILTERS[filter].types as readonly string[] | null;
@@ -37,11 +38,12 @@ export function ActivityPage() {
         refreshing={view === "feed" && loading}
       />
       <div className="space-y-4 px-4 pt-4">
-        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-surface p-1 text-sm" role="tablist">
+        <div className="grid grid-cols-3 gap-1 rounded-2xl border border-line bg-surface p-1 text-sm" role="tablist">
           {(
             [
               ["feed", "🎮 Conquistas"],
               ["merits", "🏅 Méritos"],
+              ["boost", "📣 Boost"],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -58,6 +60,8 @@ export function ActivityPage() {
 
         {view === "merits" ? (
           <MeritsView />
+        ) : view === "boost" ? (
+          <BoostView />
         ) : (
           <>
             <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm">

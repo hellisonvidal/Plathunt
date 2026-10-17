@@ -1,4 +1,5 @@
 import {
+  getBasicPresence,
   getProfileFromAccountId,
   getTitleTrophies,
   getTitleTrophyGroups,
@@ -11,6 +12,7 @@ import {
   type TrophyTitle,
 } from "psn-api";
 import { cached, createLimiter, mapLimit } from "../lib/cache";
+import { toPresence, UNKNOWN_PRESENCE, type RawPresence } from "../lib/presence";
 import { getSettings } from "../lib/settings";
 import { parseDuration, platformFromCategory } from "../lib/stats";
 import { translateTexts } from "../lib/translate";
@@ -23,7 +25,7 @@ import {
   type RawTrophyEarned,
 } from "../lib/feed";
 import { getAccessToken } from "./auth";
-import type { FeedItem, PlayedGame, Profile, PsnClient, Title } from "./types";
+import type { FeedItem, PlayedGame, Presence, Profile, PsnClient, Title } from "./types";
 
 /** Idioma dos nomes de jogos e troféus (Configurações). */
 const headers = () => ({ "Accept-Language": getSettings().language });
@@ -34,6 +36,9 @@ const FRIENDS_PAGE = 1000;
 const FEED_GAMES_PER_FRIEND = 5;
 const MAX_FEED_SOURCES = 20;
 const CONCURRENCY = 5;
+/** Status online: a PSN aceita vários amigos por pedido. */
+const PRESENCE_BATCH = 50;
+const PRESENCE_URL = "https://m.np.playstation.com/api/userProfile/v1/internal/users/basicPresences";
 
 type TrophyMeta = (Awaited<ReturnType<typeof getTitleTrophies>>["trophies"][number] & { originalName?: string })[];
 
@@ -245,6 +250,46 @@ export function createPsnClient(): PsnClient {
         },
         force,
       );
+    },
+
+    async presences(accountIds, force) {
+      const out: Record<string, Presence> = {};
+      const chunks: string[][] = [];
+      for (let i = 0; i < accountIds.length; i += PRESENCE_BATCH) chunks.push(accountIds.slice(i, i + PRESENCE_BATCH));
+      await mapLimit(chunks, 2, async (ids) => {
+        const found = await cached(
+          `presence:${ids.join(",")}`,
+          2 * MIN,
+          async () => {
+            const result: Record<string, Presence> = {};
+            try {
+              // Um pedido para o grupo todo (o mesmo que o app oficial usa).
+              const res = await fetch(`${PRESENCE_URL}?type=primary&accountIds=${ids.join(",")}`, {
+                headers: { Authorization: `Bearer ${await getAccessToken()}` },
+              });
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              const list = ((await res.json()) as { basicPresences?: RawPresence[] }).basicPresences;
+              if (!Array.isArray(list)) throw new Error("sem basicPresences");
+              for (const raw of list) if (raw.accountId) result[raw.accountId] = toPresence(raw);
+            } catch {
+              // Se o pedido em grupo falhar, pergunta amigo por amigo.
+              await mapLimit(ids, CONCURRENCY, async (id) => {
+                try {
+                  const res = await getBasicPresence(await auth(), id);
+                  result[id] = toPresence(res.basicPresence as RawPresence);
+                } catch {
+                  // Status escondido pela privacidade do amigo.
+                }
+              });
+            }
+            return result;
+          },
+          force,
+        );
+        Object.assign(out, found);
+      });
+      for (const id of accountIds) out[id] ??= UNKNOWN_PRESENCE;
+      return out;
     },
 
     async friends(force) {

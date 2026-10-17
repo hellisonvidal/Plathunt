@@ -83,6 +83,17 @@ export interface FeedItem {
   rate: number | null;
 }
 
+/** Status de um amigo na PSN (online, offline ou oculto pela privacidade). */
+export interface Presence {
+  status: "online" | "offline" | "unknown";
+  /** Console em que está (ou esteve por último). */
+  platform: string | null;
+  /** Último momento online, quando a PSN informa. */
+  lastOnline: string | null;
+  /** Jogo aberto agora. */
+  game: { name: string; iconUrl: string | null } | null;
+}
+
 /** Tudo que as telas precisam. Há uma implementação real (PSN) e uma de demonstração. */
 export interface PsnClient {
   me(force?: boolean): Promise<Profile>;
@@ -99,5 +110,7 @@ export interface PsnClient {
   /** Perfis de todos os amigos (carrega cada um; pode demorar com listas grandes). */
   friends(force?: boolean): Promise<Profile[]>;
   profile(accountId: string, force?: boolean): Promise<Profile>;
+  /** Status online/offline de vários amigos de uma vez (por accountId). */
+  presences(accountIds: string[], force?: boolean): Promise<Record<string, Presence>>;
   feed(force?: boolean): Promise<FeedItem[]>;
 }
