@@ -41,3 +41,26 @@ describe("convocação de boost", () => {
     expect(sameGame({ id: "A", name: "Bloodborne" }, { id: "B", name: "Returnal" })).toBe(false);
   });
 });
+
+describe("catálogo do boost", async () => {
+  const { buildBoostCatalog, searchBoostCatalog } = await import("../src/lib/boost");
+  const t = (id: string, name: string, progress = 10) =>
+    ({ id, name, service: "trophy2", iconUrl: null, platform: "PS5", progress, earned: { platinum: 0, gold: 0, silver: 0, bronze: 0 },
+      defined: { platinum: 1, gold: 0, silver: 0, bronze: 0 }, lastUpdated: "2026-01-01T00:00:00Z", hasGroups: false }) as const;
+
+  it("junta seus jogos, os dos amigos e a loja, sem repetir", () => {
+    const catalog = buildBoostCatalog(
+      [t("A", "Astro Bot", 50)],
+      [[t("B", "Helldivers 2"), t("A2", "Astro Bot™")], [t("B", "Helldivers 2")]],
+      [{ name: "Helldivers 2", platforms: ["PS5"], imageUrl: "h.png" }, { name: "Gran Turismo 7", platforms: ["PS5", "PS4"], imageUrl: null }],
+    );
+    expect(catalog).toHaveLength(3);
+    const hd = catalog.find((c) => c.name === "Helldivers 2")!;
+    expect([hd.friends, hd.inStore, hd.title?.id, hd.iconUrl]).toEqual([2, true, "B", "h.png"]);
+    const astro = catalog.find((c) => c.key === "astro bot")!;
+    expect([astro.myProgress, astro.friends]).toEqual([50, 1]);
+    expect(catalog.find((c) => c.name === "Gran Turismo 7")!.title).toBeNull();
+    expect(searchBoostCatalog(catalog, "gran").map((c) => c.name)).toEqual(["Gran Turismo 7"]);
+    expect(searchBoostCatalog(catalog, "")).toEqual([]);
+  });
+});

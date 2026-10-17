@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { GroupedBars, Legend, SERIES_COLORS, StatTile, type Series } from "../components/charts";
+import { CompletionTimes } from "../components/CompletionTimes";
 import { ConsoleArt } from "../components/Consoles";
 import { Mural, MURAL_LABELS, type MuralCategory } from "../components/Mural";
 import { PageHeader } from "../components/PageHeader";
@@ -248,6 +249,8 @@ export function StatsPage() {
                   ]}
                   platform={platform}
                 />
+
+                <CompletionTimes titles={filterByPlatform(withEarnedTrophies(data.titles), platform, data.playedOn)} />
 
                 {all.map((s, i) =>
                   s.topPlayed.length ? (

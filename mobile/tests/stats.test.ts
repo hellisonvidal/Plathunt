@@ -223,3 +223,28 @@ describe("compareTitles", () => {
     expect(r.onlyTheirs.map((t) => t.id)).toEqual(["8"]);
   });
 });
+
+describe("tempo até a platina / 100%", async () => {
+  const { completionSpans, formatSpan } = await import("../src/lib/stats");
+  const row = (id: number, type: "platinum" | "gold", earnedAt: string | null) =>
+    ({ id, type, name: `T${id}`, detail: null, iconUrl: null, hidden: false, groupId: "default", earned: !!earnedAt, earnedAt, rate: null });
+
+  it("conta do primeiro troféu até a platina e até o último", () => {
+    const spans = completionSpans([
+      row(0, "platinum", "2026-01-11T00:00:00Z"),
+      row(1, "gold", "2026-01-01T00:00:00Z"),
+      row(2, "gold", "2026-02-01T00:00:00Z"),
+    ]);
+    expect(formatSpan(spans.platinum!.ms)).toBe("10 dias");
+    expect(formatSpan(spans.full!.ms)).toBe("31 dias");
+    expect(completionSpans([row(0, "platinum", null), row(1, "gold", "2026-01-01T00:00:00Z")])).toEqual({ platinum: null, full: null });
+  });
+
+  it("formata horas, meses e anos", () => {
+    const h = 3_600_000;
+    expect(formatSpan(h / 2)).toBe("menos de 1 h");
+    expect(formatSpan(5 * h)).toBe("5 h");
+    expect(formatSpan(95 * 24 * h)).toBe("3 meses e 5 dias");
+    expect(formatSpan(430 * 24 * h)).toBe("1 ano e 2 meses");
+  });
+});

@@ -169,6 +169,8 @@ export function createDemoClient(): PsnClient {
     playedGames: (accountId) => delay(playedOf(keyOf(accountId))),
     trophyGroups: (game) => delay(Object.values(GAMES).find((g) => g.id === game.id)?.groups ?? []),
     gameTrophies: (accountId, game) => delay(trophiesOf(keyOf(accountId), game.id)),
+    titleTrophies: (game) =>
+      delay(trophiesOf("me", game.id).map((t) => ({ ...t, earned: false, earnedAt: null, rate: null }))),
     friendIds: () => delay(Object.values(PROFILES).filter((p) => p.accountId !== "demo-me").map((p) => p.accountId)),
     friends: () => delay(Object.values(PROFILES).filter((p) => p.accountId !== "demo-me")),
     presences: (accountIds) =>

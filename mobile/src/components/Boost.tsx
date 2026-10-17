@@ -5,16 +5,22 @@ import {
   addBoost,
   BOOST_WHEN,
   boostMessage,
+  buildBoostCatalog,
   removeBoost,
   sameGame,
+  searchBoostCatalog,
   shareLinks,
   updateBoost,
   useBoosts,
   type Boost,
+  type BoostCandidate,
 } from "../lib/boost";
 import { mapLimit } from "../lib/cache";
 import { presenceRank, presenceText } from "../lib/presence";
+import { useSettings } from "../lib/settings";
+import { ALL_ID } from "../lib/store";
 import { useData } from "../lib/useData";
+import { demoStoreCategory, storeCategory } from "../psn/store";
 import type { Title } from "../psn/types";
 import { StatusDot } from "./StatusDot";
 import { Avatar, ErrorBox, GameIcon, Spinner, timeAgo } from "./ui";
@@ -64,28 +70,53 @@ export function BoostView() {
 }
 
 function BoostForm({ onClose }: { onClose: () => void }) {
-  const { client } = useApp();
+  const { client, mode } = useApp();
+  const { storeRegion } = useSettings();
   const titles = useData((force) => client.titles("me", force), [client]);
+  // Catálogo completo para a busca: jogos dos amigos (com troféus na PSN) e a PlayStation Store.
+  const catalog = useData(
+    async (force) => {
+      const [friendsTitles, store] = await Promise.all([
+        client
+          .friendIds(force)
+          .then((ids) => mapLimit(ids, 5, (id) => client.recentTitles(id, force).catch(() => [] as Title[])))
+          .catch(() => [] as Title[][]),
+        (mode === "demo" ? demoStoreCategory(ALL_ID) : storeCategory(ALL_ID, storeRegion, force)).catch(() => []),
+      ]);
+      return { friendsTitles, store };
+    },
+    [client, mode, storeRegion],
+  );
   const [query, setQuery] = useState("");
-  const [game, setGame] = useState<Title | null>(null);
+  const [game, setGame] = useState<BoostCandidate | null>(null);
   const [players, setPlayers] = useState(1);
   const [when, setWhen] = useState<string>(BOOST_WHEN[0]);
   const [trophies, setTrophies] = useState<string[]>([]);
   const [note, setNote] = useState("");
 
   const trophyList = useData(
-    async () => (game ? (await client.gameTrophies("me", game)).filter((t) => !t.earned) : null),
-    [client, game?.id],
+    async () => {
+      if (!game?.title) return null;
+      // Seus troféus que faltam; num jogo que você não tem, a lista completa do jogo.
+      const list = game.myProgress !== null ? await client.gameTrophies("me", game.title) : await client.titleTrophies(game.title);
+      return list.filter((t) => !t.earned);
+    },
+    [client, game?.key],
   );
 
-  // Jogos não platinados e mais recentes primeiro.
+  const all = useMemo(
+    () => buildBoostCatalog(titles.data ?? [], catalog.data?.friendsTitles ?? [], catalog.data?.store ?? []),
+    [titles.data, catalog.data],
+  );
+  // Sem busca: seus jogos não platinados e mais recentes. Com busca: todo o catálogo.
   const options = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return (titles.data ?? [])
-      .filter((t) => !q || t.name.toLowerCase().includes(q))
+    if (query.trim()) return searchBoostCatalog(all, query);
+    return [...(titles.data ?? [])]
       .sort((a, b) => Number(a.progress === 100) - Number(b.progress === 100) || b.lastUpdated.localeCompare(a.lastUpdated))
-      .slice(0, 8);
-  }, [titles.data, query]);
+      .slice(0, 8)
+      .map((t) => all.find((c) => c.title?.id === t.id) ?? null)
+      .filter((c): c is BoostCandidate => c !== null);
+  }, [all, titles.data, query]);
 
   const chip = (active: boolean) =>
     `rounded-full px-3 py-1 text-sm ${active ? "bg-ps-blue font-semibold" : "border border-line text-muted"}`;
@@ -105,14 +136,18 @@ function BoostForm({ onClose }: { onClose: () => void }) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar nos seus jogos"
+            placeholder="Buscar em todo o catálogo PlayStation"
             className="w-full rounded-full border border-line bg-surface-2 px-4 py-2 text-sm outline-none focus:border-ps-blue-2"
           />
           {titles.error ? <ErrorBox error={titles.error} onRetry={titles.refresh} /> : null}
           {titles.loading && !titles.data && <Spinner label="Carregando seus jogos…" />}
+          {query.trim() && catalog.loading && !catalog.data && (
+            <p className="text-xs text-muted">Carregando o catálogo completo (jogos dos amigos e PlayStation Store)…</p>
+          )}
+          {!query.trim() && titles.data && <p className="text-[0.6875rem] text-muted">Seus jogos recentes · busque qualquer jogo</p>}
           <ul className="space-y-1.5">
             {options.map((t) => (
-              <li key={t.id}>
+              <li key={t.key}>
                 <button
                   onClick={() => setGame(t)}
                   className="flex w-full items-center gap-3 rounded-xl border border-line p-2 text-left active:border-muted"
@@ -121,14 +156,23 @@ function BoostForm({ onClose }: { onClose: () => void }) {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold">{t.name}</span>
                     <span className="text-[0.6875rem] text-muted">
-                      {t.platform} · {t.progress}%
+                      {[
+                        t.platform,
+                        t.myProgress !== null ? `seu: ${t.myProgress}%` : null,
+                        t.friends ? `${t.friends} ${t.friends === 1 ? "amigo tem" : "amigos têm"}` : null,
+                        t.myProgress === null && !t.friends && t.inStore ? "PlayStation Store" : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </span>
                   </span>
                 </button>
               </li>
             ))}
           </ul>
-          {titles.data && options.length === 0 && <p className="text-sm text-muted">Nenhum jogo com “{query}”.</p>}
+          {titles.data && query.trim() && options.length === 0 && !catalog.loading && (
+            <p className="text-sm text-muted">Nenhum jogo com “{query}”.</p>
+          )}
         </div>
       ) : (
         <>
@@ -178,6 +222,12 @@ function BoostForm({ onClose }: { onClose: () => void }) {
           <div>
             <p className="mb-1.5 text-xs text-muted">4. Troféus que precisam de boost (opcional)</p>
             {trophyList.loading && !trophyList.data && <Spinner label="Carregando os troféus que faltam…" />}
+            {!game.title && (
+              <p className="text-sm text-muted">
+                A PSN só mostra a lista de troféus de jogos que você ou algum amigo já jogou. Descreva no recado o que
+                precisa.
+              </p>
+            )}
             {trophyList.data && trophyList.data.length === 0 && (
               <p className="text-sm text-muted">Você já tem todos os troféus deste jogo.</p>
             )}
@@ -213,7 +263,7 @@ function BoostForm({ onClose }: { onClose: () => void }) {
           <button
             onClick={() => {
               addBoost({
-                game: { id: game.id, name: game.name, platform: game.platform, iconUrl: game.iconUrl },
+                game: { id: game.title?.id ?? game.key, name: game.name, platform: game.platform, iconUrl: game.iconUrl },
                 players,
                 when,
                 trophies,

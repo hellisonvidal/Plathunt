@@ -149,6 +149,8 @@ export interface StoreFilters {
   query: string;
   platform: "todas" | "PS5" | "PS4";
   onlyDiscount: boolean;
+  /** Esconde os jogos que dependem da PS Plus (catálogo ou preço de assinante). */
+  hidePlus: boolean;
   price: PriceRange;
   sort: StoreSort;
 }
@@ -195,6 +197,7 @@ export function filterProducts(products: StoreProduct[], f: StoreFilters): Store
       (!q || p.name.toLowerCase().includes(q)) &&
       (f.platform === "todas" || p.platforms.includes(f.platform)) &&
       (!f.onlyDiscount || p.discount > 0) &&
+      !(f.hidePlus && p.plus) &&
       inRange(p, f.price),
   );
   const price = (p: StoreProduct) => p.price ?? Number.MAX_SAFE_INTEGER;
@@ -284,9 +287,19 @@ export function isNewLow(record: PriceRecord | null, price: number | null): bool
   return new Date(record.minAt).getTime() > new Date(record.firstAt ?? record.minAt).getTime();
 }
 
+/** Histórico lido uma vez e reaproveitado (cada cartão da loja consulta o seu preço). */
+let bookCache: { raw: string | null; book: PriceBook } | null = null;
+
 function readPriceBook(): PriceBook {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(PRICES_KEY);
+  } catch {}
+  if (bookCache && bookCache.raw === raw) return bookCache.book;
   const book = readJson<unknown>(PRICES_KEY, {});
-  return book && typeof book === "object" && !Array.isArray(book) ? (book as PriceBook) : {};
+  const valid = book && typeof book === "object" && !Array.isArray(book) ? (book as PriceBook) : {};
+  bookCache = { raw, book: valid };
+  return valid;
 }
 
 export function priceHistory(region: StoreRegion, id: string): PriceRecord | null {
