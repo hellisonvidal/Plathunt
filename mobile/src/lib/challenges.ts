@@ -178,7 +178,7 @@ export const STATUS_LABELS: Record<PlayerStatus, string> = {
 /** Texto para chamar os amigos para o desafio. */
 export function challengeMessage(c: Challenge, me: string): string {
   const lines = [
-    t('🏁 DESAFIO: quem conquista primeiro "{trophy}"?', { trophy: c.trophy.name }),
+    t("🏁 DESAFIO: quem conquista primeiro \"{trophy}\"?", { trophy: c.trophy.name }),
     `🎮 ${c.game.name} (${c.game.platform})`,
   ];
   if (c.trophy.detail) lines.push(`📜 ${c.trophy.detail}`);
