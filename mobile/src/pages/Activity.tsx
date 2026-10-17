@@ -17,6 +17,9 @@ import type { FeedItem } from "../psn/types";
 const FILTERS = {
   todos: { label: "Tudo", types: null },
   platinas: { label: "Platinas", types: ["platinum"] },
+  ouro: { label: "Ouro", types: ["gold"] },
+  prata: { label: "Prata", types: ["silver"] },
+  bronze: { label: "Bronze", types: ["bronze"] },
 } as const;
 type FilterKey = keyof typeof FILTERS;
 

@@ -211,6 +211,37 @@ html[data-theme="deathstranding"] {
   --color-platinum: #22607f;
 }
 
+/* Claro (padrão): neutro, com o azul PlayStation. */
+html[data-theme="claro"] {
+  color-scheme: only light;
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #eceff3;
+  --color-line: #d9dee5;
+  --color-ink: #111418;
+  --color-muted: #5b6573;
+  --color-ps-blue: #0070d1;
+  --color-ps-blue-2: #0062b8;
+  --color-on-accent: #ffffff;
+  --color-gold: #846000;
+  --color-bronze: #97562a;
+  --color-silver: #5f6b7a;
+  --color-platinum: #256a8e;
+}
+
+/* Escuro (padrão): grafite neutro, com o azul PlayStation. */
+html[data-theme="escuro"] {
+  --color-bg: #0d0f13;
+  --color-surface: #161a20;
+  --color-surface-2: #1f242c;
+  --color-line: #2c333d;
+  --color-ink: #eef1f5;
+  --color-muted: #9aa4b2;
+  --color-ps-blue: #2d7ff9;
+  --color-ps-blue-2: #6aa8ff;
+  --color-on-accent: #ffffff;
+}
+
 /* Botões cheios na cor de destaque sempre com texto branco (contraste em todos os temas). */
 .bg-ps-blue {
   color: var(--color-on-accent);
@@ -238,6 +269,7 @@ body {
 
 /* Vermelho de erro/sair mais escuro nos temas claros (contraste sobre fundo claro). */
 html:not([data-theme]) .text-red-400,
+html[data-theme="claro"] .text-red-400,
 html[data-theme="uncharted"] .text-red-400,
 html[data-theme="deathstranding"] .text-red-400 {
   color: #c0262d;

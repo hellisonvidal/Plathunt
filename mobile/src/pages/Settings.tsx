@@ -186,7 +186,7 @@ function ThemesButton({ current }: { current: Settings["theme"] }) {
       <span className="min-w-0 flex-1">
         <span className="block text-sm">{t("Temas")}</span>
         <span className="mt-0.5 block text-xs text-muted">
-          {theme.label} · {t("{n} temas de jogos de PlayStation", { n: THEMES.length })}
+          {t(theme.label)} · {t("{n} temas de jogos de PlayStation", { n: THEMES.filter((th) => !th.standard).length })}
         </span>
       </span>
       <span className="text-muted">›</span>
@@ -201,11 +201,23 @@ export function ThemesPage() {
     <>
       <PageHeader title={t("Temas")} back />
       <div className="px-4 pb-8 pt-4">
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t("Padrão")}</h2>
+        <div className="mb-5 grid grid-cols-3 gap-2" role="radiogroup" aria-label={t("Tema padrão")}>
+          {THEMES.filter((th) => th.standard).map((th) => (
+            <ThemeCard
+              key={th.value}
+              theme={th}
+              selected={settings.theme === th.value}
+              onSelect={() => updateSettings({ theme: th.value })}
+            />
+          ))}
+        </div>
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t("Temas de jogos")}</h2>
         <p className="mb-3 text-sm text-muted">
           {t("Cada tema usa as cores do personagem principal de um jogo de PlayStation.")}
         </p>
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("Tema")}>
-          {THEMES.map((th) => (
+          {THEMES.filter((th) => !th.standard).map((th) => (
             <ThemeCard
               key={th.value}
               theme={th}
@@ -251,7 +263,7 @@ function ThemeCard({
     >
       <ThemeSwatch theme={theme} className="h-14" />
       <span className="mt-1.5 flex items-center justify-between gap-1">
-        <span className="text-sm font-semibold">{theme.label}</span>
+        <span className="text-sm font-semibold">{t(theme.label)}</span>
         {selected && <span className="text-ps-blue-2">✓</span>}
       </span>
       <span className="block text-[0.6875rem] leading-tight text-muted">{t(theme.description)}</span>
@@ -354,7 +366,7 @@ function UpdateStatus({ result }: { result: UpdateResult }) {
     return (
       <div className="space-y-2 border-t border-line px-4 py-3">
         <p className="text-sm font-semibold">
-          {t("Nova versão disponível: {version}", { version: `1.0.${result.latest}` })}
+          {t("Nova versão disponível: {version}", { version: `build ${result.latest}` })}
         </p>
         {result.notes && <p className="whitespace-pre-line text-xs text-muted">{result.notes}</p>}
         <InstallButton url={result.apkUrl} />

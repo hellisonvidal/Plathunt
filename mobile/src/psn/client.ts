@@ -118,13 +118,13 @@ export function createPsnClient(): PsnClient {
   }
 
   /** Nomes, descrições e ícones dos troféus de um jogo (iguais para todo mundo). */
-  async function loadMeta(game: { id: string; service: Title["service"] }) {
+  async function loadMeta(game: { id: string; service: Title["service"] }, translate = true) {
     const opts = { npServiceName: game.service, headerOverrides: headers() };
     const meta = await cached(`meta:${game.id}`, 24 * 60 * MIN, async () => {
       const res = await getTitleTrophies(await auth(), game.id, "all", opts);
       return res.trophies;
     });
-    return translatedMeta(game.id, meta);
+    return translate ? translatedMeta(game.id, meta) : meta;
   }
 
   const client: PsnClient = {
@@ -242,8 +242,9 @@ export function createPsnClient(): PsnClient {
       return mergeTrophies(shown, earned);
     },
 
-    async titleTrophies(game) {
-      return mergeTrophies(await loadMeta(game), []);
+    async titleTrophies(game, raw) {
+      // `raw`: textos como a PSN devolve, sem a tradução automática (para verificar muitos jogos).
+      return mergeTrophies(raw ? await loadMeta(game, false) : await loadMeta(game), []);
     },
 
     async friendIds(force) {

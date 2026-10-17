@@ -2,15 +2,16 @@ import { t } from "../i18n";
 import type { Title } from "../psn/types";
 
 /**
- * Faixas de conclusão de um jogo. Todas usam a cor de destaque do tema
- * escolhido (ps-blue-2), mais forte quanto mais perto de 100%.
+ * Faixas de conclusão de um jogo. Nas listas de jogos usam a cor de destaque
+ * do tema (ps-blue-2), mais forte quanto mais perto de 100%; no resumo de
+ * conclusão do perfil cada faixa tem a sua própria cor (`color`).
  */
 export const COMPLETION_TIERS = [
-  { min: 100, label: "100%", name: "Completo", opacity: 1 },
-  { min: 75, label: "75–99%", name: "Quase lá", opacity: 0.8 },
-  { min: 50, label: "50–74%", name: "Avançado", opacity: 0.6 },
-  { min: 25, label: "25–49%", name: "Em progresso", opacity: 0.42 },
-  { min: 0, label: "0–24%", name: "Começando", opacity: 0.25 },
+  { min: 100, label: "100%", name: "Completo", opacity: 1, color: "#22c55e" },
+  { min: 75, label: "75–99%", name: "Quase lá", opacity: 0.8, color: "#3b82f6" },
+  { min: 50, label: "50–74%", name: "Avançado", opacity: 0.6, color: "#a855f7" },
+  { min: 25, label: "25–49%", name: "Em progresso", opacity: 0.42, color: "#f59e0b" },
+  { min: 0, label: "0–24%", name: "Começando", opacity: 0.25, color: "#ef4444" },
 ] as const;
 
 export type CompletionTier = (typeof COMPLETION_TIERS)[number];
@@ -42,8 +43,9 @@ export function CompletionBadge({ progress }: { progress: number }) {
 }
 
 /**
- * Resumo de conclusão do perfil: gráfico circular com quantos jogos há em
- * cada faixa e a média no centro; as legendas ficam empilhadas à direita.
+ * Resumo de conclusão do perfil: gráfico circular colorido (uma cor por
+ * faixa, igual em todos os temas) com quantos jogos há em cada faixa e a
+ * média no centro; as legendas ficam empilhadas à direita.
  */
 export function CompletionSummary({ titles }: { titles: Title[] }) {
   if (!titles.length) return null;
@@ -76,9 +78,7 @@ export function CompletionSummary({ titles }: { titles: Title[] }) {
               r={r}
               fill="none"
               strokeWidth="12"
-              stroke="currentColor"
-              strokeOpacity={tier.opacity}
-              className="text-ps-blue-2"
+              stroke={tier.color}
               strokeDasharray={`${length} ${circumference - length}`}
               strokeDashoffset={-offset}
             />
@@ -94,7 +94,7 @@ export function CompletionSummary({ titles }: { titles: Title[] }) {
         <ul className="space-y-1 text-xs">
           {counts.map(({ tier, n }) => (
             <li key={tier.min} className="flex items-center gap-2">
-              <TierFill tier={tier} className="h-2.5 w-2.5 shrink-0 rounded-full" />
+              <span className="block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: tier.color }} />
               <span className="min-w-0 flex-1 truncate">
                 {t(tier.name)} <span className="text-muted">{tier.label}</span>
               </span>

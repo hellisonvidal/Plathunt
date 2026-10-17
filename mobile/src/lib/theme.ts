@@ -4,8 +4,18 @@ import { getSettings, onSettingsChange, type Settings } from "./settings";
  * Temas (Configurações → Aparência), com as cores dos personagens principais
  * de jogos de PlayStation. O id de cada tema não muda (fica salvo no celular).
  */
-export const THEMES: { value: Settings["theme"]; label: string; description: string; swatch: [string, string, string] }[] = [
-  { value: "playstation", label: "Astro Bot", description: "Branco do robô, preto do visor e azul dos olhos, o padrão", swatch: ["#f2f4f8", "#0b0d12", "#1463ff"] },
+export const THEMES: {
+  value: Settings["theme"];
+  label: string;
+  description: string;
+  swatch: [string, string, string];
+  /** Temas padrão (claro, escuro e automático); os outros são temas de jogos. */
+  standard?: boolean;
+}[] = [
+  { value: "auto", label: "Automático", description: "Claro ou escuro, como o sistema do celular", swatch: ["#f5f6f8", "#0d0f13", "#2d7ff9"], standard: true },
+  { value: "claro", label: "Claro", description: "Fundo claro com o azul PlayStation", swatch: ["#f5f6f8", "#ffffff", "#0070d1"], standard: true },
+  { value: "escuro", label: "Escuro", description: "Fundo escuro com o azul PlayStation", swatch: ["#0d0f13", "#1f242c", "#2d7ff9"], standard: true },
+  { value: "playstation", label: "Astro Bot", description: "Branco do robô, preto do visor e azul dos olhos", swatch: ["#f2f4f8", "#0b0d12", "#1463ff"] },
   { value: "light", label: "Gran Turismo", description: "Vermelho do logo com branco de pista", swatch: ["#8c0013", "#b3001a", "#ffffff"] },
   { value: "oled", label: "Demon's Souls", description: "Preto puro (OLED) com o prata da armadura do Slayer", swatch: ["#000000", "#1c1c1c", "#b9c0ca"] },
   { value: "green", label: "The Last of Us", description: "Verde-oliva de Ellie com o cáqui de Joel", swatch: ["#13140c", "#282b1a", "#5e7a24"] },
@@ -60,8 +70,20 @@ function publishRgbChannels(root: HTMLElement) {
   }
 }
 
+const darkQuery = () =>
+  typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia("(prefers-color-scheme: dark)")
+    : null;
+
+/** "Automático" vira claro ou escuro conforme o sistema do aparelho. */
+export function resolveTheme(theme: Settings["theme"], systemDark = !!darkQuery()?.matches): Settings["theme"] {
+  if (theme !== "auto") return theme;
+  return systemDark ? "escuro" : "claro";
+}
+
 /** Aplica o tema no <html> e na cor da barra do sistema. */
-export function applyTheme(theme: Settings["theme"] = getSettings().theme) {
+export function applyTheme(chosen: Settings["theme"] = getSettings().theme) {
+  const theme = resolveTheme(chosen);
   const root = document.documentElement;
   if (theme === "playstation") delete root.dataset.theme;
   else root.dataset.theme = theme;
@@ -75,4 +97,11 @@ export function applyTheme(theme: Settings["theme"] = getSettings().theme) {
 export function initTheme() {
   applyTheme();
   onSettingsChange(() => applyTheme());
+  // No automático, acompanha a troca de claro/escuro do sistema com o app aberto.
+  const query = darkQuery();
+  const onSystemChange = () => {
+    if (getSettings().theme === "auto") applyTheme();
+  };
+  if (query?.addEventListener) query.addEventListener("change", onSystemChange);
+  else query?.addListener?.(onSystemChange);
 }

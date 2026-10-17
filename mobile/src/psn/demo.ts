@@ -76,8 +76,16 @@ const TROPHIES: Record<string, [number, TrophyType, string, string, string?][]> 
     [7, "gold", "Sobrevivente", "Conclua o jogo no modo Sobrevivente"],
     [2, "bronze", "Seattle", "Chegue a Seattle"],
   ],
-  DEMO_BB: [[0, "platinum", "Bloodborne", "Obtenha todos os troféus"], [3, "gold", "Pesadelo", "Derrote a Presença Lunar"]],
-  DEMO_UNCH: [[0, "platinum", "Platina", "Obtenha todos os troféus"], [1, "bronze", "Primeiro tesouro", "Encontre um tesouro"]],
+  DEMO_BB: [
+    [0, "platinum", "Bloodborne", "Obtenha todos os troféus"],
+    [3, "gold", "Pesadelo", "Derrote a Presença Lunar"],
+    [8, "bronze", "Caçada em grupo", "Derrote um chefe em modo cooperativo com outro caçador"],
+  ],
+  DEMO_UNCH: [
+    [0, "platinum", "Platina", "Obtenha todos os troféus"],
+    [1, "bronze", "Primeiro tesouro", "Encontre um tesouro"],
+    [30, "silver", "Rei do multijogador", "Vença 10 partidas online"],
+  ],
   DEMO_GRAV: [[0, "platinum", "Gravity Queen", "Obtenha todos os troféus"], [4, "bronze", "Queda livre", "Caia por 10 segundos"]],
   DEMO_ASTRO: [[0, "platinum", "Astro Mestre", "Obtenha todos os troféus"], [9, "gold", "Resgate total", "Salve todos os bots"]],
 };

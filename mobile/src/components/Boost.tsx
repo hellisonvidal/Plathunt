@@ -120,7 +120,7 @@ function BoostForm({ onClose }: { onClose: () => void }) {
       {!game ? (
         <div className="space-y-2">
           <p className="text-xs text-muted">{t("1. Escolha o jogo (por plataforma ou pela busca)")}</p>
-          <GamePicker onPick={setGame} />
+          <GamePicker onPick={setGame} multiplayer />
         </div>
       ) : (
         <>
