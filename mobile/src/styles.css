@@ -14,6 +14,8 @@
   --color-silver: #b8c2cf;
   --color-gold: #e6b422;
   --color-platinum: #a8d8f0;
+  /* Amigo online (o mesmo verde em todos os temas). */
+  --color-online: #22b357;
   /* Texto sobre botões e marcações na cor de destaque (escuro sobre o ciano). */
   --color-on-accent: #00121c;
 }

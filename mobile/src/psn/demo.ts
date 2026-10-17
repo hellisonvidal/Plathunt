@@ -1,6 +1,6 @@
 import { feedItemsFromTrophies, sortFeed } from "../lib/feed";
 import { getSettings } from "../lib/settings";
-import type { Counts, PlayedGame, Profile, PsnClient, Title, TrophyGroup, TrophyRow, TrophyType } from "./types";
+import type { Counts, PlayedGame, Presence, Profile, PsnClient, Title, TrophyGroup, TrophyRow, TrophyType } from "./types";
 
 /** Dados de demonstração: permite ver o app funcionando sem conta PSN. */
 
@@ -146,6 +146,18 @@ function trophiesOf(profileKey: string, gameId: string): TrophyRow[] {
   });
 }
 
+/** Status de exemplo: alguns online jogando, outros offline, um oculto. */
+function demoPresence(accountId: string, i: number): Presence {
+  const key = keyOf(accountId);
+  if (key === "f4") return { status: "unknown", platform: null, lastOnline: null, game: null };
+  const recent = PLAYS.find((p) => p[0] === key);
+  if (key === "aloy" || i % 3 === 1) {
+    const game = recent ? GAMES[recent[1]] : null;
+    return { status: "online", platform: game?.platform === "PS4" ? "PS4" : "PS5", lastOnline: hoursAgo(0), game: game ? { name: game.name, iconUrl: null } : null };
+  }
+  return { status: "offline", platform: "PS5", lastOnline: hoursAgo(1 + ((i * 7) % 60)), game: null };
+}
+
 const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 150));
 
 export function createDemoClient(): PsnClient {
@@ -159,6 +171,8 @@ export function createDemoClient(): PsnClient {
     gameTrophies: (accountId, game) => delay(trophiesOf(keyOf(accountId), game.id)),
     friendIds: () => delay(Object.values(PROFILES).filter((p) => p.accountId !== "demo-me").map((p) => p.accountId)),
     friends: () => delay(Object.values(PROFILES).filter((p) => p.accountId !== "demo-me")),
+    presences: (accountIds) =>
+      delay(Object.fromEntries(accountIds.map((id, i) => [id, demoPresence(id, i)]))),
     feed: () => {
       const now = Date.now();
       const items = Object.keys(PROFILES).flatMap((k) => {

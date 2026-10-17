@@ -22,7 +22,10 @@ function fakeStore(url: string) {
     const n = vars.pageArgs.offset + i;
     const sale = n % 10 === 0;
     return { id: `${vars.id.slice(0, 3)}-${n}`, name: `Jogo ${n}`, platforms: [vars.id === PS5 ? "PS5" : "PS4"], media: [],
-      price: { basePrice: "R$ 100,00", discountedPrice: sale ? "R$ 50,00" : "R$ 100,00", isFree: false } };
+      price: n % 25 === 1
+        ? { basePrice: "Gratuito", discountedPrice: "Gratuito", isFree: true }
+        : { basePrice: "R$ 100,00", discountedPrice: sale ? "R$ 50,00" : "R$ 100,00", isFree: false,
+            upsellServiceBranding: n % 50 === 2 ? ["PS_PLUS"] : [] } };
   });
   const body = { data: { categoryGridRetrieve: { products, pageInfo: { totalCount: total } } } };
   return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
@@ -48,5 +51,20 @@ describe("catálogo da loja", () => {
     const offers = await storeCategory("ofertas", "pt-BR", true);
     expect(offers.length).toBe(25 + 3);
     expect(offers.every((p) => p.discount === 50)).toBe(true);
+  });
+
+  it("Todos: junta o catálogo completo de PS5 e PS4", async () => {
+    const { storeCategory } = await import("../src/psn/store");
+    expect(await storeCategory("todos", "pt-BR", true)).toHaveLength(280);
+  });
+
+  it("Grátis e PS Plus: sem categoria da loja, filtram o catálogo completo", async () => {
+    const { storeCategory } = await import("../src/psn/store");
+    const free = await storeCategory("gratis", "pt-BR", true);
+    expect(free.length).toBe(10 + 2);
+    expect(free.every((p) => p.isFree)).toBe(true);
+    const plus = await storeCategory("psplus", "pt-BR", true);
+    expect(plus.length).toBe(5 + 1);
+    expect(plus.every((p) => p.plus)).toBe(true);
   });
 });

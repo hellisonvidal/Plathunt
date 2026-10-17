@@ -2,15 +2,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   discountPercent,
   filterProducts,
-  getWishlist,
   isNewLow,
   parsePrice,
   priceHistory,
   priceRangeKey,
   priceRanges,
   recordPrices,
-  refreshWishlist,
-  toggleWish,
   toStoreProduct,
   type StoreFilters,
 } from "../src/lib/store";
@@ -107,22 +104,21 @@ describe("histórico de preços e lista de desejos", () => {
     recordPrices([product("n", "N", "R$ 10,00", "R$ 10,00")], "pt-BR");
     expect(isNewLow(priceHistory("pt-BR", "n"), 1000)).toBe(false);
   });
-  it("adiciona, atualiza e remove da lista de desejos", () => {
-    const p = product("w", "W", "R$ 100,00", "R$ 100,00");
-    expect(toggleWish(p, "pt-BR")).toBe(true);
-    refreshWishlist([product("w", "W", "R$ 100,00", "R$ 40,00")], "pt-BR");
-    expect(getWishlist()[0].product.discount).toBe(60);
-    expect(toggleWish(p, "pt-BR")).toBe(false);
-    expect(getWishlist()).toHaveLength(0);
-  });
 });
 
 describe("dados salvos corrompidos", () => {
   beforeEach(() => mem.clear());
-  it("lista de desejos e histórico inválidos viram vazios", () => {
-    mem.set("tm.wishlist", '{"x":1}');
+  it("histórico de preços inválido vira vazio", () => {
     mem.set("tm.prices", "[1,2]");
-    expect(getWishlist()).toEqual([]);
     expect(priceHistory("pt-BR", "x")).toBeNull();
+  });
+});
+
+describe("PS Plus", () => {
+  it("marca jogos com selo da PS Plus", () => {
+    const base = { id: "p", name: "P", platforms: ["PS5"], media: [] };
+    expect(toStoreProduct({ ...base, price: { basePrice: "R$ 10,00", upsellServiceBranding: ["PS_PLUS"] } }).plus).toBe(true);
+    expect(toStoreProduct({ ...base, price: { basePrice: "Incluído", isTiedToSubscription: true } }).plus).toBe(true);
+    expect(toStoreProduct({ ...base, price: { basePrice: "R$ 10,00", serviceBranding: ["NONE"] } }).plus).toBe(false);
   });
 });

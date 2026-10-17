@@ -3,12 +3,15 @@ import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { PsPlusIcon } from "../components/icons";
 import { PageHeader } from "../components/PageHeader";
+import { StatusDot } from "../components/StatusDot";
 import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge } from "../components/ui";
+import { presenceRank, presenceText } from "../lib/presence";
 import { platformsOf } from "../lib/stats";
 import { useData } from "../lib/useData";
-import type { Profile, Title } from "../psn/types";
+import type { Presence, Profile, Title } from "../psn/types";
 
 type Sort = "nivel" | "platinas" | "nome";
+type StatusFilter = "todos" | "online" | "offline";
 
 /** Todos os amigos da PSN: a lista vem inteira, os perfis carregam aos poucos. */
 export function FriendsPage() {
@@ -18,6 +21,13 @@ export function FriendsPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("nivel");
+  const [status, setStatus] = useState<StatusFilter>("todos");
+  // Status online/offline de todos de uma vez (poucos pedidos à PSN).
+  const presence = useData(
+    async (force) => (ids.data ? client.presences(ids.data, force) : null),
+    [client, ids.data],
+  );
+  const presences = presence.data ?? {};
 
   // Carrega cada perfil (o cliente limita as chamadas simultâneas) e vai mostrando.
   useEffect(() => {
@@ -39,9 +49,18 @@ export function FriendsPage() {
   const done = profiles.size;
   const loaded = [...profiles.values()].filter((p): p is Profile => p !== null);
   const q = query.trim().toLowerCase();
+  const onlineCount = Object.values(presences).filter((p) => p.status === "online").length;
   const visible = loaded
     .filter((p) => !q || p.onlineId.toLowerCase().includes(q))
+    .filter((p) => {
+      if (status === "todos") return true;
+      const s = presences[p.accountId]?.status;
+      return status === "online" ? s === "online" : s !== "online";
+    })
     .sort((a, b) => {
+      // Online sempre em cima; dentro de cada grupo, a ordem escolhida.
+      const byStatus = presenceRank(presences[a.accountId]) - presenceRank(presences[b.accountId]);
+      if (byStatus) return byStatus;
       if (sort === "nome") return a.onlineId.localeCompare(b.onlineId);
       if (sort === "platinas") return (b.earned?.platinum ?? -1) - (a.earned?.platinum ?? -1);
       return (b.level ?? -1) - (a.level ?? -1);
@@ -53,9 +72,10 @@ export function FriendsPage() {
         title="Amigos"
         onRefresh={() => {
           ids.refresh();
+          presence.refresh();
           setReloadKey((k) => k + 1);
         }}
-        refreshing={ids.loading || (total > 0 && done < total)}
+        refreshing={ids.loading || presence.loading || (total > 0 && done < total)}
       />
       <div className="space-y-3 px-4 pt-4">
         {ids.error ? <ErrorBox error={ids.error} onRetry={ids.refresh} /> : null}
@@ -85,9 +105,30 @@ export function FriendsPage() {
               </select>
             </div>
 
+            <div className="flex gap-2 text-sm" role="radiogroup" aria-label="Status">
+              {(
+                [
+                  ["todos", "Todos"],
+                  ["online", `🟢 Online${presence.data ? ` (${onlineCount})` : ""}`],
+                  ["offline", `⚪ Offline${presence.data ? ` (${total - onlineCount})` : ""}`],
+                ] as const
+              ).map(([k, label]) => (
+                <button
+                  key={k}
+                  role="radio"
+                  aria-checked={status === k}
+                  onClick={() => setStatus(k)}
+                  className={`rounded-full px-3 py-1.5 ${status === k ? "bg-ps-blue font-semibold" : "border border-line text-muted"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
             <div className="space-y-1">
               <p className="text-xs text-muted">
                 {total} amigos na PSN
+                {presence.data && ` · ${onlineCount} online agora`}
                 {done < total && ` · carregando perfis ${done} de ${total}…`}
               </p>
               {done < total && <ProgressBar value={(done / total) * 100} />}
@@ -96,11 +137,16 @@ export function FriendsPage() {
         )}
 
         {visible.map((f) => (
-          <FriendCard key={f.accountId} friend={f} />
+          <FriendCard key={f.accountId} friend={f} presence={presences[f.accountId]} />
         ))}
 
         {q && visible.length === 0 && done === total && (
           <p className="py-8 text-center text-sm text-muted">Nenhum amigo com “{query}”.</p>
+        )}
+        {!q && status !== "todos" && visible.length === 0 && done === total && presence.data && (
+          <p className="py-8 text-center text-sm text-muted">
+            {status === "online" ? "Nenhum amigo online agora." : "Todos os seus amigos estão online!"}
+          </p>
         )}
       </div>
     </>
@@ -130,7 +176,7 @@ function useWhenVisible<T extends Element>(): [React.RefObject<T | null>, boolea
   return [ref, visible];
 }
 
-function FriendCard({ friend: f }: { friend: Profile }) {
+function FriendCard({ friend: f, presence }: { friend: Profile; presence?: Presence }) {
   const { client } = useApp();
   const [ref, onScreen] = useWhenVisible<HTMLAnchorElement>();
   const [titles, setTitles] = useState<Title[] | null>(null);
@@ -160,7 +206,10 @@ function FriendCard({ friend: f }: { friend: Profile }) {
       className="block rounded-2xl border border-line bg-surface p-4 active:border-muted"
     >
       <div className="flex items-center gap-3">
-        <Avatar src={f.avatarUrl} name={f.onlineId} size={56} />
+        <span className="relative shrink-0">
+          <Avatar src={f.avatarUrl} name={f.onlineId} size={56} />
+          {presence && <StatusDot status={presence.status} />}
+        </span>
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">
             {f.onlineId}{" "}
@@ -180,6 +229,13 @@ function FriendCard({ friend: f }: { friend: Profile }) {
             </div>
           ) : (
             <p className="mt-1 text-xs text-muted">Troféus privados</p>
+          )}
+          {presence && (
+            <p
+              className={`mt-1 truncate text-[0.6875rem] ${presence.status === "online" ? "font-semibold text-online" : "text-muted"}`}
+            >
+              {presenceText(presence)}
+            </p>
           )}
         </div>
       </div>
@@ -207,3 +263,4 @@ function FriendCard({ friend: f }: { friend: Profile }) {
     </Link>
   );
 }
+

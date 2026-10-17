@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
 import { persistSet } from "./persist";
 
 /**
- * Loja: catálogo da PlayStation Store, lista de desejos e histórico de
- * preços. A PSN não informa preços antigos, então o "menor preço" é o menor
+ * Loja: catálogo da PlayStation Store e histórico de preços. A PSN não informa preços antigos, então o "menor preço" é o menor
  * que o app já viu neste celular (cada vez que a loja é aberta, os preços
  * vistos ficam registrados).
  */
@@ -22,6 +20,8 @@ export interface StoreProduct {
   isFree: boolean;
   /** % de desconto (0 sem desconto). */
   discount: number;
+  /** Faz parte da PS Plus (catálogo ou preço de assinante). */
+  plus: boolean;
 }
 
 /** Categorias da loja (ids da PlayStation Store). */
@@ -39,12 +39,20 @@ export const OFFER_CATEGORY_IDS = [
   "803cee19-e5a1-4d59-a463-0b6b2701bf7c",
   "16b8d09a-d0e3-44e3-96cb-a3b2a21b6d69",
 ];
+/** Categorias montadas pelo app (como Ofertas): tentam as da loja e, se vierem vazias, filtram o catálogo. */
+export const ALL_ID = "todos";
+export const FREE_ID = "gratis";
+export const PLUS_ID = "psplus";
+export const FREE_CATEGORY_IDS = ["d9930400-c5c7-4a06-a28d-cc74888426dc"];
+export const PLUS_CATEGORY_IDS = ["038b4df3-bb4c-48f8-8290-3feb35f0f0fd"];
 export const STORE_CATEGORIES = [
+  /** Todos os jogos da loja: catálogo completo de PS5 e PS4 juntos. */
+  { id: ALL_ID, label: "Todos" },
   { id: OFFERS_ID, label: "Ofertas" },
   { id: PS5_ID, label: "PS5" },
   { id: PS4_ID, label: "PS4" },
-  { id: "d9930400-c5c7-4a06-a28d-cc74888426dc", label: "Grátis" },
-  { id: "038b4df3-bb4c-48f8-8290-3feb35f0f0fd", label: "PS Plus" },
+  { id: FREE_ID, label: "Grátis" },
+  { id: PLUS_ID, label: "PS Plus" },
 ] as const;
 
 /** Regiões da loja (definem moeda e preços). */
@@ -84,7 +92,15 @@ interface RawGridProduct {
   name: string;
   platforms?: string[];
   media?: { role?: string; type?: string; url?: string }[];
-  price?: { basePrice?: string | null; discountedPrice?: string | null; isFree?: boolean; discountText?: string | null } | null;
+  price?: {
+    basePrice?: string | null;
+    discountedPrice?: string | null;
+    isFree?: boolean;
+    discountText?: string | null;
+    isTiedToSubscription?: boolean;
+    serviceBranding?: string[] | null;
+    upsellServiceBranding?: string[] | null;
+  } | null;
 }
 
 /** Converte um produto da resposta `categoryGridRetrieve` da loja. */
@@ -100,6 +116,7 @@ export function toStoreProduct(raw: RawGridProduct): StoreProduct {
   const basePrice = isFree ? 0 : parsePrice(basePriceText);
   const price = isFree ? 0 : (parsePrice(priceText) ?? basePrice);
   const fromText = Number(raw.price?.discountText?.match(/(\d+)\s*%/)?.[1]);
+  const branding = [...(raw.price?.serviceBranding ?? []), ...(raw.price?.upsellServiceBranding ?? [])];
   return {
     id: raw.id,
     name: raw.name,
@@ -111,6 +128,7 @@ export function toStoreProduct(raw: RawGridProduct): StoreProduct {
     price,
     isFree,
     discount: Number.isFinite(fromText) && fromText > 0 ? fromText : discountPercent(basePrice, price),
+    plus: !!raw.price?.isTiedToSubscription || branding.some((b) => /PS_?PLUS/i.test(b)),
   };
 }
 
@@ -215,10 +233,9 @@ export function formatPrice(cents: number, region: StoreRegion): string {
 }
 
 // ---------------------------------------------------------------------------
-// Histórico de preços (menor preço visto) e lista de desejos, no celular.
+// Histórico de preços (menor preço visto), no celular.
 
 const PRICES_KEY = "tm.prices" as const;
-const WISHLIST_KEY = "tm.wishlist" as const;
 
 export interface PriceRecord {
   /** Menor preço visto (centavos) e quando. */
@@ -275,65 +292,6 @@ function readPriceBook(): PriceBook {
 export function priceHistory(region: StoreRegion, id: string): PriceRecord | null {
   const r = readPriceBook()[priceKey(region, id)];
   return r && typeof r.min === "number" ? r : null;
-}
-
-/** Item da lista de desejos: guarda o produto para mostrar mesmo sem abrir a categoria. */
-export interface WishItem {
-  product: StoreProduct;
-  region: StoreRegion;
-  addedAt: string;
-}
-
-const wishListeners = new Set<() => void>();
-
-export function getWishlist(): WishItem[] {
-  const list = readJson<unknown>(WISHLIST_KEY, []);
-  return Array.isArray(list)
-    ? list.filter((w): w is WishItem => !!w && typeof w === "object" && !!(w as WishItem).product?.id)
-    : [];
-}
-
-export function toggleWish(product: StoreProduct, region: StoreRegion): boolean {
-  const list = getWishlist();
-  const exists = list.some((w) => w.product.id === product.id && w.region === region);
-  const next = exists
-    ? list.filter((w) => !(w.product.id === product.id && w.region === region))
-    : [...list, { product, region, addedAt: new Date().toISOString() }];
-  persistSet(WISHLIST_KEY, JSON.stringify(next));
-  wishListeners.forEach((l) => l());
-  return !exists;
-}
-
-/** Atualiza os produtos da lista de desejos com os dados mais novos vistos na loja. */
-export function refreshWishlist(products: StoreProduct[], region: StoreRegion) {
-  const byId = new Map(products.map((p) => [p.id, p]));
-  const list = getWishlist();
-  let changed = false;
-  const next = list.map((w) => {
-    const fresh = w.region === region ? byId.get(w.product.id) : undefined;
-    if (!fresh) return w;
-    changed = true;
-    return { ...w, product: fresh };
-  });
-  if (changed) {
-    persistSet(WISHLIST_KEY, JSON.stringify(next));
-    wishListeners.forEach((l) => l());
-  }
-}
-
-export function useWishlist(): WishItem[] {
-  const [list, setList] = useState(getWishlist);
-  useEffect(() => {
-    const sync = () => setList(getWishlist());
-    wishListeners.add(sync);
-    return () => void wishListeners.delete(sync);
-  }, []);
-  return list;
-}
-
-/** Lista de desejos oficial da conta, na PlayStation Store (precisa estar logado lá). */
-export function storeWishlistUrl(region: StoreRegion): string {
-  return `https://store.playstation.com/${region.toLowerCase()}/wishlist`;
 }
 
 /** Endereço do produto na PlayStation Store (abre no navegador ou no app da loja). */

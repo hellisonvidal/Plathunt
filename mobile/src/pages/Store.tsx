@@ -11,13 +11,9 @@ import {
   priceRanges,
   priceHistory,
   recordPrices,
-  refreshWishlist,
   STORE_CATEGORIES,
   STORE_SORTS,
   storeProductUrl,
-  storeWishlistUrl,
-  toggleWish,
-  useWishlist,
   type StoreFilters,
   type StoreProduct,
   type StoreRegion,
@@ -31,15 +27,13 @@ const DEFAULT_FILTERS: StoreFilters = { query: "", platform: "todas", onlyDiscou
 
 /**
  * Loja: catálogo da PlayStation Store (ofertas, PS5, PS4, grátis, PS Plus)
- * com busca, filtros e ordenação, e a lista de desejos salva no celular.
+ * com busca, filtros e ordenação.
  */
 export function StorePage() {
   const { mode } = useApp();
   const { storeRegion: region } = useSettings();
-  const [view, setView] = useState<"catalogo" | "desejos">("catalogo");
   const [categoryId, setCategoryId] = useState<string>(STORE_CATEGORIES[0].id);
   const [filters, setFilters] = useState<StoreFilters>(DEFAULT_FILTERS);
-  const wishlist = useWishlist();
 
   const load = (id: string, force: boolean, onProgress?: StoreProgress) =>
     mode === "demo" ? demoStoreCategory(id) : storeCategory(id, region, force, onProgress);
@@ -52,7 +46,6 @@ export function StorePage() {
     async (force) => {
       const products = await load(categoryId, force, (list, total) => setPartial({ key, products: list, total }));
       recordPrices(products, region);
-      refreshWishlist(products, region);
       return { key, products };
     },
     [mode, categoryId, region],
@@ -61,45 +54,11 @@ export function StorePage() {
   const streaming = !current && partial?.key === key ? partial : null;
   const products = current ?? streaming?.products ?? null;
 
-  // Ao abrir a lista de desejos, atualiza os preços com as ofertas da loja.
-  const wishRefresh = useData(
-    async (force) => {
-      if (view !== "desejos") return null;
-      const all = await load(STORE_CATEGORIES[0].id, force).catch(() => [] as StoreProduct[]);
-      recordPrices(all, region);
-      refreshWishlist(all, region);
-      return all.length;
-    },
-    [mode, region, view],
-  );
-
-  const refresh = view === "desejos" ? wishRefresh : catalog;
-
   return (
     <>
-      <PageHeader title="Loja" onRefresh={refresh.refresh} refreshing={refresh.loading} />
+      <PageHeader title="Loja" onRefresh={catalog.refresh} refreshing={catalog.loading} />
       <div className="space-y-4 px-4 pt-4">
-        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-surface p-1 text-sm" role="tablist">
-          {(
-            [
-              ["catalogo", "🛒 Catálogo"],
-              ["desejos", `♥ Desejos${wishlist.length ? ` (${wishlist.length})` : ""}`],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              role="tab"
-              aria-selected={view === key}
-              onClick={() => setView(key)}
-              className={`rounded-xl py-2 font-semibold ${view === key ? "bg-ps-blue" : "text-muted"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {view === "catalogo" && (
-          <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm" aria-label="Categoria">
+        <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm" aria-label="Categoria">
             {STORE_CATEGORIES.map((c) => (
               <button
                 key={c.id}
@@ -112,10 +71,7 @@ export function StorePage() {
               </button>
             ))}
           </nav>
-        )}
 
-        {view === "catalogo" ? (
-          <>
             <FilterBar filters={filters} onChange={setFilters} region={region} />
             {catalog.error ? <ErrorBox error={catalog.error} onRetry={catalog.refresh} /> : null}
             {!products && !catalog.error && <Spinner label="Buscando o catálogo da PlayStation Store…" />}
@@ -141,13 +97,8 @@ export function StorePage() {
                 products={filterProducts(products, filters)}
                 total={products.length}
                 region={region}
-                wished={new Set(wishlist.filter((w) => w.region === region).map((w) => w.product.id))}
               />
             )}
-          </>
-        ) : (
-          <Wishlist region={region} />
-        )}
 
         <p className="pb-2 text-center text-[0.6875rem] text-muted">
           Preços da PlayStation Store ({region}). O menor preço é o menor que o app já viu neste celular; a loja não
@@ -277,16 +228,20 @@ function ProductGrid({
   products,
   total,
   region,
-  wished,
 }: {
   products: StoreProduct[];
   total: number;
   region: StoreRegion;
-  wished: Set<string>;
 }) {
   const [shown, setShown] = useState(PAGE);
   if (!products.length) {
-    return <p className="py-10 text-center text-sm text-muted">Nenhum jogo encontrado com esses filtros.</p>;
+    return (
+      <p className="py-10 text-center text-sm text-muted">
+        {total === 0
+          ? "A PlayStation Store não trouxe jogos nesta categoria agora. Puxe a tela para baixo para tentar de novo."
+          : "Nenhum jogo encontrado com esses filtros."}
+      </p>
+    );
   }
   return (
     <>
@@ -296,7 +251,7 @@ function ProductGrid({
       <ul className="grid grid-cols-2 gap-3">
         {products.slice(0, shown).map((p) => (
           <li key={p.id}>
-            <ProductCard product={p} region={region} wished={wished.has(p.id)} />
+            <ProductCard product={p} region={region} />
           </li>
         ))}
       </ul>
@@ -334,25 +289,7 @@ function PriceInfo({ product: p, region }: { product: StoreProduct; region: Stor
   );
 }
 
-function WishButton({ product, region, wished }: { product: StoreProduct; region: StoreRegion; wished: boolean }) {
-  return (
-    <button
-      onClick={(e) => {
-        e.preventDefault();
-        toggleWish(product, region);
-      }}
-      aria-pressed={wished}
-      aria-label={wished ? "Tirar da lista de desejos" : "Adicionar à lista de desejos"}
-      className={`flex h-8 w-8 items-center justify-center rounded-full text-base shadow ${
-        wished ? "bg-ps-blue" : "bg-surface/90 text-muted"
-      }`}
-    >
-      {wished ? "♥" : "♡"}
-    </button>
-  );
-}
-
-function ProductCard({ product: p, region, wished }: { product: StoreProduct; region: StoreRegion; wished: boolean }) {
+function ProductCard({ product: p, region }: { product: StoreProduct; region: StoreRegion }) {
   return (
     <a
       href={storeProductUrl(p.id, region)}
@@ -374,9 +311,11 @@ function ProductCard({ product: p, region, wished }: { product: StoreProduct; re
         {p.discount > 0 && (
           <span className="absolute left-2 top-2 rounded-full bg-ps-blue px-2 py-0.5 text-xs font-bold">-{p.discount}%</span>
         )}
-        <span className="absolute right-2 top-2">
-          <WishButton product={p} region={region} wished={wished} />
-        </span>
+        {p.plus && (
+          <span className="absolute right-2 top-2 rounded-full bg-gold px-2 py-0.5 text-[0.625rem] font-bold text-black">
+            PS Plus
+          </span>
+        )}
       </div>
       <div className="p-2.5">
         <p className="line-clamp-2 text-xs font-semibold leading-snug">{p.name}</p>
@@ -384,111 +323,5 @@ function ProductCard({ product: p, region, wished }: { product: StoreProduct; re
         <PriceInfo product={p} region={region} />
       </div>
     </a>
-  );
-}
-
-function Wishlist({ region }: { region: StoreRegion }) {
-  const wishlist = useWishlist();
-  const [sort, setSort] = useState<StoreFilters["sort"]>("relevancia");
-  const mine = wishlist.filter((w) => w.region === region);
-  // Sem filtros aqui, só a ordenação (a ordem padrão é a de quando o jogo entrou na lista).
-  const products = filterProducts(
-    [...mine].reverse().map((w) => w.product),
-    { ...DEFAULT_FILTERS, sort },
-  );
-
-  const official = (
-    <a
-      href={storeWishlistUrl(region)}
-      target="_blank"
-      rel="noreferrer"
-      className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 text-sm"
-    >
-      <span className="text-2xl text-ps-blue-2" aria-hidden>
-        ♥
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-semibold">Lista de desejos da sua conta PSN</span>
-        <span className="block text-xs text-muted">
-          A Sony não libera a lista da conta para outros apps; ela abre na PlayStation Store. Aqui fica a lista do app.
-        </span>
-      </span>
-      <span className="text-muted">↗</span>
-    </a>
-  );
-
-  if (!mine.length) {
-    return (
-      <>
-        {official}
-        <div className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">
-          <p className="text-3xl">♡</p>
-          <p className="mt-2">Sua lista de desejos está vazia.</p>
-          <p className="mt-1">Toque no ♡ de um jogo no Catálogo para acompanhar o preço dele aqui.</p>
-        </div>
-      </>
-    );
-  }
-  const onSale = mine.filter((w) => w.product.discount > 0).length;
-  return (
-    <>
-      {official}
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted">
-          {mine.length} {mine.length === 1 ? "jogo" : "jogos"} na lista
-          {onSale > 0 && ` · ${onSale} em promoção`}
-        </p>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as StoreFilters["sort"])}
-          aria-label="Ordenar lista de desejos"
-          className="rounded-full border border-line bg-surface-2 px-3 py-1.5 text-sm"
-        >
-          <option value="relevancia">Adicionados por último</option>
-          {STORE_SORTS.filter((o) => o.value !== "relevancia").map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      {products.length > 0 && (
-        <ul className="space-y-2">
-          {products.map((p) => (
-            <li key={p.id}>
-              <a
-                href={storeProductUrl(p.id, region)}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-2.5"
-              >
-                <div className="relative shrink-0">
-                  <RemoteImage
-                    src={p.imageUrl}
-                    alt=""
-                    className="h-16 w-16 rounded-xl object-cover"
-                    fallback={
-                      <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-surface-2 text-2xl" aria-hidden>
-                        🎮
-                      </span>
-                    }
-                  />
-                  {p.discount > 0 && (
-                    <span className="absolute -left-1 -top-1 rounded-full bg-ps-blue px-1.5 text-[0.625rem] font-bold">
-                      -{p.discount}%
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{p.name}</p>
-                  <PriceInfo product={p} region={region} />
-                </div>
-                <WishButton product={p} region={region} wished />
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
   );
 }

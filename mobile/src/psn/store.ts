@@ -1,5 +1,18 @@
 import { cached } from "../lib/cache";
-import { OFFER_CATEGORY_IDS, OFFERS_ID, PS4_ID, PS5_ID, toStoreProduct, type StoreProduct, type StoreRegion } from "../lib/store";
+import {
+  ALL_ID,
+  FREE_CATEGORY_IDS,
+  FREE_ID,
+  OFFER_CATEGORY_IDS,
+  OFFERS_ID,
+  PLUS_CATEGORY_IDS,
+  PLUS_ID,
+  PS4_ID,
+  PS5_ID,
+  toStoreProduct,
+  type StoreProduct,
+  type StoreRegion,
+} from "../lib/store";
 
 /**
  * Catálogo da PlayStation Store, pela mesma API pública que o site da loja
@@ -64,30 +77,49 @@ async function fetchAll(categoryId: string, region: StoreRegion, onProgress?: St
 }
 
 /**
- * Ofertas: tenta as categorias de promoção conhecidas; se nenhuma trouxer
- * jogos com desconto (a Sony troca essas categorias), monta as ofertas com os
- * jogos com desconto do catálogo completo de PS5 e PS4.
+ * Categorias que a Sony troca com frequência (Ofertas, Grátis, PS Plus): tenta
+ * as categorias conhecidas da loja; se nenhuma existir neste país ou trouxer
+ * jogos que se encaixam, monta a lista a partir do catálogo completo de PS5 e
+ * PS4 (o mesmo do app, em cache) filtrando os jogos que se encaixam.
  */
-async function fetchOffers(region: StoreRegion, onProgress?: StoreProgress): Promise<StoreProduct[]> {
-  for (const id of OFFER_CATEGORY_IDS) {
+/** Todos: PS5 e PS4 juntos (jogos das duas plataformas aparecem uma vez). */
+async function fetchEverything(region: StoreRegion, force: boolean, onProgress?: StoreProgress) {
+  return fetchDerived([], () => true, region, force, onProgress);
+}
+
+async function fetchDerived(
+  categoryIds: string[],
+  pick: (p: StoreProduct) => boolean,
+  region: StoreRegion,
+  force: boolean,
+  onProgress?: StoreProgress,
+): Promise<StoreProduct[]> {
+  for (const id of categoryIds) {
     try {
       const first = await fetchPage(id, region, 0);
-      if (!first.products.some((p) => p.discount > 0)) continue;
-      const all = await fetchAll(id, region, (list, total) => onProgress?.(list.filter((p) => p.discount > 0), total));
-      return all.filter((p) => p.discount > 0);
+      if (!first.products.some(pick)) continue;
+      const all = await fetchAll(id, region, (list, total) => onProgress?.(list.filter(pick), total));
+      return all.filter(pick);
     } catch {
       // Categoria que não existe neste país: tenta a próxima.
     }
   }
   const found: StoreProduct[] = [];
   for (const id of [PS5_ID, PS4_ID]) {
-    const list = await fetchAll(id, region, (partial) =>
-      onProgress?.(dedupe([...found, ...partial]).filter((p) => p.discount > 0), 0),
+    const list = await storeCategory(id, region, force, (partial) =>
+      onProgress?.(dedupe([...found, ...partial]).filter(pick), 0),
     );
     found.push(...list);
   }
-  return dedupe(found).filter((p) => p.discount > 0);
+  return dedupe(found).filter(pick);
 }
+
+const DERIVED: Record<string, [string[], (p: StoreProduct) => boolean]> = {
+  [OFFERS_ID]: [OFFER_CATEGORY_IDS, (p) => p.discount > 0],
+  [FREE_ID]: [FREE_CATEGORY_IDS, (p) => p.isFree || p.price === 0],
+  // Catálogo da PS Plus: na categoria da loja vale tudo; no catálogo geral, os marcados como PS Plus.
+  [PLUS_ID]: [PLUS_CATEGORY_IDS, (p) => p.plus],
+};
 
 /**
  * Jogos de uma categoria da loja (todos os que a loja tiver), na ordem de mais
@@ -102,7 +134,13 @@ export async function storeCategory(
   return cached(
     `store:${region}:${categoryId}`,
     30 * MIN,
-    () => (categoryId === OFFERS_ID ? fetchOffers(region, onProgress) : fetchAll(categoryId, region, onProgress)),
+    () => {
+      if (categoryId === ALL_ID) return fetchEverything(region, force, onProgress);
+      const derived = DERIVED[categoryId];
+      return derived
+        ? fetchDerived(derived[0], derived[1], region, force, onProgress)
+        : fetchAll(categoryId, region, onProgress);
+    },
     force,
   );
 }
@@ -128,6 +166,7 @@ const DEMO: [string, string, string[], number, number, boolean?][] = [
 ];
 
 export async function demoStoreCategory(categoryId: string): Promise<StoreProduct[]> {
+  const plus = ["Returnal", "Sackboy: Uma Grande Aventura", "Bloodborne"];
   const all = DEMO.map(([name, id, platforms, base, price, free]) =>
     toStoreProduct({
       id,
@@ -140,15 +179,17 @@ export async function demoStoreCategory(categoryId: string): Promise<StoreProduc
             basePrice: `R$ ${(base / 100).toFixed(2).replace(".", ",")}`,
             discountedPrice: `R$ ${(price / 100).toFixed(2).replace(".", ",")}`,
             isFree: false,
+            upsellServiceBranding: plus.includes(name) ? ["PS_PLUS"] : [],
           },
     }),
   );
   const pick: Record<string, (p: StoreProduct) => boolean> = {
+    [ALL_ID]: () => true,
     [OFFERS_ID]: (p) => p.discount > 0,
     [PS5_ID]: (p) => p.platforms.includes("PS5"),
     [PS4_ID]: (p) => p.platforms.includes("PS4"),
-    "d9930400-c5c7-4a06-a28d-cc74888426dc": (p) => p.isFree,
-    "038b4df3-bb4c-48f8-8290-3feb35f0f0fd": (p) => ["Returnal", "Sackboy: Uma Grande Aventura", "Bloodborne"].includes(p.name),
+    [FREE_ID]: (p) => p.isFree,
+    [PLUS_ID]: (p) => p.plus,
   };
   await new Promise((r) => setTimeout(r, 150));
   return all.filter(pick[categoryId] ?? (() => true));
