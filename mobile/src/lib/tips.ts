@@ -4,6 +4,10 @@ const SUFFIX: Record<Settings["language"], string> = {
   "pt-BR": "troféu",
   "en-US": "trophy guide",
   "es-ES": "trofeo guía",
+  "fr-FR": "trophée guide",
+  "de-DE": "Trophäe Guide",
+  "it-IT": "trofeo guida",
+  "ja-JP": "トロフィー 攻略",
 };
 
 /**

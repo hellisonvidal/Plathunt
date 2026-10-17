@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { deviceLanguage, LANGUAGES, setLanguage, type Language } from "../i18n";
 import { persistSet } from "./persist";
 
 /** Preferências do app, salvas no celular. */
 export interface Settings {
-  /** Idioma dos nomes de jogos e troféus vindos da PSN. */
-  language: "pt-BR" | "en-US" | "es-ES";
+  /** Idioma do app e dos nomes de jogos e troféus vindos da PSN. */
+  language: Language;
   /** Período das Atividades, em dias. */
   feedDays: 7 | 30 | 90;
   /** Traduzir nomes e descrições de troféus que a Sony não traduziu. */
@@ -20,7 +21,8 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  language: "pt-BR",
+  // Na primeira abertura, o idioma do aparelho.
+  language: deviceLanguage(),
   feedDays: 30,
   revealSecrets: false,
   autoTranslate: true,
@@ -43,7 +45,9 @@ export function getSettings(): Settings {
     if (saved.theme === "graphite") saved.theme = "green";
     // A aba Ranking virou parte de Estatísticas.
     if (saved.startTab === "/ranking") saved.startTab = "/stats";
-    return { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) };
+    const merged = { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) } as Settings;
+    if (!LANGUAGES.some((l) => l.value === merged.language)) merged.language = DEFAULT_SETTINGS.language;
+    return merged;
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -52,6 +56,7 @@ export function getSettings(): Settings {
 export function updateSettings(patch: Partial<Settings>): Settings {
   const next = { ...getSettings(), ...patch };
   persistSet(KEY, JSON.stringify(next));
+  setLanguage(next.language);
   listeners.forEach((l) => l());
   return next;
 }
@@ -75,3 +80,8 @@ export function useSettings(): Settings {
 /** Número do build (definido pelo GitHub Actions); "dev" em builds locais. */
 export const BUILD_NUMBER: string = import.meta.env.VITE_BUILD_NUMBER ?? "dev";
 export const APP_VERSION = BUILD_NUMBER === "dev" ? "1.0 (desenvolvimento)" : `1.0.${BUILD_NUMBER}`;
+
+/** Aplica o idioma salvo (chamado ao abrir o app e quando a cópia nativa é restaurada). */
+export function initLanguage() {
+  setLanguage(getSettings().language);
+}

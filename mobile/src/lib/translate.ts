@@ -11,6 +11,10 @@ const TARGET: Record<Settings["language"], string> = {
   "pt-BR": "pt",
   "en-US": "en",
   "es-ES": "es",
+  "fr-FR": "fr",
+  "de-DE": "de",
+  "it-IT": "it",
+  "ja-JP": "ja",
 };
 
 /** Tamanho máximo do texto de cada pedido (o endereço tem limite de tamanho). */

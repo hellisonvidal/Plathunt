@@ -7,16 +7,12 @@ import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
 import { APP_VERSION, updateSettings, useSettings, type Settings } from "../lib/settings";
 import { STORE_REGIONS } from "../lib/store";
+import { LANGUAGES } from "../i18n";
 import { THEMES } from "../lib/theme";
 import { checkForUpdate, RELEASES_PAGE, type UpdateResult } from "../lib/updates";
 import { useData } from "../lib/useData";
 import { AppUpdater, isNativeApp } from "../psn/native";
 
-const LANGUAGES: { value: Settings["language"]; label: string }[] = [
-  { value: "pt-BR", label: "Português" },
-  { value: "en-US", label: "English" },
-  { value: "es-ES", label: "Español" },
-];
 const FEED_DAYS: Settings["feedDays"][] = [7, 30, 90];
 const START_TABS: { value: Settings["startTab"]; label: string }[] = [
   { value: "/", label: "Perfil" },
@@ -80,8 +76,8 @@ export function SettingsPage() {
 
         <Section title="Troféus e jogos">
           <Choice
-            label="Idioma dos nomes de jogos e troféus"
-            options={LANGUAGES}
+            label="Idioma do app, dos jogos e dos troféus"
+            options={LANGUAGES.map((l) => ({ value: l.value, label: l.label }))}
             value={settings.language}
             onChange={(language) => {
               updateSettings({ language });
