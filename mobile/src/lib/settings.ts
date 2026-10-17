@@ -27,6 +27,10 @@ export interface Settings {
   notifyFriends: boolean;
   notifyUpdates: boolean;
   notifySocial: boolean;
+  /** Já viu o aviso de que os recursos online vêm ligados. */
+  cloudNoticeSeen: boolean;
+  /** Desligou os recursos online (o app não reconecta sozinho). */
+  cloudOff: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -47,6 +51,8 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyFriends: true,
   notifyUpdates: true,
   notifySocial: true,
+  cloudNoticeSeen: false,
+  cloudOff: false,
 };
 
 const KEY = "tm.settings" as const;

@@ -41,9 +41,9 @@ As verificações rodam ao abrir o app e ao voltar para ele (no máximo a cada 1
 
 **Temas:** o Astro Bot ganhou fundo azul (um tom médio, bem diferente do Claro) (bem diferente do Claro, que é cinza neutro) com as barras pretas do visor. O contraste de texto, destaques e do verde "online" foi conferido em todos os temas, e o Automático passou a receber do Android se o sistema está no modo escuro (WebViews antigos sempre respondiam "claro").
 
-## Recursos online (opcionais, Supabase gratuito)
+## Recursos online (Supabase gratuito)
 
-Em Configurações → Recursos online, quem entrou com a PSN pode ligar:
+Vêm ligados para quem entra com a PSN: na primeira abertura, um aviso explica o que vai para o servidor e o jogador escolhe **Manter ligados** ou **Desligar** (nada é enviado antes da escolha). Depois, o app reconecta sozinho, a menos que tenham sido desligados; dá para mudar em Configurações → Recursos online. Com eles:
 - **Curtidas compartilhadas:** a curtida chega ao dono da conquista, que vê "curtido por…" em Atividades e recebe notificação;
 - **Pedidos de boost direto no app:** no card do pedido, "📲 Enviar direto no app" lista os amigos que também usam o Trophy Mania com recursos online; o pedido aparece em "Pedidos recebidos" deles, e a resposta (aceitou/recusou) volta para quem enviou.
 
