@@ -103,7 +103,7 @@ export function SettingsPage() {
         <Section title={t("Loja")}>
           <Choice
             label={t("País da PlayStation Store (moeda e preços)")}
-            options={STORE_REGIONS.map((r) => ({ value: r.value, label: r.label }))}
+            options={STORE_REGIONS.map((r) => ({ value: r.value, label: t(r.label) }))}
             value={settings.storeRegion}
             onChange={(storeRegion) => updateSettings({ storeRegion })}
           />
