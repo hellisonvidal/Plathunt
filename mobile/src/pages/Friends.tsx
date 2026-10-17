@@ -137,9 +137,11 @@ export function FriendsPage() {
           </>
         )}
 
+        <div className="space-y-2">
         {visible.map((f) => (
           <FriendCard key={f.accountId} friend={f} presence={presences[f.accountId]} />
         ))}
+        </div>
 
         {q && visible.length === 0 && done === total && (
           <p className="py-8 text-center text-sm text-muted">{t("Nenhum amigo com “{query}”.", { query })}</p>
@@ -200,69 +202,60 @@ function FriendCard({ friend: f, presence }: { friend: Profile; presence?: Prese
 
   const platforms = titles ? platformsOf(titles) : [];
 
+  // Cartão compacto: avatar, nome, nível e status numa linha; troféus e plataformas em outra.
   return (
     <Link
       ref={ref}
       to={`/u/${f.accountId}`}
-      className="block rounded-2xl border border-line bg-surface p-4 active:border-muted"
+      className="block rounded-xl border border-line bg-surface px-3 py-2.5 active:border-muted"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         <span className="relative shrink-0">
-          <Avatar src={f.avatarUrl} name={f.onlineId} size={56} />
+          <Avatar src={f.avatarUrl} name={f.onlineId} size={42} />
           {presence && <StatusDot status={presence.status} />}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">
-            {f.onlineId}{" "}
-            {f.isPlus && (
-              <span className="inline-flex items-center gap-0.5 align-middle text-[0.6875rem] font-semibold text-gold">
-                <PsPlusIcon size={13} /> PS Plus
+          <p className="flex items-center gap-1.5 text-sm font-semibold">
+            <span className="truncate">{f.onlineId}</span>
+            {f.isPlus && <PsPlusIcon size={13} />}
+            {f.level !== null && (
+              <span className="ml-auto shrink-0 text-[0.6875rem] font-bold text-ps-blue-2">
+                {t("Nv. {n}", { n: f.level })}
               </span>
             )}
           </p>
-          {f.level !== null ? (
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-xs font-bold text-ps-blue-2">{t("Nv. {n}", { n: f.level })}</span>
-              <div className="flex-1">
-                <ProgressBar value={f.levelProgress ?? 0} />
-              </div>
-              <span className="text-[0.6875rem] text-muted">{f.levelProgress ?? 0}%</span>
-            </div>
-          ) : (
-            <p className="mt-1 text-xs text-muted">{t("Troféus privados")}</p>
-          )}
-          {presence && (
+          {presence ? (
             <p
-              className={`mt-1 truncate text-[0.6875rem] ${presence.status === "online" ? "font-semibold text-online" : "text-muted"}`}
+              className={`truncate text-[0.6875rem] ${presence.status === "online" ? "font-semibold text-online" : "text-muted"}`}
             >
               {presenceText(presence)}
             </p>
+          ) : (
+            f.level === null && <p className="text-[0.6875rem] text-muted">{t("Troféus privados")}</p>
           )}
         </div>
       </div>
 
-      {f.earned && (
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
-          <TrophyBadge type="platinum" count={f.earned.platinum} />
-          <TrophyBadge type="gold" count={f.earned.gold} />
-          <TrophyBadge type="silver" count={f.earned.silver} />
-          <TrophyBadge type="bronze" count={f.earned.bronze} />
-        </div>
-      )}
-
-      {f.level !== null && (
-        <div className="mt-3 flex min-h-5 flex-wrap items-center gap-1.5 text-[0.6875rem]">
-          {platforms.map((p) => (
-            <span key={p} className="rounded-full border border-line px-2 py-0.5 text-muted">
-              {p}
-            </span>
-          ))}
-          {titles && (
-            <span className="ml-auto text-muted">
-              {t("{n} jogos", { n: titles.length >= 100 ? "100+" : titles.length })}
+      {(f.earned || f.level !== null) && (
+        <div className="mt-1.5 flex min-h-5 items-center gap-x-3 gap-y-1 text-[0.6875rem]">
+          {f.earned && (
+            <span className="flex gap-x-2.5 [&>span]:text-xs">
+              <TrophyBadge type="platinum" count={f.earned.platinum} />
+              <TrophyBadge type="gold" count={f.earned.gold} />
+              <TrophyBadge type="silver" count={f.earned.silver} />
+              <TrophyBadge type="bronze" count={f.earned.bronze} />
             </span>
           )}
-          {loadingTitles && !titles && <span className="text-muted">{t("carregando plataformas…")}</span>}
+          <span className="ml-auto flex min-w-0 items-center gap-1 truncate text-muted">
+            {platforms.slice(0, 3).join(" · ")}
+            {titles && (
+              <>
+                {platforms.length > 0 && " · "}
+                {t("{n} jogos", { n: titles.length >= 100 ? "100+" : titles.length })}
+              </>
+            )}
+            {loadingTitles && !titles && t("carregando plataformas…")}
+          </span>
         </div>
       )}
     </Link>
