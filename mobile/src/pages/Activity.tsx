@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { BoostView } from "../components/Boost";
+import { ChallengesView } from "../components/Challenges";
 import { MeritsView } from "../components/Merits";
 import { PageHeader } from "../components/PageHeader";
 import { ReactionBar } from "../components/Reactions";
@@ -22,7 +23,7 @@ export function ActivityPage() {
   const { feedDays } = useSettings();
   const { data, error, loading, refresh } = useData((force) => client.feed(force), [client, feedDays]);
   const [filter, setFilter] = useState<FilterKey>("todos");
-  const [view, setView] = useState<"feed" | "merits" | "boost">("feed");
+  const [view, setView] = useState<"feed" | "merits" | "boost" | "challenges">("feed");
 
   const items = (data ?? []).filter((i) => {
     const types = FILTERS[filter].types as readonly string[] | null;
@@ -38,21 +39,25 @@ export function ActivityPage() {
         refreshing={view === "feed" && loading}
       />
       <div className="space-y-4 px-4 pt-4">
-        <div className="grid grid-cols-3 gap-1 rounded-2xl border border-line bg-surface p-1 text-sm" role="tablist">
+        <div className="grid grid-cols-4 gap-1 rounded-2xl border border-line bg-surface p-1 text-xs" role="tablist">
           {(
             [
-              ["feed", "🎮 Conquistas"],
-              ["merits", "🏅 Méritos"],
-              ["boost", "📣 Boost"],
+              ["feed", "🎮", "Conquistas"],
+              ["merits", "🏅", "Méritos"],
+              ["boost", "📣", "Boost"],
+              ["challenges", "🏁", "Desafios"],
             ] as const
-          ).map(([key, label]) => (
+          ).map(([key, icon, label]) => (
             <button
               key={key}
               role="tab"
               aria-selected={view === key}
               onClick={() => setView(key)}
-              className={`rounded-xl py-2 font-semibold ${view === key ? "bg-ps-blue" : "text-muted"}`}
+              className={`flex flex-col items-center rounded-xl py-1.5 font-semibold ${view === key ? "bg-ps-blue" : "text-muted"}`}
             >
+              <span className="text-base leading-tight" aria-hidden>
+                {icon}
+              </span>
               {label}
             </button>
           ))}
@@ -62,6 +67,8 @@ export function ActivityPage() {
           <MeritsView />
         ) : view === "boost" ? (
           <BoostView />
+        ) : view === "challenges" ? (
+          <ChallengesView />
         ) : (
           <>
             <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm">
