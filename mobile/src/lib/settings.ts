@@ -14,7 +14,7 @@ export interface Settings {
   /** Mostrar nome e descrição de troféus secretos ainda bloqueados. */
   revealSecrets: boolean;
   /** Tema de cores (Configurações → Aparência). */
-  theme: "playstation" | "light" | "oled" | "green" | "crimson" | "purple" | "spiderman" | "uncharted" | "deathstranding" | "horizon";
+  theme: "auto" | "claro" | "escuro" | "playstation" | "light" | "oled" | "green" | "crimson" | "purple" | "spiderman" | "uncharted" | "deathstranding" | "horizon";
   /** Aba em que o app abre. */
   startTab: "/" | "/stats" | "/friends" | "/activity" | "/store";
   /** País da PlayStation Store (moeda e preços da aba Loja). */
@@ -30,7 +30,8 @@ export const DEFAULT_SETTINGS: Settings = {
   startTab: "/",
   // Na primeira abertura, o país do aparelho.
   storeRegion: deviceStoreRegion(),
-  theme: "playstation",
+  // Claro ou escuro, como o sistema do aparelho.
+  theme: "auto",
 };
 
 const KEY = "tm.settings" as const;
@@ -82,8 +83,10 @@ export function useSettings(): Settings {
 
 /** Número do build (definido pelo GitHub Actions); "dev" em builds locais. */
 export const BUILD_NUMBER: string = import.meta.env.VITE_BUILD_NUMBER ?? "dev";
-const DEV_VERSION = "1.0 (desenvolvimento)";
-export const APP_VERSION = BUILD_NUMBER === "dev" ? DEV_VERSION : `1.0.${BUILD_NUMBER}`;
+/** Versão do app; o número do build vai junto para identificar o APK. */
+export const VERSION = "1.1.0";
+const DEV_VERSION = "1.1.0 (desenvolvimento)";
+export const APP_VERSION = BUILD_NUMBER === "dev" ? DEV_VERSION : `${VERSION} (build ${BUILD_NUMBER})`;
 
 /** APP_VERSION no idioma atual (para mostrar na tela). */
 export function appVersion(): string {

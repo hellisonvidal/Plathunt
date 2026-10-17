@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../app";
 import { browseCatalog, buildBoostCatalog, catalogPlatforms, myGames, type BoostCandidate } from "../lib/boost";
 import { catalogProgress, loadCatalog, useCatalog, type CatalogLoaders } from "../lib/gameCatalog";
+import { knownMultiplayer, scanMultiplayer, useMultiplayerScan } from "../lib/multiplayer";
 import { t } from "../i18n";
 import { useSettings } from "../lib/settings";
 import { ALL_ID } from "../lib/store";
@@ -63,20 +64,37 @@ export function useGameCatalog() {
 export function GamePicker({
   onPick,
   onlyWithTrophies = false,
+  multiplayer = false,
 }: {
   onPick: (game: BoostCandidate) => void;
   onlyWithTrophies?: boolean;
+  /** Boost: filtro "só jogos multiplayer" (ligado por padrão). */
+  multiplayer?: boolean;
 }) {
+  const { client } = useApp();
   const catalog = useGameCatalog();
+  const [mpOnly, setMpOnly] = useState(multiplayer);
+  const scan = useMultiplayerScan();
   const { state } = catalog;
   const [platform, setPlatform] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<"todos" | "meus">("todos");
   const [shown, setShown] = useState(PAGE);
-  const usable = useMemo(() => {
+  const candidates = useMemo(() => {
     const base = source === "meus" ? catalog.mine : catalog.all;
-    return onlyWithTrophies ? base.filter((c) => c.title) : base;
-  }, [catalog.all, catalog.mine, onlyWithTrophies, source]);
+    return onlyWithTrophies || mpOnly ? base.filter((c) => c.title) : base;
+  }, [catalog.all, catalog.mine, onlyWithTrophies, mpOnly, source]);
+  // Multiplayer: verifica os troféus de cada jogo em segundo plano (seus primeiro, depois os mais comuns entre amigos).
+  useEffect(() => {
+    if (!mpOnly) return;
+    const order = [...candidates].sort(
+      (a, b) => Number(b.myProgress !== null) - Number(a.myProgress !== null) || b.friends - a.friends,
+    );
+    scanMultiplayer(
+      order.map((c) => ({ id: c.title!.id, load: () => client.titleTrophies(c.title!, true) })),
+    );
+  }, [candidates, mpOnly, client]);
+  const usable = mpOnly ? candidates.filter((c) => knownMultiplayer(c.title!.id) === true) : candidates;
   const platforms = catalogPlatforms(usable);
   const list = useMemo(() => browseCatalog(usable, platform, query), [usable, platform, query]);
   useEffect(() => setShown(PAGE), [platform, query, source]);
@@ -123,6 +141,25 @@ export function GamePicker({
           </button>
         ))}
       </div>
+
+      {multiplayer && (
+        <label className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-2 text-sm">
+          <span>
+            {t("👥 Só jogos com multiplayer")}
+            <span className="block text-[0.6875rem] text-muted">
+              {mpOnly && scan.pending > 0
+                ? t("Verificando os troféus online… faltam {n} jogos", { n: scan.pending })
+                : t("Jogos com troféus online ou cooperativos")}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={mpOnly}
+            onChange={(e) => setMpOnly(e.target.checked)}
+            className="h-5 w-5 shrink-0 accent-[var(--color-ps-blue)]"
+          />
+        </label>
+      )}
 
       {!ready ? (
         <div className="space-y-2 rounded-xl border border-line bg-surface-2 p-3" aria-live="polite">
@@ -226,7 +263,11 @@ export function GamePicker({
             ))}
             {more && <li ref={sentinel} className="h-8" aria-hidden />}
           </ul>
-          {list.length === 0 && <p className="text-sm text-muted">{t("Nenhum jogo encontrado.")}</p>}
+          {list.length === 0 && (
+            <p className="text-sm text-muted">
+              {mpOnly && scan.pending > 0 ? t("Procurando jogos com multiplayer…") : t("Nenhum jogo encontrado.")}
+            </p>
+          )}
         </>
       )}
     </div>

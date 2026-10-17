@@ -79,9 +79,10 @@ describe("faixas de preço", () => {
   it("monta as faixas na moeda da região e reconhece a escolhida", () => {
     const ranges = priceRanges("pt-BR");
     expect(ranges.map((r) => r.key)).toEqual([
-      "todas", "gratis", "0-2500", "2500-5000", "5000-10000", "10000-15000", "15000-20000", "20000-25000", "25000-30000", "30000-40000", "40000+",
+      "todas", "gratis", "0-500", "500-1000", "1000-2500", "2500-5000", "5000-10000", "10000-15000", "15000-20000", "20000-25000", "25000-30000", "30000-40000", "40000+",
     ]);
-    expect(ranges[2].label).toMatch(/^Até R\$\s25$/);
+    expect(ranges[2].label).toMatch(/^Até R\$\s5$/);
+    expect(ranges[3].label).toMatch(/^R\$\s5 – R\$\s10$/);
     for (const r of ranges) expect(priceRangeKey(r.range)).toBe(r.key);
     const free = toStoreProduct({ id: "f", name: "F", price: { basePrice: "Gratuito", discountedPrice: "Gratuito", isFree: true } });
     const cheap = product("c", "C", "R$ 49,90", "R$ 49,90");
