@@ -49,6 +49,15 @@ export const ControllerIcon = () => (
   </svg>
 );
 
+/** Sacola de compras (aba Loja). */
+export const StoreIcon = () => (
+  <svg {...base}>
+    <path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8Z" />
+    <path d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+    <path d="M9.5 13.5h5" />
+  </svg>
+);
+
 export const RankingIcon = () => (
   <svg {...base}>
     <path d="M7 4h10v4a5 5 0 0 1-10 0V4Z" />
