@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { deviceLanguage, LANGUAGES, setLanguage, type Language } from "../i18n";
+import { deviceLanguage, LANGUAGES, setLanguage, t, type Language } from "../i18n";
 import { persistSet } from "./persist";
 
 /** Preferências do app, salvas no celular. */
@@ -79,7 +79,13 @@ export function useSettings(): Settings {
 
 /** Número do build (definido pelo GitHub Actions); "dev" em builds locais. */
 export const BUILD_NUMBER: string = import.meta.env.VITE_BUILD_NUMBER ?? "dev";
-export const APP_VERSION = BUILD_NUMBER === "dev" ? "1.0 (desenvolvimento)" : `1.0.${BUILD_NUMBER}`;
+const DEV_VERSION = "1.0 (desenvolvimento)";
+export const APP_VERSION = BUILD_NUMBER === "dev" ? DEV_VERSION : `1.0.${BUILD_NUMBER}`;
+
+/** APP_VERSION no idioma atual (para mostrar na tela). */
+export function appVersion(): string {
+  return BUILD_NUMBER === "dev" ? t(DEV_VERSION) : APP_VERSION;
+}
 
 /** Aplica o idioma salvo (chamado ao abrir o app e quando a cópia nativa é restaurada). */
 export function initLanguage() {

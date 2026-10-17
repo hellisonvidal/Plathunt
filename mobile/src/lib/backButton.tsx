@@ -1,6 +1,7 @@
 import { App as CapApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { useEffect, useRef, useState } from "react";
+import { t } from "../i18n";
 
 /** Tempo para o segundo toque em "voltar" fechar o app. */
 export const EXIT_WINDOW_MS = 2000;
@@ -73,7 +74,7 @@ export function ExitToast({ show }: { show: boolean }) {
       role="status"
       className="fixed inset-x-0 bottom-24 z-40 mx-auto w-fit rounded-full bg-surface-2 px-4 py-2 text-sm shadow-xl"
     >
-      Toque em voltar de novo para sair
+      {t("Toque em voltar de novo para sair")}
     </div>
   );
 }

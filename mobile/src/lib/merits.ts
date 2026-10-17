@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { Counts, Profile, Title } from "../psn/types";
 import type { ChallengeStats } from "./challenges";
 import { primaryPlatform, withEarnedTrophies, type PlayedOn } from "./stats";
@@ -33,8 +34,14 @@ export interface Merit {
   id: string;
   category: string;
   icon: string;
+  /** Nome em português (chave de tradução); `nameVars` preenche "{p}" / "{y}". */
   name: string;
+  nameVars?: Record<string, string | number>;
+  /** Numeral romano dos méritos de série sem nome próprio (ex.: "VII" em "Lenda Platinada VII"). */
+  suffix?: string;
+  /** Descrição em português (chave de tradução); `vars` preenche "{n}" (a meta), "{p}"... */
   description: string;
+  vars?: Record<string, string | number>;
   target: number;
   /** Valor atual do objetivo; null quando não dá para calcular. */
   value: (s: MeritStats) => number | null;
@@ -46,6 +53,17 @@ export interface MeritResult {
   done: boolean;
   /** 0–1. */
   ratio: number;
+}
+
+/** Nome do mérito no idioma atual (ex.: "Lenda Platinada VII"). */
+export function meritName(m: Merit): string {
+  const name = t(m.name, m.nameVars);
+  return m.suffix ? `${name} ${m.suffix}` : name;
+}
+
+/** Descrição do mérito no idioma atual, com a meta formatada (1.000 / 1,000). */
+export function meritDescription(m: Merit): string {
+  return t(m.description, m.vars);
 }
 
 export const MERIT_CATEGORIES: MeritCategory[] = [
@@ -199,11 +217,10 @@ export function meritStats(ctx: MeritContext): MeritStats {
 }
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI", "XXII", "XXIII", "XXIV", "XXV", "XXVI", "XXVII", "XXVIII", "XXIX", "XXX"];
-const fmt = (n: number) => n.toLocaleString("pt-BR");
-
 /**
  * Série de méritos com metas crescentes. Os primeiros recebem os nomes da
  * lista; os demais, o nome-base com numeral romano (ex.: "Lenda VII").
+ * A descrição é um texto com "{n}" (a meta), traduzido na hora de mostrar.
  */
 function series(opts: {
   key: string;
@@ -212,18 +229,25 @@ function series(opts: {
   targets: number[];
   names?: string[];
   base: string;
+  baseVars?: Record<string, string>;
   describe: (n: number) => string;
+  vars?: Record<string, string>;
   value: Merit["value"];
 }): Merit[] {
-  return opts.targets.map((target, i) => ({
-    id: `${opts.key}-${target}`,
-    category: opts.category,
-    icon: opts.icon,
-    name: opts.names?.[i] ?? `${opts.base} ${ROMAN[i] ?? i + 1}`,
-    description: opts.describe(target),
-    target,
-    value: opts.value,
-  }));
+  return opts.targets.map((target, i) => {
+    const own = opts.names?.[i];
+    return {
+      id: `${opts.key}-${target}`,
+      category: opts.category,
+      icon: opts.icon,
+      name: own ?? opts.base,
+      ...(own ? {} : { nameVars: opts.baseVars, suffix: ROMAN[i] ?? String(i + 1) }),
+      description: opts.describe(target),
+      vars: { n: target, ...opts.vars },
+      target,
+      value: opts.value,
+    };
+  });
 }
 
 const one = (
@@ -234,14 +258,18 @@ const one = (
   description: string,
   value: Merit["value"],
   target = 1,
-): Merit => ({ id, category, icon, name, description, target, value });
+  extra: Pick<Merit, "nameVars" | "vars"> = {},
+): Merit => ({ id, category, icon, name, description, target, value, ...extra });
 
 const has = (b: boolean) => (b ? 1 : 0);
-const plural = (n: number, one: string, many: string) => `${fmt(n)} ${n === 1 ? one : many}`;
+/** Texto no singular (meta 1) ou no plural. */
+const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 const platform = (s: MeritStats, p: string) => s.platforms.get(p);
 
 /** Anos com troféus: do PS3 (2008) até hoje. */
 const SEASONS = Array.from({ length: 19 }, (_, i) => 2008 + i);
+/** O ano vai como texto para não sair formatado como número (2.026). */
+const season = (y: number) => ({ nameVars: { y: String(y) }, vars: { y: String(y) } });
 
 function platformMerits(p: (typeof PLATFORMS)[number], category: string, icon: string): Merit[] {
   const tag = p === "PS Vita" ? "Vita" : p;
@@ -251,8 +279,10 @@ function platformMerits(p: (typeof PLATFORMS)[number], category: string, icon: s
       category,
       icon,
       targets: [1, 10, 25, 50, 100, 200],
-      base: `Biblioteca ${tag}`,
-      describe: (n) => `Tenha troféus em ${plural(n, "jogo", "jogos")} de ${p}`,
+      base: "Biblioteca {p}",
+      baseVars: { p: tag },
+      describe: (n) => plural(n, "Tenha troféus em {n} jogo de {p}", "Tenha troféus em {n} jogos de {p}"),
+      vars: { p },
       value: (s) => platform(s, p)?.games ?? 0,
     }),
     ...series({
@@ -260,8 +290,10 @@ function platformMerits(p: (typeof PLATFORMS)[number], category: string, icon: s
       category,
       icon: "💎",
       targets: [1, 5, 10, 25, 50, 100],
-      base: `Platina ${tag}`,
-      describe: (n) => `Conquiste ${plural(n, "platina", "platinas")} no ${p}`,
+      base: "Platina {p}",
+      baseVars: { p: tag },
+      describe: (n) => plural(n, "Conquiste {n} platina no {p}", "Conquiste {n} platinas no {p}"),
+      vars: { p },
       value: (s) => platform(s, p)?.platinums ?? 0,
     }),
     ...series({
@@ -269,8 +301,10 @@ function platformMerits(p: (typeof PLATFORMS)[number], category: string, icon: s
       category,
       icon: "💯",
       targets: [1, 5, 10, 25, 50],
-      base: `Perfeição ${tag}`,
-      describe: (n) => `Complete ${plural(n, "jogo", "jogos")} de ${p} em 100%`,
+      base: "Perfeição {p}",
+      baseVars: { p: tag },
+      describe: (n) => plural(n, "Complete {n} jogo de {p} em 100%", "Complete {n} jogos de {p} em 100%"),
+      vars: { p },
       value: (s) => platform(s, p)?.completed ?? 0,
     }),
     ...series({
@@ -278,8 +312,10 @@ function platformMerits(p: (typeof PLATFORMS)[number], category: string, icon: s
       category,
       icon: "🎖️",
       targets: [100, 500, 1000, 2500, 5000],
-      base: `Troféus ${tag}`,
-      describe: (n) => `Conquiste ${fmt(n)} troféus no ${p}`,
+      base: "Troféus {p}",
+      baseVars: { p: tag },
+      describe: () => "Conquiste {n} troféus no {p}",
+      vars: { p },
       value: (s) => platform(s, p)?.trophies ?? 0,
     }),
     ...(p === "PS5" || p === "PS4"
@@ -288,8 +324,10 @@ function platformMerits(p: (typeof PLATFORMS)[number], category: string, icon: s
           category,
           icon: "⏱️",
           targets: [10, 100, 500, 1000, 2500],
-          base: `Horas de ${tag}`,
-          describe: (n) => `Jogue ${fmt(n)} horas no ${p}`,
+          base: "Horas de {p}",
+          baseVars: { p: tag },
+          describe: () => "Jogue {n} horas no {p}",
+          vars: { p },
           value: (s) => Math.floor(platform(s, p)?.hours ?? 0),
         })
       : []),
@@ -305,7 +343,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 100, 125, 150, 175, 200, 250, 300, 400, 500],
     names: ["Primeira Platina", "Dose Dupla", "Trinca", "Quarteto", "Mão de Platina", "Caçador de Platinas", "Colecionador Platinado", "Vinte Brilhos", "Bodas de Prata", "Trinta e Contando", "Quarentão", "Meio Centenário", "Sessentão", "Brilho Eterno", "Noventa Graus", "Centurião Platinado"],
     base: "Lenda Platinada",
-    describe: (n) => `Conquiste ${plural(n, "platina", "platinas")}`,
+    describe: (n) => plural(n, "Conquiste {n} platina", "Conquiste {n} platinas"),
     value: (s) => s.earned.platinum,
   }),
   // Troféus no total
@@ -316,7 +354,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 10, 25, 50, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7500, 9000, 10000, 12500, 15000, 20000, 25000],
     names: ["Primeiro Troféu", "Primeiros Passos", "Aquecendo", "Cinquentinha", "Centena", "Embalado", "Duzentos", "Dedicado", "Trezentos de Esparta", "Quatrocentos", "Meio Milhar", "Setecentos e Cinquenta", "Milhar"],
     base: "Colecionador de Troféus",
-    describe: (n) => `Conquiste ${plural(n, "troféu", "troféus")} no total`,
+    describe: (n) => plural(n, "Conquiste {n} troféu no total", "Conquiste {n} troféus no total"),
     value: (s) => s.total,
   }),
   ...series({
@@ -326,7 +364,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000],
     names: ["Toque de Ouro", "Pepita", "Garimpeiro", "Veio de Ouro", "Mina de Ouro", "Barra de Ouro", "Cem Ouros", "Cofre Cheio", "Febre do Ouro", "Rei Midas"],
     base: "Tesouro Dourado",
-    describe: (n) => `Conquiste ${plural(n, "troféu", "troféus")} de ouro`,
+    describe: (n) => plural(n, "Conquiste {n} troféu de ouro", "Conquiste {n} troféus de ouro"),
     value: (s) => s.earned.gold,
   }),
   ...series({
@@ -336,7 +374,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 10, 25, 50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000, 2500, 3500, 5000],
     names: ["Primeira Prata", "Reflexo Prateado", "Talheres de Prata", "Prataria", "Cem Pratas", "Lua de Prata", "Bandeja de Prata"],
     base: "Baú de Prata",
-    describe: (n) => `Conquiste ${plural(n, "troféu", "troféus")} de prata`,
+    describe: (n) => plural(n, "Conquiste {n} troféu de prata", "Conquiste {n} troféus de prata"),
     value: (s) => s.earned.silver,
   }),
   ...series({
@@ -346,7 +384,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 10, 25, 50, 100, 250, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 15000],
     names: ["Primeiro Bronze", "Idade do Bronze", "Liga Metálica", "Cinquenta Bronzes", "Cem Bronzes", "Forja de Bronze", "Quinhentos Bronzes"],
     base: "Estátua de Bronze",
-    describe: (n) => `Conquiste ${plural(n, "troféu", "troféus")} de bronze`,
+    describe: (n) => plural(n, "Conquiste {n} troféu de bronze", "Conquiste {n} troféus de bronze"),
     value: (s) => s.earned.bronze,
   }),
   ...series({
@@ -356,7 +394,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 999],
     names: ["Começo de Tudo", "Recruta", "Novato", "Cadete", "Aprendiz", "Iniciado", "Aventureiro", "Explorador", "Experiente", "Habilidoso", "Especialista", "Veterano", "Elite", "Três Dígitos"],
     base: "Mestre da PSN",
-    describe: (n) => `Chegue ao nível ${fmt(n)} da PSN`,
+    describe: () => "Chegue ao nível {n} da PSN",
     value: (s) => s.level,
   }),
   one("nivel-meio", "nivel", "📈", "Meio Caminho do Nível", "Esteja com 50% ou mais do caminho para o próximo nível", (s) => s.levelProgress, 50),
@@ -369,7 +407,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000],
     names: ["Primeiro Jogo", "Prateleira", "Estante", "Gaveta Cheia", "Coleção Séria", "Biblioteca", "Trinta Títulos", "Acervo", "Cinquenta Jogos", "Colecionador", "Cem Jogos"],
     base: "Arquivo Vivo",
-    describe: (n) => `Tenha troféus em ${plural(n, "jogo", "jogos")}`,
+    describe: (n) => plural(n, "Tenha troféus em {n} jogo", "Tenha troféus em {n} jogos"),
     value: (s) => s.games,
   }),
   ...series({
@@ -378,7 +416,8 @@ const BASE_MERITS: Merit[] = [
     icon: "🎯",
     targets: [1, 10, 25, 50],
     base: "Jogo Explorado",
-    describe: (n) => `Tenha ${plural(n, "jogo", "jogos")} com 50 troféus ou mais conquistados`,
+    describe: (n) =>
+      plural(n, "Tenha {n} jogo com 50 troféus ou mais conquistados", "Tenha {n} jogos com 50 troféus ou mais conquistados"),
     value: (s) => s.gamesWithTrophies(50),
   }),
   ...series({
@@ -387,7 +426,8 @@ const BASE_MERITS: Merit[] = [
     icon: "🎯",
     targets: [1, 5, 10],
     base: "Jogo Gigante",
-    describe: (n) => `Tenha ${plural(n, "jogo", "jogos")} com 100 troféus ou mais conquistados`,
+    describe: (n) =>
+      plural(n, "Tenha {n} jogo com 100 troféus ou mais conquistados", "Tenha {n} jogos com 100 troféus ou mais conquistados"),
     value: (s) => s.gamesWithTrophies(100),
   }),
   ...series({
@@ -396,7 +436,7 @@ const BASE_MERITS: Merit[] = [
     icon: "🌱",
     targets: [5, 10, 25],
     base: "Muitos Começos",
-    describe: (n) => `Tenha ${fmt(n)} jogos com até 10% de conclusão`,
+    describe: () => "Tenha {n} jogos com até 10% de conclusão",
     value: (s) => s.barelyStarted,
   }),
   // Conclusão
@@ -407,7 +447,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 2, 3, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200],
     names: ["Completista", "Dois Perfeitos", "Três Perfeitos", "Cinco Perfeitos", "Dez Perfeitos", "Quinze Perfeitos", "Vinte Perfeitos", "Perfeccionista", "Trinta Perfeitos", "Quarenta Perfeitos", "Obsessivo", "Setenta e Cinco Perfeitos", "Cem por Cento"],
     base: "Perfeição Absoluta",
-    describe: (n) => `Complete ${plural(n, "jogo", "jogos")} em 100%`,
+    describe: (n) => plural(n, "Complete {n} jogo em 100%", "Complete {n} jogos em 100%"),
     value: (s) => s.completed,
   }),
   ...series({
@@ -416,7 +456,7 @@ const BASE_MERITS: Merit[] = [
     icon: "📈",
     targets: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
     base: "Média Alta",
-    describe: (n) => `Tenha conclusão média de ${n}% ou mais`,
+    describe: () => "Tenha conclusão média de {n}% ou mais",
     value: (s) => s.avgProgress,
   }),
   ...series({
@@ -425,7 +465,7 @@ const BASE_MERITS: Merit[] = [
     icon: "🧭",
     targets: [1, 5, 10, 25, 50, 100, 200],
     base: "Não Abandona",
-    describe: (n) => `Passe de 50% em ${plural(n, "jogo", "jogos")}`,
+    describe: (n) => plural(n, "Passe de 50% em {n} jogo", "Passe de 50% em {n} jogos"),
     value: (s) => s.gamesAtLeast(50),
   }),
   ...series({
@@ -434,7 +474,7 @@ const BASE_MERITS: Merit[] = [
     icon: "🚀",
     targets: [1, 5, 10, 25, 50, 100],
     base: "Reta Final",
-    describe: (n) => `Passe de 75% em ${plural(n, "jogo", "jogos")}`,
+    describe: (n) => plural(n, "Passe de 75% em {n} jogo", "Passe de 75% em {n} jogos"),
     value: (s) => s.gamesAtLeast(75),
   }),
   ...series({
@@ -443,7 +483,7 @@ const BASE_MERITS: Merit[] = [
     icon: "🐢",
     targets: [1, 10, 25, 50, 100, 200],
     base: "Sem Pressa",
-    describe: (n) => `Passe de 25% em ${plural(n, "jogo", "jogos")}`,
+    describe: (n) => plural(n, "Passe de 25% em {n} jogo", "Passe de 25% em {n} jogos"),
     value: (s) => s.gamesAtLeast(25),
   }),
   ...series({
@@ -452,7 +492,7 @@ const BASE_MERITS: Merit[] = [
     icon: "🎯",
     targets: [1, 3, 5, 10],
     base: "Quase Lá",
-    describe: (n) => `Tenha ${plural(n, "jogo", "jogos")} entre 90% e 99%`,
+    describe: (n) => plural(n, "Tenha {n} jogo entre 90% e 99%", "Tenha {n} jogos entre 90% e 99%"),
     value: (s) => s.nearlyDone,
   }),
   // Plataformas
@@ -467,7 +507,12 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 2, 3, 4],
     names: ["Uma Plataforma", "Multiplataforma", "Três Gerações", "Todas as Gerações"],
     base: "Plataformas",
-    describe: (n) => `Conquiste troféus em ${plural(n, "plataforma", "plataformas")} (PS3, PS4, PS5 ou PS Vita)`,
+    describe: (n) =>
+      plural(
+        n,
+        "Conquiste troféus em {n} plataforma (PS3, PS4, PS5 ou PS Vita)",
+        "Conquiste troféus em {n} plataformas (PS3, PS4, PS5 ou PS Vita)",
+      ),
     value: (s) => PLATFORMS.filter((p) => (platform(s, p)?.games ?? 0) > 0).length,
   }),
   one("plataformas-platina-todas", "plataformas", "💎", "Platina em Todas", "Conquiste uma platina em PS3, PS4, PS5 e PS Vita", (s) =>
@@ -480,7 +525,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000],
     names: ["Primeira Hora", "Tarde de Jogo", "Hora de Jogar", "Dia Inteiro", "Fim de Semana Longo", "Férias", "Cem Horas", "Maratonista", "Duzentas Horas", "Dedicação Total", "Trezentas Horas", "Quatrocentas Horas", "Quinhentas Horas", "Sem Dormir", "Mil Horas"],
     base: "Vida de Gamer",
-    describe: (n) => `Jogue ${plural(n, "hora", "horas")} no total (PS4 e PS5)`,
+    describe: (n) => plural(n, "Jogue {n} hora no total (PS4 e PS5)", "Jogue {n} horas no total (PS4 e PS5)"),
     value: (s) => s.playHours,
   }),
   ...series({
@@ -490,7 +535,7 @@ const BASE_MERITS: Merit[] = [
     targets: [10, 25, 50, 100, 200, 300, 500, 1000],
     names: ["Fisgado", "Envolvido", "Imerso", "Maratona", "Morador", "Cidadão Honorário", "Vida Dedicada", "Casamento"],
     base: "Um Só Jogo",
-    describe: (n) => `Jogue ${fmt(n)} horas em um só jogo`,
+    describe: () => "Jogue {n} horas em um só jogo",
     value: (s) => s.maxGameHours,
   }),
   ...series({
@@ -499,7 +544,7 @@ const BASE_MERITS: Merit[] = [
     icon: "🕹️",
     targets: [1, 5, 10, 25, 50, 100],
     base: "Jogos Longos",
-    describe: (n) => `Tenha ${plural(n, "jogo", "jogos")} com 10 horas ou mais`,
+    describe: (n) => plural(n, "Tenha {n} jogo com 10 horas ou mais", "Tenha {n} jogos com 10 horas ou mais"),
     value: (s) => s.gamesWithHours(10),
   }),
   ...series({
@@ -508,7 +553,7 @@ const BASE_MERITS: Merit[] = [
     icon: "⌛",
     targets: [10, 25, 50],
     base: "Média de Horas",
-    describe: (n) => `Tenha média de ${fmt(n)} horas por jogo`,
+    describe: () => "Tenha média de {n} horas por jogo",
     value: (s) => s.avgHoursPerGame,
   }),
   // Assiduidade
@@ -543,18 +588,21 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 2, 3, 5, 7, 10, 12, 15],
     names: ["Um Ano de Troféus", "Dois Anos", "Três Anos", "Velha Guarda", "Sete Anos", "Década de Troféus", "Doze Anos", "Quinze Anos"],
     base: "Veterano",
-    describe: (n) => `Tenha troféus de ${plural(n, "ano", "anos")} atrás ou mais`,
+    describe: (n) => plural(n, "Tenha troféus de {n} ano atrás ou mais", "Tenha troféus de {n} anos atrás ou mais"),
     value: (s) => s.oldestYears,
   }),
   // Temporadas (por ano; vale o ano da última conquista de cada jogo)
   ...SEASONS.map((y) =>
-    one(`temporada-${y}`, "temporadas", "🗓️", `Temporada ${y}`, `Tenha um jogo com troféus conquistados em ${y}`, (s) => s.gamesByYear.get(y) ?? 0),
+    one(`temporada-${y}`, "temporadas", "🗓️", "Temporada {y}", "Tenha um jogo com troféus conquistados em {y}", (s) =>
+      s.gamesByYear.get(y) ?? 0, 1, season(y)),
   ),
   ...SEASONS.map((y) =>
-    one(`temporada-platina-${y}`, "temporadas", "🏆", `Platina de ${y}`, `Tenha um jogo platinado com a última conquista em ${y}`, (s) => has(s.platinumYears.has(y))),
+    one(`temporada-platina-${y}`, "temporadas", "🏆", "Platina de {y}", "Tenha um jogo platinado com a última conquista em {y}", (s) =>
+      has(s.platinumYears.has(y)), 1, season(y)),
   ),
   ...SEASONS.map((y) =>
-    one(`temporada-completo-${y}`, "temporadas", "💯", `Perfeição de ${y}`, `Tenha um jogo 100% com a última conquista em ${y}`, (s) => has(s.completedYears.has(y))),
+    one(`temporada-completo-${y}`, "temporadas", "💯", "Perfeição de {y}", "Tenha um jogo 100% com a última conquista em {y}", (s) =>
+      has(s.completedYears.has(y)), 1, season(y)),
   ),
   ...series({
     key: "temporada-max",
@@ -563,7 +611,7 @@ const BASE_MERITS: Merit[] = [
     targets: [5, 10, 20],
     names: ["Ano de Cinco", "Ano de Dez", "Ano de Vinte"],
     base: "Ano Cheio",
-    describe: (n) => `Tenha ${fmt(n)} jogos com a última conquista no mesmo ano`,
+    describe: () => "Tenha {n} jogos com a última conquista no mesmo ano",
     value: (s) => Math.max(0, ...s.gamesByYear.values()),
   }),
   // DLCs
@@ -574,7 +622,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 5, 10, 25, 50],
     names: ["Expansão", "Conteúdo Extra", "Passe de Temporada", "Edição Completa", "Edição Definitiva"],
     base: "DLCs",
-    describe: (n) => `Tenha troféus em ${plural(n, "jogo", "jogos")} com DLC`,
+    describe: (n) => plural(n, "Tenha troféus em {n} jogo com DLC", "Tenha troféus em {n} jogos com DLC"),
     value: (s) => s.dlcGames,
   }),
   // Social
@@ -585,7 +633,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 1000],
     names: ["Primeiro Amigo", "Panelinha", "Turma", "Grupo de Jogo", "Clã", "Guilda", "Comunidade", "Arena", "Estádio", "Popular", "Celebridade", "Ídolo", "Lotado", "Mil Amigos"],
     base: "Rede de Amigos",
-    describe: (n) => `Tenha ${plural(n, "amigo", "amigos")} na PSN`,
+    describe: (n) => plural(n, "Tenha {n} amigo na PSN", "Tenha {n} amigos na PSN"),
     value: (s) => s.friends,
   }),
   ...series({
@@ -595,14 +643,20 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 5, 10, 25, 50, 100, 250, 500, 1000],
     names: ["Primeira Curtida", "Simpático", "Incentivador", "Animador", "Torcida", "Fã Número Um", "Torcida Organizada", "Arquibancada", "Mil Curtidas"],
     base: "Curtidas",
-    describe: (n) => `Curta ${plural(n, "conquista", "conquistas")} nas Atividades`,
+    describe: (n) => plural(n, "Curta {n} conquista nas Atividades", "Curta {n} conquistas nas Atividades"),
     value: (s) => s.reactions,
   }),
   // Curiosidades
-  one("curioso-42", "curiosidades", "🌌", "A Resposta", "Conquiste 42 troféus no total", (s) => s.total, 42),
-  one("curioso-777", "curiosidades", "🎰", "Sorte Grande", "Conquiste 777 troféus no total", (s) => s.total, 777),
-  one("curioso-1337", "curiosidades", "💻", "Elite 1337", "Conquiste 1.337 troféus no total", (s) => s.total, 1337),
-  one("curioso-2048", "curiosidades", "🔢", "2048", "Conquiste 2.048 troféus no total", (s) => s.total, 2048),
+  one("curioso-42", "curiosidades", "🌌", "A Resposta", "Conquiste {n} troféus no total", (s) => s.total, 42, { vars: { n: 42 } }),
+  one("curioso-777", "curiosidades", "🎰", "Sorte Grande", "Conquiste {n} troféus no total", (s) => s.total, 777, {
+    vars: { n: 777 },
+  }),
+  one("curioso-1337", "curiosidades", "💻", "Elite 1337", "Conquiste {n} troféus no total", (s) => s.total, 1337, {
+    vars: { n: 1337 },
+  }),
+  one("curioso-2048", "curiosidades", "🔢", "2048", "Conquiste {n} troféus no total", (s) => s.total, 2048, {
+    vars: { n: 2048 },
+  }),
   ...series({
     key: "curioso-ouro-jogo",
     category: "curiosidades",
@@ -610,7 +664,7 @@ const BASE_MERITS: Merit[] = [
     targets: [5, 10, 15, 20, 25],
     names: ["Jogo Dourado", "Ouro Puro", "Reino Dourado", "Império Dourado", "Midas no Controle"],
     base: "Ouro no Jogo",
-    describe: (n) => `Ganhe ${fmt(n)} troféus de ouro em um só jogo`,
+    describe: () => "Ganhe {n} troféus de ouro em um só jogo",
     value: (s) => s.maxGoldInGame,
   }),
   ...series({
@@ -620,7 +674,7 @@ const BASE_MERITS: Merit[] = [
     targets: [50, 100, 200],
     names: ["Montanha de Troféus", "Cordilheira", "Everest"],
     base: "Troféus no Jogo",
-    describe: (n) => `Conquiste ${fmt(n)} troféus em um só jogo`,
+    describe: () => "Conquiste {n} troféus em um só jogo",
     value: (s) => s.maxTrophiesInGame,
   }),
   ...series({
@@ -630,7 +684,7 @@ const BASE_MERITS: Merit[] = [
     targets: [25, 50, 75],
     names: ["Um em Quatro", "Metade Platinada", "Platinador Nato"],
     base: "Taxa de Platina",
-    describe: (n) => `Platine ${n}% dos seus jogos (a partir de 4 jogos)`,
+    describe: () => "Platine {n}% dos seus jogos (a partir de 4 jogos)",
     value: (s) => s.platinumRate,
   }),
   ...series({
@@ -640,7 +694,7 @@ const BASE_MERITS: Merit[] = [
     targets: [20, 40],
     names: ["Média Caprichada", "Média de Respeito"],
     base: "Média de Troféus",
-    describe: (n) => `Tenha média de ${fmt(n)} troféus por jogo`,
+    describe: () => "Tenha média de {n} troféus por jogo",
     value: (s) => s.avgTrophiesPerGame,
   }),
   ...series({
@@ -649,7 +703,7 @@ const BASE_MERITS: Merit[] = [
     icon: "⚖️",
     targets: [10, 50, 100, 250, 500, 1000],
     base: "Equilíbrio",
-    describe: (n) => `Tenha ${fmt(n)} troféus de ouro, de prata e de bronze`,
+    describe: () => "Tenha {n} troféus de ouro, de prata e de bronze",
     value: (s) => Math.min(s.earned.gold, s.earned.silver, s.earned.bronze),
   }),
   // Especiais
@@ -659,8 +713,10 @@ const BASE_MERITS: Merit[] = [
     has(s.completed > 0 && s.completed > s.earned.platinum)),
   one("especial-sem-bronze", "especiais", "🎩", "Fino Trato", "Tenha mais troféus de ouro do que de bronze", (s) => has(s.earned.gold > s.earned.bronze)),
   one("especial-prata-ouro", "especiais", "🪙", "Prata da Casa", "Tenha mais troféus de prata do que de ouro", (s) => has(s.earned.silver > s.earned.gold)),
-  one("especial-mil-e-platina", "especiais", "🏅", "Pacote Completo", "Tenha 1.000 troféus, 10 platinas e nível 100", (s) =>
-    [s.total >= 1000, s.earned.platinum >= 10, (s.level ?? 0) >= 100].filter(Boolean).length, 3),
+  one("especial-mil-e-platina", "especiais", "🏅", "Pacote Completo", "Tenha {a} troféus, {b} platinas e nível {c}", (s) =>
+    [s.total >= 1000, s.earned.platinum >= 10, (s.level ?? 0) >= 100].filter(Boolean).length, 3, {
+    vars: { a: 1000, b: 10, c: 100 },
+  }),
 ];
 
 /** Valor de um número dos desafios (null quando não há dados: méritos de um amigo). */
@@ -675,7 +731,7 @@ const CHALLENGE_MERITS: Merit[] = [
     targets: [1, 3, 5, 10, 25, 50, 100],
     names: ["Desafiante", "Provocador", "Organizador", "Juiz da Arena", "Mestre de Cerimônias", "Comissário", "Liga Própria"],
     base: "Desafios Criados",
-    describe: (n) => `Crie ${plural(n, "desafio", "desafios")}`,
+    describe: (n) => plural(n, "Crie {n} desafio", "Crie {n} desafios"),
     value: ch((c) => c.created),
   }),
   ...series({
@@ -685,7 +741,12 @@ const CHALLENGE_MERITS: Merit[] = [
     targets: [1, 3, 5, 10, 20, 30, 50, 75, 100, 150],
     names: ["Primeira Vitória", "Tricampeão", "Pentacampeão", "Dezena de Ouro", "Imbatível", "Dominante", "Campeão da Liga", "Lenda da Arena", "Centenário", "Invencível"],
     base: "Vitórias",
-    describe: (n) => `Vença ${plural(n, "desafio", "desafios")} (seja o primeiro a conquistar o troféu)`,
+    describe: (n) =>
+      plural(
+        n,
+        "Vença {n} desafio (seja o primeiro a conquistar o troféu)",
+        "Vença {n} desafios (seja o primeiro a conquistar o troféu)",
+      ),
     value: ch((c) => c.wins),
   }),
   ...series({
@@ -695,7 +756,7 @@ const CHALLENGE_MERITS: Merit[] = [
     targets: [1, 5, 10, 25, 50],
     names: ["No Pódio", "Frequentador do Pódio", "Sempre Entre os Três", "Dono do Pódio", "Pódio Cativo"],
     base: "Pódios",
-    describe: (n) => `Termine ${plural(n, "desafio", "desafios")} entre os 3 primeiros`,
+    describe: (n) => plural(n, "Termine {n} desafio entre os 3 primeiros", "Termine {n} desafios entre os 3 primeiros"),
     value: ch((c) => c.podiums),
   }),
   ...series({
@@ -705,7 +766,8 @@ const CHALLENGE_MERITS: Merit[] = [
     targets: [1, 5, 10, 25, 50, 100],
     names: ["Missão Cumprida", "Cumpridor", "Persistente", "Incansável", "Obstinado", "Cem Missões"],
     base: "Desafios Cumpridos",
-    describe: (n) => `Conquiste o troféu de ${plural(n, "desafio", "desafios")} dentro do desafio`,
+    describe: (n) =>
+      plural(n, "Conquiste o troféu de {n} desafio dentro do desafio", "Conquiste o troféu de {n} desafios dentro do desafio"),
     value: ch((c) => c.completed),
   }),
   ...series({
@@ -715,7 +777,7 @@ const CHALLENGE_MERITS: Merit[] = [
     targets: [1, 3, 5, 10, 20, 50],
     names: ["Rival à Vista", "Trio de Rivais", "Lista de Rivais", "Arquirrivais", "Torneio Aberto", "Contra Todos"],
     base: "Rivais",
-    describe: (n) => `Desafie ${plural(n, "amigo diferente", "amigos diferentes")}`,
+    describe: (n) => plural(n, "Desafie {n} amigo diferente", "Desafie {n} amigos diferentes"),
     value: ch((c) => c.rivals),
   }),
   ...series({
@@ -725,7 +787,7 @@ const CHALLENGE_MERITS: Merit[] = [
     targets: [1, 3, 5, 10, 25],
     names: ["Primeiro Derrotado", "Três no Chão", "Cinco Superados", "Dez Superados", "Rei da Arena"],
     base: "Rivais Superados",
-    describe: (n) => `Vença ${plural(n, "amigo diferente", "amigos diferentes")} em desafios`,
+    describe: (n) => plural(n, "Vença {n} amigo diferente em desafios", "Vença {n} amigos diferentes em desafios"),
     value: ch((c) => c.defeated),
   }),
   ...series({
@@ -735,7 +797,7 @@ const CHALLENGE_MERITS: Merit[] = [
     targets: [1, 3, 5, 10, 25],
     names: ["Corrida da Platina", "Platina na Frente", "Cinco Corridas", "Dez Corridas", "Senhor das Platinas"],
     base: "Corrida da Platina",
-    describe: (n) => `Vença ${plural(n, "desafio", "desafios")} de platina`,
+    describe: (n) => plural(n, "Vença {n} desafio de platina", "Vença {n} desafios de platina"),
     value: ch((c) => c.platinumWins),
   }),
   ...series({
@@ -745,7 +807,7 @@ const CHALLENGE_MERITS: Merit[] = [
     targets: [1, 5, 10],
     names: ["Corrida do Ouro", "Garimpeiro Veloz", "Febre do Ouro"],
     base: "Corrida do Ouro",
-    describe: (n) => `Vença ${plural(n, "desafio", "desafios")} de troféu de ouro`,
+    describe: (n) => plural(n, "Vença {n} desafio de troféu de ouro", "Vença {n} desafios de troféu de ouro"),
     value: ch((c) => c.goldWins),
   }),
   ...series({
@@ -755,7 +817,7 @@ const CHALLENGE_MERITS: Merit[] = [
     targets: [2, 3, 5, 7, 10],
     names: ["Embalado", "Em Chamas", "Sequência Quente", "Semana Perfeita", "Dez Seguidas"],
     base: "Sequência",
-    describe: (n) => `Vença ${fmt(n)} desafios seguidos`,
+    describe: () => "Vença {n} desafios seguidos",
     value: ch((c) => c.bestStreak),
   }),
   ...series({
@@ -765,7 +827,7 @@ const CHALLENGE_MERITS: Merit[] = [
     targets: [1, 5, 10, 25],
     names: ["Campeão de um Jogo", "Versátil", "Multicampeão", "Campeão Universal"],
     base: "Jogos Vencidos",
-    describe: (n) => `Vença desafios em ${plural(n, "jogo diferente", "jogos diferentes")}`,
+    describe: (n) => plural(n, "Vença desafios em {n} jogo diferente", "Vença desafios em {n} jogos diferentes"),
     value: ch((c) => c.gamesWon),
   }),
   one("desafio-relampago", "desafios", "⚡", "Relâmpago", "Vença um desafio em menos de 24 horas", ch((c) =>

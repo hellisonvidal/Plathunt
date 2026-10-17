@@ -3,6 +3,7 @@ import { useApp } from "../app";
 import { FilterIcon, PsPlusIcon } from "../components/icons";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, RemoteImage } from "../components/ui";
+import { locale, t } from "../i18n";
 import { useSettings } from "../lib/settings";
 import {
   filterProducts,
@@ -83,9 +84,9 @@ export function StorePage() {
 
   return (
     <>
-      <PageHeader title="Loja" onRefresh={catalog.refresh} refreshing={catalog.loading} />
+      <PageHeader title={t("Loja")} onRefresh={catalog.refresh} refreshing={catalog.loading} />
       <div className="space-y-4 px-4 pt-4">
-        <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm" aria-label="Categoria">
+        <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm" aria-label={t("Categoria")}>
             {STORE_CATEGORIES.map((c) => (
               <button
                 key={c.id}
@@ -99,7 +100,7 @@ export function StorePage() {
                     <PsPlusIcon size={16} /> Plus
                   </span>
                 ) : (
-                  c.label
+                  t(c.label)
                 )}
               </button>
             ))}
@@ -112,12 +113,12 @@ export function StorePage() {
         <div className="min-h-9 space-y-1.5" aria-live="polite">
           <p className="text-xs text-muted">
             {!products
-              ? "Buscando o catálogo da PlayStation Store…"
+              ? t("Buscando o catálogo da PlayStation Store…")
               : streaming
-                ? `Carregando a loja… ${streaming.products.length.toLocaleString("pt-BR")}${
-                    streaming.total > 0 ? ` de ${streaming.total.toLocaleString("pt-BR")}` : ""
-                  } jogos`
-                : `${(visible?.length ?? 0).toLocaleString("pt-BR")} de ${products.length.toLocaleString("pt-BR")} jogos`}
+                ? streaming.total > 0
+                  ? t("Carregando a loja… {n} de {total} jogos", { n: streaming.products.length, total: streaming.total })
+                  : t("Carregando a loja… {n} jogos", { n: streaming.products.length })
+                : t("{n} de {total} jogos", { n: visible?.length ?? 0, total: products.length })}
           </p>
           {(!current || catalog.loading) && !catalog.error && (
             <div className="h-1 overflow-hidden rounded-full bg-surface-2">
@@ -143,8 +144,10 @@ export function StorePage() {
         )}
 
         <p className="pb-2 text-center text-[0.6875rem] text-muted">
-          Preços da PlayStation Store ({region}). O menor preço é o menor que o app já viu neste celular; a loja não
-          informa preços antigos.
+          {t(
+            "Preços da PlayStation Store ({region}). O menor preço é o menor que o app já viu neste celular; a loja não informa preços antigos.",
+            { region },
+          )}
         </p>
       </div>
     </>
@@ -175,25 +178,25 @@ function FilterBar({
         <input
           value={filters.query}
           onChange={(e) => set({ query: e.target.value })}
-          placeholder="Buscar jogo"
+          placeholder={t("Buscar jogo")}
           className="min-w-0 flex-1 rounded-full border border-line bg-surface-2 px-4 py-2 text-sm outline-none focus:border-ps-blue-2"
         />
         <select
           value={filters.sort}
           onChange={(e) => set({ sort: e.target.value as StoreFilters["sort"] })}
-          aria-label="Ordenar"
+          aria-label={t("Ordenar")}
           className="w-[36%] min-w-0 rounded-full border border-line bg-surface-2 px-2 text-sm"
         >
           {STORE_SORTS.map((s) => (
             <option key={s.value} value={s.value}>
-              {s.label}
+              {t(s.label)}
             </option>
           ))}
         </select>
         <button
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          aria-label={active > 0 ? `Filtros (${active} ativos)` : "Filtros"}
+          aria-label={active > 0 ? t("Filtros ({n} ativos)", { n: active }) : t("Filtros")}
           className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
             open || active > 0 ? "border-ps-blue-2 text-ps-blue-2" : "border-line text-muted"
           } bg-surface-2`}
@@ -209,9 +212,9 @@ function FilterBar({
       {open && (
         <div className="space-y-3 rounded-xl border border-line bg-surface p-3 text-sm">
           <Chips
-            label="Plataforma"
+            label={t("Plataforma")}
             options={[
-              ["todas", "Todas"],
+              ["todas", t("Todas")],
               ["PS5", "PS5"],
               ["PS4", "PS4"],
             ]}
@@ -219,7 +222,7 @@ function FilterBar({
             onChange={(platform) => set({ platform: platform as StoreFilters["platform"] })}
           />
           <Chips
-            label="Preço"
+            label={t("Preço")}
             options={priceRanges(region).map((r) => [r.key, r.label] as const)}
             value={priceRangeKey(filters.price)}
             onChange={(k) => set({ price: priceRanges(region).find((r) => r.key === k)?.range ?? "todas" })}
@@ -229,7 +232,7 @@ function FilterBar({
             onChange={(price) => set({ price })}
           />
           <label className="flex items-center justify-between">
-            <span>Só jogos com desconto</span>
+            <span>{t("Só jogos com desconto")}</span>
             <input
               type="checkbox"
               checked={filters.onlyDiscount}
@@ -238,7 +241,7 @@ function FilterBar({
             />
           </label>
           <label className="flex items-center justify-between gap-3">
-            <span>Esconder jogos grátis</span>
+            <span>{t("Esconder jogos grátis")}</span>
             <input
               type="checkbox"
               checked={filters.hideFree}
@@ -249,9 +252,9 @@ function FilterBar({
           <label className="flex items-center justify-between gap-3">
             <span>
               <span className="inline-flex items-center gap-1.5">
-                Esconder jogos da <PsPlusIcon size={18} />
+                {t("Esconder jogos da")} <PsPlusIcon size={18} />
               </span>
-              <span className="block text-xs text-muted">Mostra só o que não depende da assinatura</span>
+              <span className="block text-xs text-muted">{t("Mostra só o que não depende da assinatura")}</span>
             </span>
             <input
               type="checkbox"
@@ -262,7 +265,7 @@ function FilterBar({
           </label>
           {active > 0 && (
             <button onClick={() => onChange({ ...DEFAULT_FILTERS, query: filters.query, sort: filters.sort })} className="text-ps-blue-2 underline">
-              Limpar filtros
+              {t("Limpar filtros")}
             </button>
           )}
         </div>
@@ -298,7 +301,7 @@ function CustomPrice({ value, onChange }: { value: StoreFilters["price"]; onChan
   const input = "w-full min-w-0 rounded-full border border-line bg-surface-2 px-3 py-1.5 text-sm outline-none focus:border-ps-blue-2";
   return (
     <div>
-      <p className="mb-1.5 text-xs text-muted">Ou digite a faixa</p>
+      <p className="mb-1.5 text-xs text-muted">{t("Ou digite a faixa")}</p>
       <div className="flex items-center gap-2">
         <input
           inputMode="decimal"
@@ -307,8 +310,8 @@ function CustomPrice({ value, onChange }: { value: StoreFilters["price"]; onChan
             setMin(e.target.value);
             apply(e.target.value, max);
           }}
-          placeholder="Mínimo"
-          aria-label="Preço mínimo"
+          placeholder={t("Mínimo")}
+          aria-label={t("Preço mínimo")}
           className={input}
         />
         <span className="text-muted">–</span>
@@ -319,8 +322,8 @@ function CustomPrice({ value, onChange }: { value: StoreFilters["price"]; onChan
             setMax(e.target.value);
             apply(min, e.target.value);
           }}
-          placeholder="Máximo"
-          aria-label="Preço máximo"
+          placeholder={t("Máximo")}
+          aria-label={t("Preço máximo")}
           className={input}
         />
       </div>
@@ -391,8 +394,8 @@ function ProductGrid({
     return (
       <p className="py-10 text-center text-sm text-muted">
         {total === 0
-          ? "A PlayStation Store não trouxe jogos nesta categoria agora. Puxe a tela para baixo para tentar de novo."
-          : "Nenhum jogo encontrado com esses filtros."}
+          ? t("A PlayStation Store não trouxe jogos nesta categoria agora. Puxe a tela para baixo para tentar de novo.")
+          : t("Nenhum jogo encontrado com esses filtros.")}
       </p>
     );
   }
@@ -436,19 +439,24 @@ function PriceInfo({ product: p, region }: { product: StoreProduct; region: Stor
   const history = useMemo(() => priceHistory(region, p.id), [region, p.id, p.price]);
   const lowestSeen = history && p.price !== null && history.min < p.price;
   const atLowest = p.price !== null && p.price > 0 && isNewLow(history, p.price);
+  // Frase inteira traduzida; o preço em destaque entra no lugar de "{price}".
+  const lowestParts = lowestSeen
+    ? t("Menor já visto: {price} em {date}", { date: new Date(history.minAt).toLocaleDateString(locale()) }).split("{price}")
+    : [];
   return (
     <div className="mt-1">
       <div className="flex flex-wrap items-baseline gap-x-1.5">
-        <span className="text-sm font-bold">{p.isFree ? "Grátis" : (p.priceText ?? "—")}</span>
+        <span className="text-sm font-bold">{p.isFree ? t("Grátis") : (p.priceText ?? "—")}</span>
         {p.discount > 0 && p.basePriceText && <span className="text-[0.6875rem] text-muted line-through">{p.basePriceText}</span>}
       </div>
       {lowestSeen && (
         <p className="text-[0.6875rem] text-muted">
-          Menor já visto: <strong className="text-ink">{formatPrice(history.min, region)}</strong> em{" "}
-          {new Date(history.minAt).toLocaleDateString("pt-BR")}
+          {lowestParts[0]}
+          <strong className="text-ink">{formatPrice(history.min, region)}</strong>
+          {lowestParts[1]}
         </p>
       )}
-      {atLowest && <p className="text-[0.6875rem] font-semibold text-ps-blue-2">🔥 Menor preço já visto pelo app</p>}
+      {atLowest && <p className="text-[0.6875rem] font-semibold text-ps-blue-2">{t("🔥 Menor preço já visto pelo app")}</p>}
     </div>
   );
 }

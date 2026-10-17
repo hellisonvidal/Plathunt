@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { t } from "../i18n";
 import { PLAYSTATION_REACTIONS, STANDARD_REACTIONS, useReactions } from "../lib/reactions";
 import { PS_BUTTONS } from "./icons";
 
@@ -35,10 +36,10 @@ export function ReactionBar({ itemKey }: { itemKey: string }) {
         <button
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          aria-label="Curtir com emoji"
+          aria-label={t("Curtir com emoji")}
           className="flex h-8 items-center gap-1 rounded-full border border-dashed border-line px-3 text-sm text-muted"
         >
-          {mine.length ? "＋" : "😀 Curtir"}
+          {mine.length ? "＋" : t("😀 Curtir")}
         </button>
       </div>
 

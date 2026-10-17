@@ -5,9 +5,9 @@ import { PageHeader } from "../components/PageHeader";
 import { Avatar, ProgressBar } from "../components/ui";
 import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
-import { APP_VERSION, updateSettings, useSettings, type Settings } from "../lib/settings";
+import { appVersion, updateSettings, useSettings, type Settings } from "../lib/settings";
 import { STORE_REGIONS } from "../lib/store";
-import { LANGUAGES } from "../i18n";
+import { LANGUAGES, t } from "../i18n";
 import { THEMES } from "../lib/theme";
 import { checkForUpdate, RELEASES_PAGE, type UpdateResult } from "../lib/updates";
 import { useData } from "../lib/useData";
@@ -43,118 +43,120 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Configurações" back />
+      <PageHeader title={t("Configurações")} back />
       <div className="space-y-6 px-4 pb-8 pt-4">
-        <Section title="Conta">
+        <Section title={t("Conta")}>
           <div className="flex items-center gap-3 p-4">
             <Avatar src={me?.avatarUrl ?? null} name={me?.onlineId ?? "?"} size={44} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold">{me?.onlineId ?? "…"}</p>
-              <p className="text-xs text-muted">{mode === "demo" ? "Modo demonstração" : "Conectado à PSN"}</p>
+              <p className="text-xs text-muted">{mode === "demo" ? t("Modo demonstração") : t("Conectado à PSN")}</p>
             </div>
           </div>
           <Row
-            label="Sair / trocar de conta"
-            hint="Na próxima entrada a PSN pede usuário e senha, então dá para usar outra conta"
+            label={t("Sair / trocar de conta")}
+            hint={t("Na próxima entrada a PSN pede usuário e senha, então dá para usar outra conta")}
             danger
             onClick={() => signOut()}
           />
         </Section>
 
-        <Section title="Aparência">
+        <Section title={t("Aparência")}>
           <ThemesButton current={settings.theme} />
         </Section>
 
-        <Section title="Atividades">
+        <Section title={t("Atividades")}>
           <Choice
-            label="Período das atividades"
-            options={FEED_DAYS.map((d) => ({ value: d, label: `${d} dias` }))}
+            label={t("Período das atividades")}
+            options={FEED_DAYS.map((d) => ({ value: d, label: t("{d} dias", { d }) }))}
             value={settings.feedDays}
             onChange={(feedDays) => updateSettings({ feedDays })}
           />
         </Section>
 
-        <Section title="Troféus e jogos">
+        <Section title={t("Troféus e jogos")}>
           <Choice
-            label="Idioma do app, dos jogos e dos troféus"
+            label={t("Idioma do app, dos jogos e dos troféus")}
             options={LANGUAGES.map((l) => ({ value: l.value, label: l.label }))}
             value={settings.language}
             onChange={(language) => {
               updateSettings({ language });
               // Os nomes em cache estão no idioma antigo.
               clearCache();
-              flash("Idioma alterado. Os dados serão recarregados.");
+              flash(t("Idioma alterado. Os dados serão recarregados."));
             }}
           />
           <Toggle
-            label="Traduzir troféus automaticamente"
-            hint="Traduz para o idioma acima os nomes e descrições que a Sony não traduziu (tradutor do Google)"
+            label={t("Traduzir troféus automaticamente")}
+            hint={t("Traduz para o idioma acima os nomes e descrições que a Sony não traduziu (tradutor do Google)")}
             checked={settings.autoTranslate}
             onChange={(autoTranslate) => updateSettings({ autoTranslate })}
           />
           <Toggle
-            label="Revelar troféus secretos"
-            hint="Mostra nome e descrição de troféus ocultos ainda bloqueados (pode conter spoilers)"
+            label={t("Revelar troféus secretos")}
+            hint={t("Mostra nome e descrição de troféus ocultos ainda bloqueados (pode conter spoilers)")}
             checked={settings.revealSecrets}
             onChange={(revealSecrets) => updateSettings({ revealSecrets })}
           />
         </Section>
 
-        <Section title="Loja">
+        <Section title={t("Loja")}>
           <Choice
-            label="País da PlayStation Store (moeda e preços)"
+            label={t("País da PlayStation Store (moeda e preços)")}
             options={STORE_REGIONS.map((r) => ({ value: r.value, label: r.label }))}
             value={settings.storeRegion}
             onChange={(storeRegion) => updateSettings({ storeRegion })}
           />
         </Section>
 
-        <Section title="Geral">
+        <Section title={t("Geral")}>
           <Choice
-            label="Abrir o app em"
-            options={START_TABS}
+            label={t("Abrir o app em")}
+            options={START_TABS.map((o) => ({ ...o, label: t(o.label) }))}
             value={settings.startTab}
             onChange={(startTab) => updateSettings({ startTab })}
           />
         </Section>
 
-        <Section title="Dados">
+        <Section title={t("Dados")}>
           <Row
-            label="Atualizar todos os dados agora"
-            hint="Busca tudo de novo na PSN em vez de usar o que está salvo"
+            label={t("Atualizar todos os dados agora")}
+            hint={t("Busca tudo de novo na PSN em vez de usar o que está salvo")}
             onClick={() => {
               clearCache();
-              flash("Pronto! Os dados serão buscados de novo na PSN.");
+              flash(t("Pronto! Os dados serão buscados de novo na PSN."));
             }}
           />
           <Row
-            label="Apagar minhas curtidas"
+            label={t("Apagar minhas curtidas")}
             onClick={() => {
               clearReactions();
-              flash("Curtidas apagadas.");
+              flash(t("Curtidas apagadas."));
             }}
           />
         </Section>
 
-        <Section title="Sobre">
+        <Section title={t("Sobre")}>
           <p className="p-4 text-xs leading-relaxed text-muted">
-            PlayStation Trophy Mania {APP_VERSION}. Sem servidor: os dados vão direto do celular para a PSN e ficam só
-            no aparelho. Não é afiliado à Sony Interactive Entertainment; PlayStation é marca da Sony.
+            {t(
+              "PlayStation Trophy Mania {version}. Sem servidor: os dados vão direto do celular para a PSN e ficam só no aparelho. Não é afiliado à Sony Interactive Entertainment; PlayStation é marca da Sony.",
+              { version: appVersion() },
+            )}
           </p>
         </Section>
 
-        <Section title="Atualizações">
+        <Section title={t("Atualizações")}>
           <div className="flex items-center justify-between gap-3 p-4">
             <div>
-              <p className="text-sm">Versão instalada</p>
-              <p className="text-xs text-muted">{APP_VERSION}</p>
+              <p className="text-sm">{t("Versão instalada")}</p>
+              <p className="text-xs text-muted">{appVersion()}</p>
             </div>
             <button
               onClick={check}
               disabled={checking}
               className="rounded-full bg-ps-blue px-4 py-2 text-sm font-semibold disabled:opacity-60"
             >
-              {checking ? "Verificando…" : "Verificar atualizações"}
+              {checking ? t("Verificando…") : t("Verificar atualizações")}
             </button>
           </div>
           {update && <UpdateStatus result={update} />}
@@ -174,7 +176,7 @@ export function SettingsPage() {
 /** Botão das Configurações que abre a tela de temas, mostrando o tema atual. */
 function ThemesButton({ current }: { current: Settings["theme"] }) {
   const navigate = useNavigate();
-  const theme = THEMES.find((t) => t.value === current) ?? THEMES[0];
+  const theme = THEMES.find((th) => th.value === current) ?? THEMES[0];
   return (
     <button
       onClick={() => navigate("/settings/themes")}
@@ -182,9 +184,9 @@ function ThemesButton({ current }: { current: Settings["theme"] }) {
     >
       <ThemeSwatch theme={theme} className="h-10 w-14 shrink-0" />
       <span className="min-w-0 flex-1">
-        <span className="block text-sm">Temas</span>
+        <span className="block text-sm">{t("Temas")}</span>
         <span className="mt-0.5 block text-xs text-muted">
-          {theme.label} · {THEMES.length} temas de jogos de PlayStation
+          {theme.label} · {t("{n} temas de jogos de PlayStation", { n: THEMES.length })}
         </span>
       </span>
       <span className="text-muted">›</span>
@@ -197,18 +199,18 @@ export function ThemesPage() {
   const settings = useSettings();
   return (
     <>
-      <PageHeader title="Temas" back />
+      <PageHeader title={t("Temas")} back />
       <div className="px-4 pb-8 pt-4">
         <p className="mb-3 text-sm text-muted">
-          Cada tema usa as cores do personagem principal de um jogo de PlayStation.
+          {t("Cada tema usa as cores do personagem principal de um jogo de PlayStation.")}
         </p>
-        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tema">
-          {THEMES.map((t) => (
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("Tema")}>
+          {THEMES.map((th) => (
             <ThemeCard
-              key={t.value}
-              theme={t}
-              selected={settings.theme === t.value}
-              onSelect={() => updateSettings({ theme: t.value })}
+              key={th.value}
+              theme={th}
+              selected={settings.theme === th.value}
+              onSelect={() => updateSettings({ theme: th.value })}
             />
           ))}
         </div>
@@ -252,7 +254,7 @@ function ThemeCard({
         <span className="text-sm font-semibold">{theme.label}</span>
         {selected && <span className="text-ps-blue-2">✓</span>}
       </span>
-      <span className="block text-[0.6875rem] leading-tight text-muted">{theme.description}</span>
+      <span className="block text-[0.6875rem] leading-tight text-muted">{t(theme.description)}</span>
     </button>
   );
 }
@@ -279,7 +281,7 @@ function InstallButton({ url }: { url: string }) {
         rel="noreferrer"
         className="block rounded-xl bg-ps-blue py-2.5 text-center text-sm font-semibold"
       >
-        Baixar e instalar
+        {t("Baixar e instalar")}
       </a>
     );
   }
@@ -293,7 +295,7 @@ function InstallButton({ url }: { url: string }) {
       const { status } = await AppUpdater.downloadAndInstall({ url });
       setState(status === "permission-needed" ? { step: "permission" } : { step: "installing" });
     } catch (e) {
-      setState({ step: "error", message: e instanceof Error ? e.message : "Falha no download." });
+      setState({ step: "error", message: e instanceof Error ? e.message : t("Falha no download.") });
     } finally {
       await sub.remove();
     }
@@ -305,8 +307,9 @@ function InstallButton({ url }: { url: string }) {
       <div className="space-y-1.5" role="status">
         <ProgressBar value={state.percent < 0 ? 100 : state.percent} />
         <p className="text-xs text-muted">
-          Baixando… {state.percent >= 0 ? `${state.percent}% · ` : ""}
-          {mb} MB
+          {state.percent >= 0
+            ? t("Baixando… {percent}% · {mb} MB", { percent: state.percent, mb })
+            : t("Baixando… {mb} MB", { mb })}
         </p>
       </div>
     );
@@ -315,24 +318,27 @@ function InstallButton({ url }: { url: string }) {
   return (
     <div className="space-y-2">
       {state.step === "installing" && (
-        <p className="text-xs text-ps-blue-2">Download concluído. Confirme a instalação na tela do Android.</p>
+        <p className="text-xs text-ps-blue-2">
+          {t("Download concluído. Confirme a instalação na tela do Android.")}
+        </p>
       )}
       {state.step === "permission" && (
         <p className="text-xs text-gold">
-          Permita que o PlayStation Trophy Mania instale apps (na tela que abriu), volte e toque em “Baixar e instalar”
-          de novo.
+          {t(
+            "Permita que o PlayStation Trophy Mania instale apps (na tela que abriu), volte e toque em “Baixar e instalar” de novo.",
+          )}
         </p>
       )}
       {state.step === "error" && (
         <p className="text-xs text-red-400">
           {state.message}{" "}
           <a href={url} target="_blank" rel="noreferrer" className="underline">
-            Baixar pelo navegador
+            {t("Baixar pelo navegador")}
           </a>
         </p>
       )}
       <button onClick={start} className="block w-full rounded-xl bg-ps-blue py-2.5 text-center text-sm font-semibold">
-        {state.step === "idle" ? "Baixar e instalar" : "Baixar e instalar de novo"}
+        {state.step === "idle" ? t("Baixar e instalar") : t("Baixar e instalar de novo")}
       </button>
     </div>
   );
@@ -340,12 +346,16 @@ function InstallButton({ url }: { url: string }) {
 
 function UpdateStatus({ result }: { result: UpdateResult }) {
   if (result.status === "up-to-date") {
-    return <p className="border-t border-line px-4 py-3 text-sm text-ps-blue-2">✓ Você está na versão mais recente.</p>;
+    return (
+      <p className="border-t border-line px-4 py-3 text-sm text-ps-blue-2">{t("✓ Você está na versão mais recente.")}</p>
+    );
   }
   if (result.status === "available") {
     return (
       <div className="space-y-2 border-t border-line px-4 py-3">
-        <p className="text-sm font-semibold">Nova versão disponível: 1.0.{result.latest}</p>
+        <p className="text-sm font-semibold">
+          {t("Nova versão disponível: {version}", { version: `1.0.${result.latest}` })}
+        </p>
         {result.notes && <p className="whitespace-pre-line text-xs text-muted">{result.notes}</p>}
         <InstallButton url={result.apkUrl} />
       </div>
@@ -360,7 +370,7 @@ function UpdateStatus({ result }: { result: UpdateResult }) {
         rel="noreferrer"
         className="block rounded-xl border border-line py-2.5 text-center text-sm"
       >
-        Abrir versões no GitHub
+        {t("Abrir versões no GitHub")}
       </a>
     </div>
   );

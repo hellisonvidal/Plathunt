@@ -9,6 +9,7 @@ import { gameWrittenGuideUrl, trophyGuideUrl, trophyWrittenGuideUrl } from "../l
 import { formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import type { Title, TrophyRow } from "../psn/types";
+import { locale, t } from "../i18n";
 
 const TYPE_ORDER: Record<string, number> = { platinum: 0, gold: 1, silver: 2, bronze: 3 };
 type Filter = "todos" | "conquistados" | "bloqueados";
@@ -55,14 +56,14 @@ export function GamePage() {
   const sections = data ? groupTrophies(all, data.groups) : [];
 
   const FILTERS: { key: Filter; label: string; count: number }[] = [
-    { key: "todos", label: "Todos", count: all.length },
-    { key: "conquistados", label: "Conquistados", count: earnedCount },
-    { key: "bloqueados", label: "Bloqueados", count: all.length - earnedCount },
+    { key: "todos", label: t("Todos"), count: all.length },
+    { key: "conquistados", label: t("Conquistados"), count: earnedCount },
+    { key: "bloqueados", label: t("Bloqueados"), count: all.length - earnedCount },
   ];
 
   return (
     <>
-      <PageHeader title={data?.title?.name ?? "Jogo"} back onRefresh={refresh} refreshing={loading} />
+      <PageHeader title={data?.title?.name ?? t("Jogo")} back onRefresh={refresh} refreshing={loading} />
       <div className="space-y-4 px-4 pt-4">
         {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
         {loading && !data && <Spinner />}
@@ -83,7 +84,7 @@ export function GamePage() {
                   <span className="text-sm text-muted">{data.title?.progress ?? 0}%</span>
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  {earnedCount} de {all.length} troféus
+                  {t("{earned} de {total} troféus", { earned: earnedCount, total: all.length })}
                 </p>
                 {data.title && (
                   <a
@@ -93,7 +94,7 @@ export function GamePage() {
                     className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
                   >
                     <span aria-hidden>📖</span>
-                    Guia completo (PlayStationTrophies)
+                    {t("Guia completo (PlayStationTrophies)")}
                   </a>
                 )}
               </div>
@@ -163,7 +164,7 @@ function GroupList({
       />
       <div className="min-w-0 flex-1">
         <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-ps-blue-2">
-          {section.isBase ? "Jogo base" : "DLC"}
+          {section.isBase ? t("Jogo base") : "DLC"}
         </p>
         <h3 className="truncate font-semibold">{section.group.name}</h3>
         <div className="mt-1.5 flex items-center gap-2">
@@ -208,7 +209,7 @@ function GroupList({
         <div className="border-t border-line bg-bg/40 p-2">
           {rows.length === 0 ? (
             <p className="p-3 text-center text-xs text-muted">
-              {filter === "conquistados" ? "Nenhum troféu conquistado aqui ainda." : "Tudo conquistado aqui! 🏆"}
+              {filter === "conquistados" ? t("Nenhum troféu conquistado aqui ainda.") : t("Tudo conquistado aqui! 🏆")}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -223,16 +224,16 @@ function GroupList({
   );
 }
 
-function TrophyItem({ trophy: t, gameName }: { trophy: TrophyRow; gameName: string }) {
+function TrophyItem({ trophy, gameName }: { trophy: TrophyRow; gameName: string }) {
   const { revealSecrets, language } = useSettings();
-  const locked = !t.earned;
-  const secret = t.hidden && locked && !revealSecrets;
-  const rarity = rarityLabel(t.rate);
+  const locked = !trophy.earned;
+  const secret = trophy.hidden && locked && !revealSecrets;
+  const rarity = rarityLabel(trophy.rate);
   return (
     <li className="rounded-xl border border-line bg-surface p-3">
       <div className={`flex gap-3 ${locked ? "opacity-60" : ""}`}>
         <RemoteImage
-          src={secret ? null : t.iconUrl}
+          src={secret ? null : trophy.iconUrl}
           alt=""
           className={`h-12 w-12 shrink-0 rounded-lg ${locked ? "grayscale" : ""}`}
           fallback={
@@ -243,29 +244,30 @@ function TrophyItem({ trophy: t, gameName }: { trophy: TrophyRow; gameName: stri
         />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium">{secret ? "Troféu secreto" : t.name}</span>
-            <TrophyBadge type={t.type} />
+            <span className="font-medium">{secret ? t("Troféu secreto") : trophy.name}</span>
+            <TrophyBadge type={trophy.type} />
           </div>
-          {!secret && t.detail && <p className="text-sm text-muted">{t.detail}</p>}
-          {(t.earnedAt || rarity) && (
+          {!secret && trophy.detail && <p className="text-sm text-muted">{trophy.detail}</p>}
+          {(trophy.earnedAt || rarity) && (
             <p className="mt-1 text-xs text-ps-blue-2">
-              {t.earnedAt && `Conquistado em ${new Date(t.earnedAt).toLocaleDateString("pt-BR")}`}
-              {t.earnedAt && rarity && " · "}
+              {trophy.earnedAt &&
+                t("Conquistado em {date}", { date: new Date(trophy.earnedAt).toLocaleDateString(locale()) })}
+              {trophy.earnedAt && rarity && " · "}
               {rarity}
             </p>
           )}
         </div>
       </div>
-      {t.progress && !t.earned && !secret && (
+      {trophy.progress && !trophy.earned && !secret && (
         <div className="ml-15 mt-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted">Progresso do objetivo</span>
+            <span className="text-muted">{t("Progresso do objetivo")}</span>
             <span className="font-semibold tabular-nums">
-              {t.progress.current.toLocaleString("pt-BR")}/{t.progress.target.toLocaleString("pt-BR")}
+              {trophy.progress.current.toLocaleString(locale())}/{trophy.progress.target.toLocaleString(locale())}
             </span>
           </div>
           <div className="mt-1">
-            <ProgressBar value={(t.progress.current / t.progress.target) * 100} />
+            <ProgressBar value={(trophy.progress.current / trophy.progress.target) * 100} />
           </div>
         </div>
       )}
@@ -273,7 +275,7 @@ function TrophyItem({ trophy: t, gameName }: { trophy: TrophyRow; gameName: stri
           Usa o nome original do troféu: a tradução automática acha menos vídeos. */}
       <div className="mt-2 flex flex-wrap gap-2">
         <a
-          href={trophyGuideUrl(gameName, t.originalName ?? t.name, language)}
+          href={trophyGuideUrl(gameName, trophy.originalName ?? trophy.name, language)}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
@@ -281,17 +283,17 @@ function TrophyItem({ trophy: t, gameName }: { trophy: TrophyRow; gameName: stri
           <span className="text-[#ff3d3d]" aria-hidden>
             ▶
           </span>
-          {secret ? "Dica em vídeo (spoiler)" : "Dica em vídeo"}
+          {secret ? t("Dica em vídeo (spoiler)") : t("Dica em vídeo")}
         </a>
         {/* Guia escrito do PlayStationTrophies.org (o site usa os nomes em inglês). */}
         <a
-          href={trophyWrittenGuideUrl(gameName, t.originalName ?? t.name)}
+          href={trophyWrittenGuideUrl(gameName, trophy.originalName ?? trophy.name)}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
         >
           <span aria-hidden>📖</span>
-          Guia escrito
+          {t("Guia escrito")}
         </a>
       </div>
     </li>

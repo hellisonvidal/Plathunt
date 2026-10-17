@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { locale, t } from "../i18n";
 import { persistSet } from "./persist";
 import { parsePlatforms, PLATFORM_ORDER } from "./stats";
 import type { Title } from "../psn/types";
@@ -73,12 +74,14 @@ export function useBoosts(): Boost[] {
 /** Texto da convocação, pronto para colar em qualquer conversa. */
 export function boostMessage(b: Pick<Boost, "game" | "players" | "when" | "trophies" | "note">, me: string): string {
   const lines = [
-    `📣 BOOST: ${b.game.name} (${b.game.platform})`,
-    `👥 Procuro ${b.players} ${b.players === 1 ? "jogador" : "jogadores"} · 🕒 ${b.when}`,
+    t("📣 BOOST: {game} ({platform})", { game: b.game.name, platform: b.game.platform }),
+    b.players === 1
+      ? t("👥 Procuro {n} jogador · 🕒 {when}", { n: b.players, when: t(b.when) })
+      : t("👥 Procuro {n} jogadores · 🕒 {when}", { n: b.players, when: t(b.when) }),
   ];
-  if (b.trophies.length) lines.push(`🏆 Troféus: ${b.trophies.join(", ")}`);
+  if (b.trophies.length) lines.push(t("🏆 Troféus: {list}", { list: b.trophies.join(", ") }));
   if (b.note.trim()) lines.push(`📝 ${b.note.trim()}`);
-  lines.push(`🎮 Me chama na PSN: ${me}`);
+  lines.push(t("🎮 Me chama na PSN: {me}", { me }));
   return lines.join("\n");
 }
 
@@ -211,7 +214,7 @@ export function browseCatalog(catalog: BoostCandidate[], platform: string | null
         rank(a) - rank(b) ||
         b.friends - a.friends ||
         (q ? Number(!a.key.startsWith(q)) - Number(!b.key.startsWith(q)) : 0) ||
-        a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }),
+        a.name.localeCompare(b.name, locale(), { sensitivity: "base" }),
     );
 }
 

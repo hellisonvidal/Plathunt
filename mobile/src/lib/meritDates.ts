@@ -1,3 +1,4 @@
+import { locale, t } from "../i18n";
 import { persistSet } from "./persist";
 
 /**
@@ -50,7 +51,9 @@ export function recordMeritDates(accountId: string, doneIds: string[], now = new
 export function meritDateLabel(d: MeritDate | undefined): string | null {
   if (!d) return null;
   const at = new Date(d.at);
-  const day = at.toLocaleDateString("pt-BR");
-  const time = at.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  return d.before ? `Conquistado até ${day} às ${time}` : `Conquistado em ${day} às ${time}`;
+  const date = at.toLocaleDateString(locale());
+  const time = at.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
+  return d.before
+    ? t("Conquistado até {date} às {time}", { date, time })
+    : t("Conquistado em {date} às {time}", { date, time });
 }

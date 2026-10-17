@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from "react";
+import { t } from "../i18n";
 
 /** Apaga dados que podem ser refeitos (cache da PSN, preços), sem tirar o login. */
 export function clearRecoverableData() {
@@ -52,13 +53,14 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: E
         }}
       >
         <p style={{ fontSize: "40px", margin: 0 }}>🛠️</p>
-        <h1 style={{ fontSize: "20px", margin: "12px 0 8px" }}>Algo deu errado nesta tela</h1>
+        <h1 style={{ fontSize: "20px", margin: "12px 0 8px" }}>{t("Algo deu errado nesta tela")}</h1>
         <p style={{ color: "#8b95ad", fontSize: "14px", lineHeight: 1.5 }}>
-          O app encontrou um erro, mas seu login e suas configurações estão salvos. Tente de novo; se continuar,
-          limpe os dados temporários.
+          {t(
+            "O app encontrou um erro, mas seu login e suas configurações estão salvos. Tente de novo; se continuar, limpe os dados temporários.",
+          )}
         </p>
         <button style={{ ...button, background: "#0070d1", border: "none" }} onClick={() => location.reload()}>
-          Tentar de novo
+          {t("Tentar de novo")}
         </button>
         <button
           style={button}
@@ -68,10 +70,10 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: E
             location.reload();
           }}
         >
-          Limpar dados temporários e voltar ao início
+          {t("Limpar dados temporários e voltar ao início")}
         </button>
         <details style={{ marginTop: "24px", color: "#8b95ad", fontSize: "12px" }}>
-          <summary>Detalhes do erro</summary>
+          <summary>{t("Detalhes do erro")}</summary>
           <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
             {String(error?.stack || error?.message || error)}
           </pre>
