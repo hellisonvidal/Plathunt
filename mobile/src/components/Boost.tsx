@@ -68,6 +68,8 @@ export function BoostView() {
 }
 
 function BoostForm({ onClose }: { onClose: () => void }) {
+  // Pedir boost (só os troféus que faltam) ou responder a uma convocação, oferecendo ajuda num jogo já feito.
+  const [kind, setKind] = useState<"pedido" | "ajuda">("pedido");
   const [game, setGame] = useState<BoostCandidate | null>(null);
   const [players, setPlayers] = useState(1);
   const [when, setWhen] = useState<string>(BOOST_WHEN[0]);
@@ -86,6 +88,34 @@ function BoostForm({ onClose }: { onClose: () => void }) {
           ✕
         </button>
       </div>
+
+      <div className="grid grid-cols-2 gap-1 rounded-xl border border-line p-1 text-xs" role="radiogroup" aria-label={t("Tipo de convocação")}>
+        {(
+          [
+            ["pedido", t("📣 Pedir boost")],
+            ["ajuda", t("🤝 Responder a um pedido")],
+          ] as const
+        ).map(([k, label]) => (
+          <button
+            key={k}
+            role="radio"
+            aria-checked={kind === k}
+            onClick={() => {
+              setKind(k);
+              setTrophyIds([]);
+              setTrophies([]);
+            }}
+            className={`rounded-lg py-1.5 font-semibold ${kind === k ? "bg-ps-blue" : "text-muted"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="text-[0.6875rem] text-muted">
+        {kind === "pedido"
+          ? t("Só aparecem os troféus que você ainda não tem.")
+          : t("Recebeu um pedido de boost? Escolha o jogo, mesmo que você já tenha feito, e ofereça ajuda.")}
+      </p>
 
       {!game ? (
         <div className="space-y-2">
@@ -114,11 +144,13 @@ function BoostForm({ onClose }: { onClose: () => void }) {
 
           <div>
             <p className="mb-1.5 text-xs text-muted">
-              {t("2. Troféus que precisam de boost")}
+              {kind === "pedido" ? t("2. Troféus que precisam de boost") : t("2. Troféus em que você pode ajudar")}
               {trophies.length > 0 && ` · ${t("{n} escolhidos", { n: trophies.length })}`}
             </p>
             <TrophyPicker
+              key={kind}
               game={game}
+              earned={kind === "pedido" ? "hide" : "show"}
               selected={trophyIds}
               onChange={(ids, rows) => {
                 setTrophyIds(ids);
@@ -127,20 +159,22 @@ function BoostForm({ onClose }: { onClose: () => void }) {
             />
           </div>
 
-          <div>
-            <p className="mb-1.5 text-xs text-muted">{t("3. Quantos jogadores faltam?")}</p>
-            <div className="flex items-center gap-3">
-              <button onClick={() => setPlayers((n) => Math.max(1, n - 1))} className={chip(false)} aria-label={t("Menos")}>
-                −
-              </button>
-              <span className="w-8 text-center text-lg font-bold" aria-live="polite">
-                {players}
-              </span>
-              <button onClick={() => setPlayers((n) => Math.min(15, n + 1))} className={chip(false)} aria-label={t("Mais")}>
-                +
-              </button>
+          {kind === "pedido" && (
+            <div>
+              <p className="mb-1.5 text-xs text-muted">{t("3. Quantos jogadores faltam?")}</p>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setPlayers((n) => Math.max(1, n - 1))} className={chip(false)} aria-label={t("Menos")}>
+                  −
+                </button>
+                <span className="w-8 text-center text-lg font-bold" aria-live="polite">
+                  {players}
+                </span>
+                <button onClick={() => setPlayers((n) => Math.min(15, n + 1))} className={chip(false)} aria-label={t("Mais")}>
+                  +
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <p className="mb-1.5 text-xs text-muted">{t("4. Quando?")}</p>
@@ -173,6 +207,7 @@ function BoostForm({ onClose }: { onClose: () => void }) {
                 when,
                 trophies,
                 note,
+                kind,
               });
               onClose();
             }}

@@ -107,3 +107,36 @@ export const FilterIcon = () => (
     <circle cx="18" cy="18" r="2" />
   </svg>
 );
+
+/**
+ * Logo PlayStation em 2D, inspirado no do PS one: o "P" vermelho em pé e o
+ * "S" deitado em amarelo, verde e azul.
+ */
+export const PlayStationLogo = ({ size = 18 }: { size?: number }) => (
+  <svg
+    viewBox="0 0 24 24"
+    style={{ width: `${size / 16}rem`, height: `${size / 16}rem` }}
+    aria-hidden
+    className="inline-block shrink-0"
+  >
+    <defs>
+      <linearGradient id="ps-logo-s" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stopColor="#f7c600" />
+        <stop offset="0.5" stopColor="#00a651" />
+        <stop offset="1" stopColor="#0072ce" />
+      </linearGradient>
+    </defs>
+    <path
+      fillRule="evenodd"
+      fill="#e60012"
+      d="M5.5 2.5h6.2a4.3 4.3 0 0 1 0 8.6H9v8.4H5.5zM9 5.6v2.6h2.4a1.3 1.3 0 0 0 0-2.6z"
+    />
+    <path
+      d="M22 13.2c-3.9-.9-9.2.1-8.6 1.6.6 1.4 7.6 1 7.4 2.6-.2 1.7-6.6 2.6-11.6 1.8"
+      fill="none"
+      stroke="url(#ps-logo-s)"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+    />
+  </svg>
+);

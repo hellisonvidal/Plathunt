@@ -36,6 +36,8 @@ const FRIENDS_PAGE = 1000;
 const FEED_GAMES_PER_FRIEND = 5;
 const MAX_FEED_SOURCES = 20;
 const CONCURRENCY = 5;
+/** Maior página de jogos que a PSN aceita. */
+const TITLES_PAGE = 800;
 /** Status online: a PSN aceita vários amigos por pedido. */
 const PRESENCE_BATCH = 50;
 const PRESENCE_URL = "https://m.np.playstation.com/api/userProfile/v1/internal/users/basicPresences";
@@ -150,10 +152,11 @@ export function createPsnClient(): PsnClient {
         async () => {
           const a = await auth();
           const all: Title[] = [];
-          // Todos os jogos (até 2.000), seus e dos amigos: a comparação de
-          // estatísticas precisa da lista completa dos dois lados.
-          for (let page = 0, offset = 0; page < 20; page++) {
-            const res = await getUserTitles(a, accountId, { limit: 100, offset, headerOverrides: headers() });
+          // Todos os jogos (até 20.000), seus e dos amigos, em páginas de 800 (o
+          // máximo da PSN): a comparação de estatísticas, o Boost e os Desafios
+          // precisam da lista completa, e páginas grandes carregam bem mais rápido.
+          for (let page = 0, offset = 0; page < 25; page++) {
+            const res = await getUserTitles(a, accountId, { limit: TITLES_PAGE, offset, headerOverrides: headers() });
             all.push(...res.trophyTitles.map(toTitle));
             if (res.nextOffset === undefined || res.trophyTitles.length === 0) break;
             offset = res.nextOffset;

@@ -26,6 +26,11 @@ export interface Boost {
   /** Amigos (onlineId) que já toparam. */
   joined: string[];
   done: boolean;
+  /**
+   * "pedido": você precisa de ajuda (só troféus que faltam). "ajuda": você
+   * responde a uma convocação e oferece ajuda num jogo que já fez.
+   */
+  kind?: "pedido" | "ajuda";
 }
 
 const KEY = "tm.boosts" as const;
@@ -47,7 +52,7 @@ function save(list: Boost[]) {
   listeners.forEach((l) => l());
 }
 
-export function addBoost(b: Omit<Boost, "id" | "createdAt" | "joined" | "done">, now = new Date()): Boost {
+export function addBoost(b: Omit<Boost, "id" | "createdAt" | "joined" | "done" | "kind"> & { kind?: Boost["kind"] }, now = new Date()): Boost {
   const boost: Boost = { ...b, id: `${now.getTime()}-${Math.random().toString(36).slice(2, 7)}`, createdAt: now.toISOString(), joined: [], done: false };
   save([boost, ...getBoosts()]);
   return boost;
@@ -72,7 +77,20 @@ export function useBoosts(): Boost[] {
 }
 
 /** Texto da convocação, pronto para colar em qualquer conversa. */
-export function boostMessage(b: Pick<Boost, "game" | "players" | "when" | "trophies" | "note">, me: string): string {
+export function boostMessage(
+  b: Pick<Boost, "game" | "players" | "when" | "trophies" | "note" | "kind">,
+  me: string,
+): string {
+  if (b.kind === "ajuda") {
+    const help = [
+      t("🤝 Posso ajudar no boost: {game} ({platform})", { game: b.game.name, platform: b.game.platform }),
+      t("🕒 {when}", { when: t(b.when) }),
+    ];
+    if (b.trophies.length) help.push(t("🏆 Troféus: {list}", { list: b.trophies.join(", ") }));
+    if (b.note.trim()) help.push(`📝 ${b.note.trim()}`);
+    help.push(t("🎮 Me chama na PSN: {me}", { me }));
+    return help.join("\n");
+  }
   const lines = [
     t("📣 BOOST: {game} ({platform})", { game: b.game.name, platform: b.game.platform }),
     b.players === 1
@@ -202,20 +220,37 @@ export function searchBoostCatalog(catalog: BoostCandidate[], query: string, lim
 
 /**
  * Lista para navegar: os jogos de uma plataforma (ou de todas, com `null`),
- * filtrados pela busca. Ordem: seus jogos, os que mais amigos têm, a loja (A–Z).
+ * filtrados pela busca, em ordem alfabética.
  */
 export function browseCatalog(catalog: BoostCandidate[], platform: string | null, query = ""): BoostCandidate[] {
   const q = normalizeGameName(query);
-  const rank = (c: BoostCandidate) => (c.myProgress !== null ? 0 : c.title ? 1 : 2);
+  const collator = new Intl.Collator(locale(), { sensitivity: "base", numeric: true });
   return catalog
     .filter((c) => (!platform || c.platforms.includes(platform)) && (!q || c.key.includes(q)))
-    .sort(
-      (a, b) =>
-        rank(a) - rank(b) ||
-        b.friends - a.friends ||
-        (q ? Number(!a.key.startsWith(q)) - Number(!b.key.startsWith(q)) : 0) ||
-        a.name.localeCompare(b.name, locale(), { sensitivity: "base" }),
-    );
+    .sort((a, b) => collator.compare(a.name, b.name));
+}
+
+/**
+ * Só os seus jogos: um item por jogo da sua lista de troféus (as versões de
+ * PS4 e PS5 aparecem separadas, como no perfil), com o total de amigos que
+ * também têm o jogo, vindo do catálogo completo.
+ */
+export function myGames(mine: Title[], catalog: BoostCandidate[]): BoostCandidate[] {
+  const byKey = new Map(catalog.map((c) => [c.key, c]));
+  return mine.map((title) => {
+    const known = byKey.get(normalizeGameName(title.name));
+    return {
+      key: `me:${title.id}`,
+      name: title.name,
+      platform: title.platform,
+      platforms: parsePlatforms(title.platform),
+      iconUrl: title.iconUrl,
+      title,
+      myProgress: title.progress,
+      friends: known?.friends ?? 0,
+      inStore: known?.inStore ?? false,
+    };
+  });
 }
 
 /** Origem dos jogos no seletor: todos, só os seus, os dos amigos ou os da loja. */

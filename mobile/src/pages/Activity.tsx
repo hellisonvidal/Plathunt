@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { BoostView } from "../components/Boost";
 import { ChallengesView } from "../components/Challenges";
+import { usePrefetchGameCatalog } from "../components/GamePicker";
 import { MeritsView } from "../components/Merits";
 import { PageHeader } from "../components/PageHeader";
 import { ReactionBar } from "../components/Reactions";
@@ -25,6 +26,8 @@ export function ActivityPage() {
   const { data, error, loading, refresh } = useData((force) => client.feed(force), [client, feedDays]);
   const [filter, setFilter] = useState<FilterKey>("todos");
   const [view, setView] = useState<"feed" | "merits" | "boost" | "challenges">("feed");
+  // O catálogo do Boost e dos Desafios começa a carregar em segundo plano.
+  usePrefetchGameCatalog();
 
   const items = (data ?? []).filter((i) => {
     const types = FILTERS[filter].types as readonly string[] | null;
