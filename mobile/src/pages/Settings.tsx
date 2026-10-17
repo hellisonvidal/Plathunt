@@ -6,6 +6,7 @@ import { Avatar, ProgressBar } from "../components/ui";
 import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
 import { APP_VERSION, updateSettings, useSettings, type Settings } from "../lib/settings";
+import { STORE_REGIONS } from "../lib/store";
 import { THEMES } from "../lib/theme";
 import { checkForUpdate, RELEASES_PAGE, type UpdateResult } from "../lib/updates";
 import { useData } from "../lib/useData";
@@ -22,6 +23,7 @@ const START_TABS: { value: Settings["startTab"]; label: string }[] = [
   { value: "/stats", label: "Estatísticas" },
   { value: "/friends", label: "Amigos" },
   { value: "/activity", label: "Atividades" },
+  { value: "/store", label: "Loja" },
 ];
 
 export function SettingsPage() {
@@ -99,6 +101,15 @@ export function SettingsPage() {
             hint="Mostra nome e descrição de troféus ocultos ainda bloqueados (pode conter spoilers)"
             checked={settings.revealSecrets}
             onChange={(revealSecrets) => updateSettings({ revealSecrets })}
+          />
+        </Section>
+
+        <Section title="Loja">
+          <Choice
+            label="País da PlayStation Store (moeda e preços)"
+            options={STORE_REGIONS.map((r) => ({ value: r.value, label: r.label }))}
+            value={settings.storeRegion}
+            onChange={(storeRegion) => updateSettings({ storeRegion })}
           />
         </Section>
 

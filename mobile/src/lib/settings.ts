@@ -14,7 +14,9 @@ export interface Settings {
   /** Tema de cores (Configurações → Aparência). */
   theme: "playstation" | "light" | "oled" | "green" | "crimson" | "purple" | "spiderman" | "uncharted" | "deathstranding" | "horizon";
   /** Aba em que o app abre. */
-  startTab: "/" | "/stats" | "/friends" | "/activity";
+  startTab: "/" | "/stats" | "/friends" | "/activity" | "/store";
+  /** País da PlayStation Store (moeda e preços da aba Loja). */
+  storeRegion: "pt-BR" | "pt-PT" | "en-US" | "es-MX" | "es-AR" | "es-ES";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -23,6 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
   revealSecrets: false,
   autoTranslate: true,
   startTab: "/",
+  storeRegion: "pt-BR",
   theme: "playstation",
 };
 
