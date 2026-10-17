@@ -75,6 +75,11 @@ html:not([data-theme]) {
 
 html:not([data-theme]) header.sticky,
 html:not([data-theme]) nav.fixed {
+  --rgb-bg: 11 13 18;
+  --rgb-ink: 255 255 255;
+  --rgb-muted: 169 179 196;
+  --rgb-line: 31 36 48;
+  --rgb-ps-blue-2: 77 155 255;
   --color-bg: #0b0d12;
   --color-ink: #ffffff;
   --color-muted: #a9b3c4;
@@ -250,3 +255,28 @@ html[data-theme="light"] .text-red-400 {
     transform: translateY(0);
   }
 }
+
+/*
+ * Cores do tema com transparência, para qualquer WebView. O Tailwind só usa a
+ * cor do tema nelas quando o aparelho tem color-mix(in lab) (Chrome 111+); nos
+ * WebViews mais antigos ficavam com a cor fixa do tema padrão e os temas não
+ * apareciam por inteiro. Estas regras usam os canais --rgb-* que o app publica
+ * ao aplicar o tema (lib/theme.ts). O teste tests/theme.test.ts confere que toda
+ * classe com transparência usada no app está aqui.
+ */
+.bg-bg\/40 { background-color: rgb(var(--rgb-bg) / 0.4); }
+.bg-bg\/95 { background-color: rgb(var(--rgb-bg) / 0.95); }
+.bg-surface\/90 { background-color: rgb(var(--rgb-surface) / 0.9); }
+.bg-ps-blue\/10 { background-color: rgb(var(--rgb-ps-blue) / 0.1); }
+.bg-ps-blue\/20 { background-color: rgb(var(--rgb-ps-blue) / 0.2); }
+.bg-ps-blue\/30 { background-color: rgb(var(--rgb-ps-blue) / 0.3); }
+.bg-ps-blue-2\/10 { background-color: rgb(var(--rgb-ps-blue-2) / 0.1); }
+.bg-gold\/10 { background-color: rgb(var(--rgb-gold) / 0.1); }
+.bg-gold\/15 { background-color: rgb(var(--rgb-gold) / 0.15); }
+.bg-gold\/20 { background-color: rgb(var(--rgb-gold) / 0.2); }
+.border-gold\/40 { border-color: rgb(var(--rgb-gold) / 0.4); }
+.border-ps-blue-2\/40 { border-color: rgb(var(--rgb-ps-blue-2) / 0.4); }
+.border-ps-blue-2\/60 { border-color: rgb(var(--rgb-ps-blue-2) / 0.6); }
+.border-platinum\/50 { border-color: rgb(var(--rgb-platinum) / 0.5); }
+.border-platinum\/60 { border-color: rgb(var(--rgb-platinum) / 0.6); }
+.shadow-platinum\/40 { --tw-shadow-color: rgb(var(--rgb-platinum) / 0.4); }

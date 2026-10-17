@@ -17,11 +17,55 @@ export const THEMES: { value: Settings["theme"]; label: string; description: str
   { value: "horizon", label: "Horizon", description: "Azul-petróleo do Focus com o ruivo de Aloy", swatch: ["#0a1a1f", "#173540", "#d9621b"] },
 ];
 
+/** Cores do tema que também são usadas com transparência (ex.: bg-bg/95). */
+export const THEME_COLORS = [
+  "bg",
+  "surface",
+  "surface-2",
+  "line",
+  "ink",
+  "muted",
+  "ps-blue",
+  "ps-blue-2",
+  "bronze",
+  "silver",
+  "gold",
+  "platinum",
+  "on-accent",
+] as const;
+
+/** "#0b0f1a", "#fff" ou "rgb(1, 2, 3)" → "11 15 26" (formato de rgb(var() / alfa)). */
+export function toRgbChannels(color: string): string | null {
+  const c = color.trim();
+  const hex = c.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)?.[1];
+  if (hex) {
+    const full = hex.length === 3 ? [...hex].map((h) => h + h).join("") : hex;
+    return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16)).join(" ");
+  }
+  const rgb = c.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i);
+  return rgb ? `${rgb[1]} ${rgb[2]} ${rgb[3]}` : null;
+}
+
+/**
+ * As cores com transparência do Tailwind (bg-bg/95, border-gold/40…) só seguem
+ * o tema em WebViews com color-mix(in lab) (Chrome 111+); nos mais antigos
+ * ficam com a cor fixa do tema padrão. Por isso o app publica cada cor do tema
+ * também em canais RGB (--rgb-*), usados pelas regras de styles.css.
+ */
+function publishRgbChannels(root: HTMLElement) {
+  const computed = getComputedStyle(root);
+  for (const name of THEME_COLORS) {
+    const channels = toRgbChannels(computed.getPropertyValue(`--color-${name}`));
+    if (channels) root.style.setProperty(`--rgb-${name}`, channels);
+  }
+}
+
 /** Aplica o tema no <html> e na cor da barra do sistema. */
 export function applyTheme(theme: Settings["theme"] = getSettings().theme) {
   const root = document.documentElement;
   if (theme === "playstation") delete root.dataset.theme;
   else root.dataset.theme = theme;
+  publishRgbChannels(root);
   // No Astro Bot as barras são pretas (o visor), então a barra do sistema também.
   const bg = theme === "playstation" ? "#0b0d12" : (THEMES.find((t) => t.value === theme)?.swatch[0] ?? "#0b0d12");
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bg);
