@@ -8,17 +8,16 @@ import {
   addChallenge,
   CHALLENGE_DEADLINES,
   challengeMessage,
-  findTrophy,
   isFinished,
   platinumGoal,
-  rankChallenge,
   removeChallenge,
-  saveResults,
   STATUS_LABELS,
   useChallenges,
   type Challenge,
   type ChallengePlayer,
 } from "../lib/challenges";
+import { rankChallengeNow } from "../lib/checks";
+import { notify } from "../lib/notify";
 import { useData } from "../lib/useData";
 import type { Title } from "../psn/types";
 import { GamePicker, TrophyPicker } from "./GamePicker";
@@ -113,7 +112,7 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
         .filter((f) => rivals.includes(f.accountId))
         .map((f) => ({ accountId: f.accountId, onlineId: f.onlineId, avatarUrl: f.avatarUrl })),
     ];
-    addChallenge(
+    const created = addChallenge(
       {
         game: {
           name: game.name,
@@ -127,6 +126,17 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
       },
       deadline,
     );
+    // Lembrete um dia antes do fim do prazo.
+    if (created.deadline) {
+      const at = new Date(Date.parse(created.deadline) - 86_400_000);
+      void notify(
+        "challenges",
+        `challenge-deadline:${created.id}`,
+        t("⏳ Último dia do desafio"),
+        t("{trophy} · {game}", { trophy: created.trophy.name, game: created.game.name }),
+        at,
+      );
+    }
     onClose();
   };
 
@@ -310,26 +320,7 @@ function ChallengeCard({ challenge: c }: { challenge: Challenge }) {
 
   // Apura as posições: para cada jogador, a data em que conquistou o troféu.
   const check = useData(
-    async (force) => {
-      const game = { id: c.game.titleId, name: c.game.name };
-      const raw = Object.fromEntries(
-        await mapLimit(c.players, 3, async (p) => {
-          const titles = await (p.accountId === "me" ? client.titles("me", force) : client.titles(p.accountId, force)).catch(
-            () => null,
-          );
-          if (!titles) return [p.accountId, "privado"] as const;
-          const title = titles.find((t) => t.id === game.id) ?? titles.find((t) => sameGame(t, game));
-          if (!title) return [p.accountId, "sem-jogo"] as const;
-          const trophies = await client.gameTrophies(p.accountId, title, force).catch(() => null);
-          if (!trophies) return [p.accountId, "privado"] as const;
-          const row = findTrophy(trophies, c.trophy, title.id === game.id);
-          return [p.accountId, { earnedAt: row?.earned ? row.earnedAt : null }] as const;
-        }),
-      );
-      const results = rankChallenge(c, raw);
-      if (JSON.stringify(results) !== JSON.stringify(c.results)) saveResults(c.id, results);
-      return results;
-    },
+    (force) => rankChallengeNow(client, c, force),
     [client, c.id],
   );
   const results = check.data ?? c.results;

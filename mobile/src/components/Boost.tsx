@@ -14,6 +14,8 @@ import {
   type BoostCandidate,
 } from "../lib/boost";
 import { t } from "../i18n";
+import { boostLink, importBoost, removeFromInbox, setInboxStatus, useInbox, type ReceivedBoost } from "../lib/boostInbox";
+import { cancelNotification, notify } from "../lib/notify";
 import { mapLimit } from "../lib/cache";
 import { presenceRank, presenceText } from "../lib/presence";
 import { useData } from "../lib/useData";
@@ -27,15 +29,39 @@ import { Avatar, ErrorBox, GameIcon, Spinner, timeAgo } from "./ui";
  * jogo escolhido. Mostra quais amigos têm o jogo (e quem está online agora) e
  * gera o convite para mandar em qualquer conversa.
  */
-export function BoostView() {
+export function BoostView({ initialTab = "meus" }: { initialTab?: "meus" | "recebidos" }) {
   const boosts = useBoosts();
+  const inbox = useInbox();
+  const [tab, setTab] = useState<"meus" | "recebidos">(initialTab);
   const [creating, setCreating] = useState(boosts.length === 0);
   const open = boosts.filter((b) => !b.done);
   const done = boosts.filter((b) => b.done);
+  const fresh = inbox.filter((r) => r.status === "novo").length;
 
   return (
     <div className="space-y-4">
-      {creating ? (
+      <div className="grid grid-cols-2 gap-1 rounded-xl border border-line bg-surface p-1 text-xs" role="tablist">
+        {(
+          [
+            ["meus", t("📣 Meus pedidos")],
+            ["recebidos", fresh ? t("📥 Pedidos recebidos ({n})", { n: fresh }) : t("📥 Pedidos recebidos")],
+          ] as const
+        ).map(([k, label]) => (
+          <button
+            key={k}
+            role="tab"
+            aria-selected={tab === k}
+            onClick={() => setTab(k)}
+            className={`rounded-lg py-2 font-semibold ${tab === k ? "bg-ps-blue" : "text-muted"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "recebidos" ? (
+        <BoostInbox />
+      ) : creating ? (
         <BoostForm onClose={() => setCreating(false)} />
       ) : (
         <button onClick={() => setCreating(true)} className="w-full rounded-2xl bg-ps-blue py-3 font-semibold">
@@ -68,8 +94,6 @@ export function BoostView() {
 }
 
 function BoostForm({ onClose }: { onClose: () => void }) {
-  // Pedir boost (só os troféus que faltam) ou responder a uma convocação, oferecendo ajuda num jogo já feito.
-  const [kind, setKind] = useState<"pedido" | "ajuda">("pedido");
   const [game, setGame] = useState<BoostCandidate | null>(null);
   const [players, setPlayers] = useState(1);
   const [when, setWhen] = useState<string>(BOOST_WHEN[0]);
@@ -89,33 +113,7 @@ function BoostForm({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-1 rounded-xl border border-line p-1 text-xs" role="radiogroup" aria-label={t("Tipo de convocação")}>
-        {(
-          [
-            ["pedido", t("📣 Pedir boost")],
-            ["ajuda", t("🤝 Responder a um pedido")],
-          ] as const
-        ).map(([k, label]) => (
-          <button
-            key={k}
-            role="radio"
-            aria-checked={kind === k}
-            onClick={() => {
-              setKind(k);
-              setTrophyIds([]);
-              setTrophies([]);
-            }}
-            className={`rounded-lg py-1.5 font-semibold ${kind === k ? "bg-ps-blue" : "text-muted"}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <p className="text-[0.6875rem] text-muted">
-        {kind === "pedido"
-          ? t("Só aparecem os troféus que você ainda não tem.")
-          : t("Recebeu um pedido de boost? Escolha o jogo, mesmo que você já tenha feito, e ofereça ajuda.")}
-      </p>
+      <p className="text-[0.6875rem] text-muted">{t("Só aparecem os troféus que você ainda não tem.")}</p>
 
       {!game ? (
         <div className="space-y-2">
@@ -144,13 +142,12 @@ function BoostForm({ onClose }: { onClose: () => void }) {
 
           <div>
             <p className="mb-1.5 text-xs text-muted">
-              {kind === "pedido" ? t("2. Troféus que precisam de boost") : t("2. Troféus em que você pode ajudar")}
+              {t("2. Troféus que precisam de boost")}
               {trophies.length > 0 && ` · ${t("{n} escolhidos", { n: trophies.length })}`}
             </p>
             <TrophyPicker
-              key={kind}
               game={game}
-              earned={kind === "pedido" ? "hide" : "show"}
+              earned="hide"
               selected={trophyIds}
               onChange={(ids, rows) => {
                 setTrophyIds(ids);
@@ -159,22 +156,20 @@ function BoostForm({ onClose }: { onClose: () => void }) {
             />
           </div>
 
-          {kind === "pedido" && (
-            <div>
-              <p className="mb-1.5 text-xs text-muted">{t("3. Quantos jogadores faltam?")}</p>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setPlayers((n) => Math.max(1, n - 1))} className={chip(false)} aria-label={t("Menos")}>
-                  −
-                </button>
-                <span className="w-8 text-center text-lg font-bold" aria-live="polite">
-                  {players}
-                </span>
-                <button onClick={() => setPlayers((n) => Math.min(15, n + 1))} className={chip(false)} aria-label={t("Mais")}>
-                  +
-                </button>
-              </div>
+          <div>
+            <p className="mb-1.5 text-xs text-muted">{t("3. Quantos jogadores faltam?")}</p>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setPlayers((n) => Math.max(1, n - 1))} className={chip(false)} aria-label={t("Menos")}>
+                −
+              </button>
+              <span className="w-8 text-center text-lg font-bold" aria-live="polite">
+                {players}
+              </span>
+              <button onClick={() => setPlayers((n) => Math.min(15, n + 1))} className={chip(false)} aria-label={t("Mais")}>
+                +
+              </button>
             </div>
-          )}
+          </div>
 
           <div>
             <p className="mb-1.5 text-xs text-muted">{t("4. Quando?")}</p>
@@ -201,14 +196,15 @@ function BoostForm({ onClose }: { onClose: () => void }) {
 
           <button
             onClick={() => {
-              addBoost({
+              const boost = addBoost({
                 game: { id: game.title?.id ?? game.key, name: game.name, platform: game.platforms.join("/"), iconUrl: game.iconUrl },
                 players,
                 when,
                 trophies,
                 note,
-                kind,
+                kind: "pedido",
               });
+              scheduleBoostReminder(boost);
               onClose();
             }}
             className="w-full rounded-xl bg-ps-blue py-3 font-semibold"
@@ -226,7 +222,11 @@ function BoostCard({ boost: b }: { boost: Boost }) {
   const me = useData((force) => client.me(force), [client]);
   const [showFriends, setShowFriends] = useState(!b.done);
   const [copied, setCopied] = useState(false);
-  const text = boostMessage(b, me.data?.onlineId ?? t("eu"));
+  const myId = me.data?.onlineId ?? t("eu");
+  // O link leva o pedido junto: quem recebe abre no app e vê em "Pedidos recebidos".
+  const text =
+    boostMessage(b, myId) +
+    (b.kind === "ajuda" ? "" : `\n🔗 ${t("Abrir no Trophy Mania")}: ${boostLink(b, myId)}`);
   const links = shareLinks(text);
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
@@ -301,7 +301,13 @@ function BoostCard({ boost: b }: { boost: Boost }) {
         <button onClick={() => updateBoost(b.id, { done: !b.done })} className="font-semibold text-ps-blue-2">
           {b.done ? t("Reabrir") : t("✔ Marcar como concluída")}
         </button>
-        <button onClick={() => removeBoost(b.id)} className="text-muted underline">
+        <button
+          onClick={() => {
+            removeBoost(b.id);
+            void cancelNotification(`boost:${b.id}`);
+          }}
+          className="text-muted underline"
+        >
           {t("Apagar")}
         </button>
       </div>
@@ -385,5 +391,177 @@ function FriendsWithGame({ boost: b }: { boost: Boost }) {
         })}
       </ul>
     </div>
+  );
+}
+
+/** Horário do lembrete conforme o "quando" do pedido (Hoje à noite: 20h; Amanhã: 20h; Fim de semana: sábado 15h). */
+export function boostReminderTime(when: string, from = new Date()): Date | null {
+  const at = new Date(from);
+  at.setSeconds(0, 0);
+  if (when === "Hoje à noite") at.setHours(20, 0);
+  else if (when === "Amanhã") {
+    at.setDate(at.getDate() + 1);
+    at.setHours(20, 0);
+  } else if (when === "Fim de semana") {
+    at.setDate(at.getDate() + ((6 - at.getDay() + 7) % 7));
+    at.setHours(15, 0);
+  } else return null;
+  return at.getTime() > from.getTime() ? at : null;
+}
+
+function scheduleBoostReminder(b: Boost) {
+  const at = boostReminderTime(b.when);
+  if (at) void notify("boost", `boost:${b.id}`, t("📣 Hora do boost!"), t("{game}: chame a galera para os troféus.", { game: b.game.name }), at);
+}
+
+/**
+ * Pedidos recebidos: só pedidos de outros jogadores, que chegam pelo link da
+ * mensagem (abre o app) ou colando a mensagem aqui. Ao aceitar, o app monta a
+ * resposta oferecendo ajuda, pronta para enviar.
+ */
+function BoostInbox() {
+  const { client } = useApp();
+  const me = useData((force) => client.me(force), [client]);
+  const inbox = useInbox();
+  const [text, setText] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+
+  const add = (value: string) => {
+    const result = importBoost(value, me.data?.onlineId ?? null);
+    if (!result.ok) {
+      setMessage(
+        result.reason === "meu"
+          ? t("Esse pedido é seu. Aqui aparecem só os pedidos de outros jogadores.")
+          : t("Não encontrei um pedido de boost nessa mensagem."),
+      );
+      return;
+    }
+    setMessage(result.duplicate ? t("Esse pedido já estava na lista.") : t("Pedido de {from} adicionado.", { from: result.request.from }));
+    setText("");
+  };
+  const paste = async () => {
+    try {
+      const clip = await navigator.clipboard.readText();
+      setText(clip);
+      add(clip);
+    } catch {
+      setMessage(t("Não deu para ler a área de transferência. Cole a mensagem no campo abaixo."));
+    }
+  };
+
+  const fresh = inbox.filter((r) => r.status === "novo");
+  const accepted = inbox.filter((r) => r.status === "aceito");
+  return (
+    <div className="space-y-4">
+      <section className="space-y-2 rounded-2xl border border-line bg-surface p-4">
+        <h2 className="font-bold">{t("📥 Receber um pedido")}</h2>
+        <p className="text-xs text-muted">
+          {t("Toque no link do pedido que um amigo mandou (WhatsApp, Telegram…) ou cole a mensagem aqui.")}
+        </p>
+        <button onClick={paste} className="w-full rounded-xl bg-ps-blue py-2.5 text-sm font-semibold">
+          {t("📋 Colar pedido copiado")}
+        </button>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={3}
+          placeholder={t("Cole aqui a mensagem do pedido")}
+          className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-ps-blue-2"
+        />
+        <button
+          onClick={() => add(text)}
+          disabled={!text.trim()}
+          className="w-full rounded-xl border border-line py-2 text-sm font-semibold disabled:opacity-50"
+        >
+          {t("Adicionar pedido")}
+        </button>
+        {message && <p className="text-xs text-ps-blue-2" aria-live="polite">{message}</p>}
+      </section>
+
+      {inbox.length === 0 && (
+        <p className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">
+          {t("Nenhum pedido recebido ainda.")}
+        </p>
+      )}
+      {fresh.length > 0 && <h3 className="text-sm font-semibold text-muted">{t("Novos ({n})", { n: fresh.length })}</h3>}
+      {fresh.map((r) => (
+        <ReceivedCard key={r.id} request={r} me={me.data?.onlineId ?? t("eu")} />
+      ))}
+      {accepted.length > 0 && <h3 className="text-sm font-semibold text-muted">{t("Aceitos ({n})", { n: accepted.length })}</h3>}
+      {accepted.map((r) => (
+        <ReceivedCard key={r.id} request={r} me={me.data?.onlineId ?? t("eu")} />
+      ))}
+    </div>
+  );
+}
+
+function ReceivedCard({ request: r, me }: { request: ReceivedBoost; me: string }) {
+  const [copied, setCopied] = useState(false);
+  const reply = boostMessage({ ...r, kind: "ajuda" }, me);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(reply);
+    } catch {}
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  const btn = "rounded-full border border-line px-3 py-1.5 text-xs font-semibold";
+  return (
+    <article className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+      <div className="flex items-center gap-3">
+        <GameIcon src={r.game.iconUrl} size={48} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold">{r.game.name}</p>
+          <p className="text-xs text-muted">
+            {t("Pedido de {from}", { from: r.from })} · {r.game.platform} · {timeAgo(r.receivedAt)}
+          </p>
+          <p className="text-xs text-muted">
+            {r.players === 1 ? t("👥 {n} jogador", { n: r.players }) : t("👥 {n} jogadores", { n: r.players })} · 🕒{" "}
+            {t(r.when)}
+          </p>
+        </div>
+      </div>
+      {r.trophies.length > 0 && (
+        <ul className="space-y-1 rounded-xl bg-surface-2 p-2.5 text-xs">
+          {r.trophies.map((name) => (
+            <li key={name}>🏆 {name}</li>
+          ))}
+        </ul>
+      )}
+      {r.note && <p className="text-xs">📝 {r.note}</p>}
+
+      {r.status === "novo" ? (
+        <div className="flex gap-2">
+          <button
+            onClick={() => setInboxStatus(r.id, "aceito")}
+            className="flex-1 rounded-xl bg-ps-blue py-2 text-sm font-semibold"
+          >
+            {t("🤝 Aceitar e ajudar")}
+          </button>
+          <button onClick={() => removeFromInbox(r.id)} className="rounded-xl border border-line px-3 py-2 text-sm text-muted">
+            {t("Recusar")}
+          </button>
+        </div>
+      ) : (
+        <>
+          <p className="text-xs font-semibold text-online">{t("✔ Você aceitou. Envie a resposta para {from}:", { from: r.from })}</p>
+          <pre className="whitespace-pre-wrap rounded-xl bg-surface-2 p-3 font-sans text-xs leading-relaxed">{reply}</pre>
+          <div className="flex flex-wrap gap-2">
+            <a href={shareLinks(reply).whatsapp} target="_blank" rel="noreferrer" className={btn}>
+              WhatsApp
+            </a>
+            <a href={shareLinks(reply).telegram} target="_blank" rel="noreferrer" className={btn}>
+              Telegram
+            </a>
+            <button onClick={copy} className={btn}>
+              {copied ? t("Copiado ✔") : t("Copiar texto")}
+            </button>
+            <button onClick={() => removeFromInbox(r.id)} className={`${btn} text-muted`}>
+              {t("Apagar")}
+            </button>
+          </div>
+        </>
+      )}
+    </article>
   );
 }

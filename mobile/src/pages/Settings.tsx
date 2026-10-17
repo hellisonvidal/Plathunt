@@ -5,6 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Avatar, ProgressBar } from "../components/ui";
 import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
+import { cancelAllNotifications, requestNotificationPermission } from "../lib/notify";
 import { appVersion, updateSettings, useSettings, type Settings } from "../lib/settings";
 import { STORE_REGIONS } from "../lib/store";
 import { LANGUAGES, locale, t } from "../i18n";
@@ -116,6 +117,37 @@ export function SettingsPage() {
             value={settings.startTab}
             onChange={(startTab) => updateSettings({ startTab })}
           />
+        </Section>
+
+        <Section title={t("Notificações")}>
+          <Toggle
+            label={t("🔔 Notificações")}
+            hint={t("Desligue para não receber nenhuma notificação do app")}
+            checked={settings.notifications}
+            onChange={(notifications) => {
+              updateSettings({ notifications });
+              if (notifications) void requestNotificationPermission();
+              else void cancelAllNotifications();
+            }}
+          />
+          {settings.notifications &&
+            (
+              [
+                ["notifyMerits", "Novos méritos", "Quando você libera um mérito"],
+                ["notifyChallenges", "Desafios", "Quando alguém vence um desafio e um dia antes do fim do prazo"],
+                ["notifyBoost", "Lembretes de boost", "No horário combinado do pedido (hoje à noite, amanhã, fim de semana)"],
+                ["notifyFriends", "Platinas dos amigos", "Quando um amigo conquista uma platina"],
+                ["notifyUpdates", "Novas versões do app", "Quando há uma atualização para instalar"],
+              ] as const
+            ).map(([key, label, hint]) => (
+              <Toggle
+                key={key}
+                label={t(label)}
+                hint={t(hint)}
+                checked={settings[key]}
+                onChange={(on) => updateSettings({ [key]: on })}
+              />
+            ))}
         </Section>
 
         <Section title={t("Dados")}>

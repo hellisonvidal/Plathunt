@@ -22,6 +22,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Links de convocação de boost recebidos de amigos (trophymania://boost?d=…). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="trophymania" />
+            </intent-filter>
+
         </activity>
 
         <!-- Girar o celular, trocar o tema escuro ou dobrar a tela não reinicia o login no meio. -->

@@ -19,6 +19,13 @@ export interface Settings {
   startTab: "/" | "/stats" | "/friends" | "/activity" | "/store";
   /** País da PlayStation Store (moeda e preços da aba Loja). */
   storeRegion: StoreRegion;
+  /** Notificações do app (chave geral) e cada tipo. */
+  notifications: boolean;
+  notifyMerits: boolean;
+  notifyChallenges: boolean;
+  notifyBoost: boolean;
+  notifyFriends: boolean;
+  notifyUpdates: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -32,6 +39,12 @@ export const DEFAULT_SETTINGS: Settings = {
   storeRegion: deviceStoreRegion(),
   // Claro ou escuro, como o sistema do aparelho.
   theme: "auto",
+  notifications: true,
+  notifyMerits: true,
+  notifyChallenges: true,
+  notifyBoost: true,
+  notifyFriends: true,
+  notifyUpdates: true,
 };
 
 const KEY = "tm.settings" as const;
