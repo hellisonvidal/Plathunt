@@ -151,31 +151,37 @@ export interface StoreFilters {
   onlyDiscount: boolean;
   /** Esconde os jogos que dependem da PS Plus (catálogo ou preço de assinante). */
   hidePlus: boolean;
+  /** Esconde os jogos gratuitos. */
+  hideFree: boolean;
   price: PriceRange;
   sort: StoreSort;
 }
 
 /** Limites das faixas de preço em cada moeda (em unidades, não centavos). */
-const PRICE_STEPS: Record<StoreRegion, [number, number, number]> = {
-  "pt-BR": [50, 100, 200],
-  "pt-PT": [10, 25, 50],
-  "en-US": [10, 25, 50],
-  "es-MX": [300, 600, 1200],
-  "es-AR": [10, 25, 50],
-  "es-ES": [10, 25, 50],
+const PRICE_STEPS: Record<StoreRegion, number[]> = {
+  "pt-BR": [25, 50, 100, 150, 200, 250, 300, 400],
+  "pt-PT": [5, 10, 20, 30, 40, 50, 60, 80],
+  "en-US": [5, 10, 20, 30, 40, 50, 60, 80],
+  "es-MX": [150, 300, 500, 700, 900, 1200, 1500, 1800],
+  "es-AR": [5, 10, 20, 30, 40, 50, 60, 80],
+  "es-ES": [5, 10, 20, 30, 40, 50, 60, 80],
 };
 
-/** Opções do filtro de preço na moeda da região (até X, X–Y, Y–Z, acima de Z). */
+/** Opções do filtro de preço na moeda da região (até X, X–Y, …, acima de Z). */
 export function priceRanges(region: StoreRegion): { key: string; label: string; range: PriceRange }[] {
-  const [a, b, c] = PRICE_STEPS[region].map((n) => n * 100);
-  const f = (cents: number) => formatPrice(cents, region);
+  const steps = PRICE_STEPS[region].map((n) => n * 100);
+  const f = (cents: number) => formatPrice(cents, region).replace(/[.,]00(?=\D*$)/, "");
+  const last = steps[steps.length - 1];
   return [
     { key: "todas", label: "Qualquer", range: "todas" },
     { key: "gratis", label: "Grátis", range: "gratis" },
-    { key: `0-${a}`, label: `Até ${f(a)}`, range: { min: 1, max: a } },
-    { key: `${a}-${b}`, label: `${f(a)} – ${f(b)}`, range: { min: a + 1, max: b } },
-    { key: `${b}-${c}`, label: `${f(b)} – ${f(c)}`, range: { min: b + 1, max: c } },
-    { key: `${c}+`, label: `Acima de ${f(c)}`, range: { min: c + 1, max: null } },
+    { key: `0-${steps[0]}`, label: `Até ${f(steps[0])}`, range: { min: 1, max: steps[0] } },
+    ...steps.slice(1).map((max, i) => ({
+      key: `${steps[i]}-${max}`,
+      label: `${f(steps[i])} – ${f(max)}`,
+      range: { min: steps[i] + 1, max } as PriceRange,
+    })),
+    { key: `${last}+`, label: `Acima de ${f(last)}`, range: { min: last + 1, max: null } },
   ];
 }
 
@@ -198,6 +204,7 @@ export function filterProducts(products: StoreProduct[], f: StoreFilters): Store
       (f.platform === "todas" || p.platforms.includes(f.platform)) &&
       (!f.onlyDiscount || p.discount > 0) &&
       !(f.hidePlus && p.plus) &&
+      !(f.hideFree && (p.isFree || p.price === 0)) &&
       inRange(p, f.price),
   );
   const price = (p: StoreProduct) => p.price ?? Number.MAX_SAFE_INTEGER;

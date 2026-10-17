@@ -39,12 +39,16 @@ describe("desafios", () => {
     expect(r.b).toMatchObject({ status: "conquistou", position: 2 });
     const late = lib.rankChallenge(c, { me: { earnedAt: "2026-10-20T00:00:00Z" }, a: "sem-jogo", b: { earnedAt: null } });
     expect([late.me.status, late.a.status, late.b.status]).toEqual(["fora-do-prazo", "sem-jogo", "pendente"]);
+    expect(lib.isFinished({ ...c, deadline: null, results: { me: late.a, a: late.a, b: late.a } })).toBe(false);
+    expect(lib.isFinished({ ...c, deadline: null, results: r })).toBe(true);
   });
 
   it("acha o troféu pelo id na mesma versão e pelo nome em outra", () => {
     const row = (id: number, name: string) => ({ id, type: "gold" as const, name, detail: null, iconUrl: null, hidden: false, groupId: "default", earned: true, earnedAt: "x", rate: null });
     expect(lib.findTrophy([row(3, "Outro"), row(5, "Rápido")], base.trophy, true)?.id).toBe(3);
     expect(lib.findTrophy([row(3, "Outro"), row(5, "Rápido")], base.trophy, false)?.id).toBe(5);
+    const plat = { ...row(0, "Platina X"), type: "platinum" as const };
+    expect(lib.findTrophy([row(3, "Outro"), plat], lib.platinumGoal(), false)?.id).toBe(0);
   });
 
   it("salva, apura e alimenta os méritos de desafio", () => {

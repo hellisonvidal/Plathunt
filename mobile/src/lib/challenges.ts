@@ -17,6 +17,16 @@ export const CHALLENGE_DEADLINES = [
   { days: 90, label: "90 dias" },
 ] as const;
 
+/**
+ * Objetivo "platina do jogo", para jogos sem lista de troféus conhecida (da
+ * PlayStation Store): vale a platina de cada jogador, seja qual for o id.
+ */
+export const PLATINUM_GOAL = -1;
+
+export function platinumGoal(): Challenge["trophy"] {
+  return { id: PLATINUM_GOAL, name: "Platina do jogo", detail: "Conquiste a platina", type: "platinum", iconUrl: null, rate: null };
+}
+
 export interface ChallengePlayer {
   /** "me" para você. */
   accountId: string;
@@ -107,6 +117,7 @@ export function useChallenges(): Challenge[] {
  * id; em outra versão (PS4 × PS5) procura pelo nome.
  */
 export function findTrophy(trophies: TrophyRow[], target: Challenge["trophy"], sameVersion: boolean): TrophyRow | null {
+  if (target.id === PLATINUM_GOAL) return trophies.find((t) => t.type === "platinum") ?? null;
   if (sameVersion) return trophies.find((t) => t.id === target.id) ?? null;
   const name = normalizeGameName(target.name);
   return (
@@ -144,11 +155,13 @@ export function rankChallenge(
   return out;
 }
 
-/** Encerrado: prazo vencido ou todos já têm uma posição final. */
+/** Encerrado: prazo vencido ou todos já têm uma situação final. */
 export function isFinished(c: Challenge, now = Date.now()): boolean {
   if (c.deadline && Date.parse(c.deadline) < now) return true;
-  const results = Object.values(c.results);
-  return results.length === c.players.length && results.every((r) => r.status !== "pendente");
+  // Quem ainda não conquistou, não tem o jogo ou está privado pode mudar: o desafio segue aberto.
+  const final = new Set<PlayerStatus>(["venceu", "conquistou", "ja-tinha", "fora-do-prazo"]);
+  const results = c.players.map((p) => c.results[p.accountId]);
+  return results.every((r) => r && final.has(r.status));
 }
 
 export const STATUS_LABELS: Record<PlayerStatus, string> = {

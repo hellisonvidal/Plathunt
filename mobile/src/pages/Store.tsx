@@ -1,6 +1,6 @@
 import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../app";
-import { FilterIcon } from "../components/icons";
+import { FilterIcon, PsPlusIcon } from "../components/icons";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, RemoteImage } from "../components/ui";
 import { useSettings } from "../lib/settings";
@@ -12,6 +12,7 @@ import {
   priceRanges,
   priceHistory,
   recordPrices,
+  PLUS_ID,
   STORE_CATEGORIES,
   STORE_SORTS,
   storeProductUrl,
@@ -29,6 +30,7 @@ const DEFAULT_FILTERS: StoreFilters = {
   platform: "todas",
   onlyDiscount: false,
   hidePlus: false,
+  hideFree: false,
   price: "todas",
   sort: "relevancia",
 };
@@ -92,7 +94,13 @@ export function StorePage() {
                   categoryId === c.id ? "bg-ps-blue font-semibold" : "border border-line text-muted"
                 }`}
               >
-                {c.label}
+                {c.id === PLUS_ID ? (
+                  <span className="inline-flex items-center gap-1" aria-label="PS Plus">
+                    <PsPlusIcon size={16} /> Plus
+                  </span>
+                ) : (
+                  c.label
+                )}
               </button>
             ))}
           </nav>
@@ -158,6 +166,7 @@ function FilterBar({
     (filters.platform !== "todas" ? 1 : 0) +
     (filters.onlyDiscount ? 1 : 0) +
     (filters.hidePlus ? 1 : 0) +
+    (filters.hideFree ? 1 : 0) +
     (filters.price !== "todas" ? 1 : 0);
 
   return (
@@ -215,6 +224,10 @@ function FilterBar({
             value={priceRangeKey(filters.price)}
             onChange={(k) => set({ price: priceRanges(region).find((r) => r.key === k)?.range ?? "todas" })}
           />
+          <CustomPrice
+            value={filters.price}
+            onChange={(price) => set({ price })}
+          />
           <label className="flex items-center justify-between">
             <span>Só jogos com desconto</span>
             <input
@@ -225,8 +238,19 @@ function FilterBar({
             />
           </label>
           <label className="flex items-center justify-between gap-3">
+            <span>Esconder jogos grátis</span>
+            <input
+              type="checkbox"
+              checked={filters.hideFree}
+              onChange={(e) => set({ hideFree: e.target.checked })}
+              className="h-5 w-5 shrink-0 accent-[var(--color-ps-blue)]"
+            />
+          </label>
+          <label className="flex items-center justify-between gap-3">
             <span>
-              Esconder jogos da PS Plus
+              <span className="inline-flex items-center gap-1.5">
+                Esconder jogos da <PsPlusIcon size={18} />
+              </span>
               <span className="block text-xs text-muted">Mostra só o que não depende da assinatura</span>
             </span>
             <input
@@ -243,6 +267,63 @@ function FilterBar({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Faixa de preço livre: mínimo e máximo digitados (na moeda da região). */
+function CustomPrice({ value, onChange }: { value: StoreFilters["price"]; onChange: (p: StoreFilters["price"]) => void }) {
+  const range = typeof value === "object" ? value : null;
+  const toText = (cents: number | null | undefined) => (cents ? String(Math.round(cents / 100)) : "");
+  const [min, setMin] = useState(toText(range?.min && range.min > 1 ? range.min - 1 : null));
+  const [max, setMax] = useState(toText(range?.max));
+  // Quando a faixa muda por fora (chip ou "Limpar filtros"), os campos acompanham.
+  const emitted = useRef<StoreFilters["price"]>(value);
+  useEffect(() => {
+    if (value === emitted.current) return;
+    emitted.current = value;
+    const r = typeof value === "object" ? value : null;
+    setMin(toText(r?.min && r.min > 1 ? r.min - 1 : null));
+    setMax(toText(r?.max));
+  }, [value]);
+  const apply = (lo: string, hi: string) => {
+    const a = Number(lo.replace(",", "."));
+    const b = Number(hi.replace(",", "."));
+    const minC = lo && Number.isFinite(a) ? Math.round(a * 100) : null;
+    const maxC = hi && Number.isFinite(b) ? Math.round(b * 100) : null;
+    const next: StoreFilters["price"] = minC === null && maxC === null ? "todas" : { min: (minC ?? 0) + 1, max: maxC };
+    emitted.current = next;
+    onChange(next);
+  };
+  const input = "w-full min-w-0 rounded-full border border-line bg-surface-2 px-3 py-1.5 text-sm outline-none focus:border-ps-blue-2";
+  return (
+    <div>
+      <p className="mb-1.5 text-xs text-muted">Ou digite a faixa</p>
+      <div className="flex items-center gap-2">
+        <input
+          inputMode="decimal"
+          value={min}
+          onChange={(e) => {
+            setMin(e.target.value);
+            apply(e.target.value, max);
+          }}
+          placeholder="Mínimo"
+          aria-label="Preço mínimo"
+          className={input}
+        />
+        <span className="text-muted">–</span>
+        <input
+          inputMode="decimal"
+          value={max}
+          onChange={(e) => {
+            setMax(e.target.value);
+            apply(min, e.target.value);
+          }}
+          placeholder="Máximo"
+          aria-label="Preço máximo"
+          className={input}
+        />
+      </div>
     </div>
   );
 }
@@ -398,8 +479,8 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
           <span className="absolute left-2 top-2 rounded-full bg-ps-blue px-2 py-0.5 text-xs font-bold">-{p.discount}%</span>
         )}
         {p.plus && (
-          <span className="absolute right-2 top-2 rounded-full bg-gold px-2 py-0.5 text-[0.625rem] font-bold text-black">
-            PS Plus
+          <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-surface/90 shadow">
+            <PsPlusIcon size={18} />
           </span>
         )}
       </div>
