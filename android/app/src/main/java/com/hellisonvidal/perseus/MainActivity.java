@@ -30,11 +30,16 @@ public class MainActivity extends BridgeActivity {
      * textos não cabem nos cartões e nas abas.
      */
     private void applyTextZoom() {
-        if (getBridge() == null) return;
-        WebView webView = getBridge().getWebView();
-        if (webView == null) return;
-        float scale = getResources().getConfiguration().fontScale;
-        int zoom = Math.round(scale * 100);
-        webView.getSettings().setTextZoom(Math.max(MIN_TEXT_ZOOM, Math.min(MAX_TEXT_ZOOM, zoom)));
+        // Nunca pode derrubar a abertura do app: se o WebView ainda não existir
+        // (ou o aparelho recusar o ajuste), segue com o tamanho padrão.
+        try {
+            if (getBridge() == null) return;
+            WebView webView = getBridge().getWebView();
+            if (webView == null) return;
+            float scale = getResources().getConfiguration().fontScale;
+            int zoom = Math.round(scale * 100);
+            webView.getSettings().setTextZoom(Math.max(MIN_TEXT_ZOOM, Math.min(MAX_TEXT_ZOOM, zoom)));
+        } catch (RuntimeException ignored) {
+        }
     }
 }

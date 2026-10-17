@@ -96,3 +96,13 @@ describe("histórico de preços e lista de desejos", () => {
     expect(getWishlist()).toHaveLength(0);
   });
 });
+
+describe("dados salvos corrompidos", () => {
+  beforeEach(() => mem.clear());
+  it("lista de desejos e histórico inválidos viram vazios", () => {
+    mem.set("tm.wishlist", '{"x":1}');
+    mem.set("tm.prices", "[1,2]");
+    expect(getWishlist()).toEqual([]);
+    expect(priceHistory("pt-BR", "x")).toBeNull();
+  });
+});

@@ -153,7 +153,12 @@ export function formatPrice(cents: number, region: StoreRegion): string {
     "es-AR": "ARS",
     "es-ES": "EUR",
   };
-  return (cents / 100).toLocaleString(region, { style: "currency", currency: currency[region] });
+  try {
+    return (cents / 100).toLocaleString(region, { style: "currency", currency: currency[region] });
+  } catch {
+    // WebView sem dados de moeda: mostra o número com o código da moeda.
+    return `${currency[region]} ${(cents / 100).toFixed(2)}`;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -187,7 +192,7 @@ const priceKey = (region: StoreRegion, id: string) => `${region}:${id}`;
 
 /** Registra os preços vistos agora; devolve o histórico atualizado. */
 export function recordPrices(products: StoreProduct[], region: StoreRegion, now = new Date()): PriceBook {
-  const book = readJson<PriceBook>(PRICES_KEY, {});
+  const book = readPriceBook();
   const at = now.toISOString();
   for (const p of products) {
     if (p.price === null) continue;
@@ -209,8 +214,14 @@ export function isNewLow(record: PriceRecord | null, price: number | null): bool
   return new Date(record.minAt).getTime() > new Date(record.firstAt ?? record.minAt).getTime();
 }
 
+function readPriceBook(): PriceBook {
+  const book = readJson<unknown>(PRICES_KEY, {});
+  return book && typeof book === "object" && !Array.isArray(book) ? (book as PriceBook) : {};
+}
+
 export function priceHistory(region: StoreRegion, id: string): PriceRecord | null {
-  return readJson<PriceBook>(PRICES_KEY, {})[priceKey(region, id)] ?? null;
+  const r = readPriceBook()[priceKey(region, id)];
+  return r && typeof r.min === "number" ? r : null;
 }
 
 /** Item da lista de desejos: guarda o produto para mostrar mesmo sem abrir a categoria. */
@@ -223,7 +234,10 @@ export interface WishItem {
 const wishListeners = new Set<() => void>();
 
 export function getWishlist(): WishItem[] {
-  return readJson<WishItem[]>(WISHLIST_KEY, []);
+  const list = readJson<unknown>(WISHLIST_KEY, []);
+  return Array.isArray(list)
+    ? list.filter((w): w is WishItem => !!w && typeof w === "object" && !!(w as WishItem).product?.id)
+    : [];
 }
 
 export function toggleWish(product: StoreProduct, region: StoreRegion): boolean {

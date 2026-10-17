@@ -14,7 +14,9 @@ const listeners = new Set<() => void>();
 
 function readAll(): Record<string, string[]> {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "{}");
+    const all = JSON.parse(localStorage.getItem(KEY) ?? "{}");
+    // Dado corrompido (null, lista...) não pode derrubar a tela de Atividades.
+    return all && typeof all === "object" && !Array.isArray(all) ? all : {};
   } catch {
     return {};
   }

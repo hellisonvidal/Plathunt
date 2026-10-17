@@ -35,8 +35,10 @@ const listeners = new Set<() => void>();
 export function getSettings(): Settings {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Record<string, unknown>;
-    // Só as chaves conhecidas: opções removidas (ex.: plano do PS Plus) somem do que fica salvo.
-    const known = Object.keys(DEFAULT_SETTINGS).filter((k) => k in saved);
+    // Só as chaves conhecidas, com o tipo certo: opções removidas (ex.: plano do
+    // PS Plus) e valores corrompidos somem do que fica salvo.
+    const defaults = DEFAULT_SETTINGS as unknown as Record<string, unknown>;
+    const known = Object.keys(DEFAULT_SETTINGS).filter((k) => k in saved && typeof saved[k] === typeof defaults[k]);
     // O tema "Grafite" virou "Verde △".
     if (saved.theme === "graphite") saved.theme = "green";
     // A aba Ranking virou parte de Estatísticas.

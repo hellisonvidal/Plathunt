@@ -24,9 +24,11 @@
 
         </activity>
 
+        <!-- Girar o celular, trocar o tema escuro ou dobrar a tela não reinicia o login no meio. -->
         <activity
             android:name=".PsnLoginActivity"
             android:theme="@style/AppTheme.NoActionBar"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density|fontScale"
             android:exported="false" />
 
         <provider
