@@ -54,7 +54,7 @@ describe("filtros e ordenação", () => {
     product("2", "Alfa", "R$ 300,00", "R$ 75,00", ["PS4"]),
     product("3", "Beta", "R$ 200,00", "R$ 150,00", ["PS5", "PS4"]),
   ];
-  const base: StoreFilters = { query: "", platform: "todas", onlyDiscount: false, price: "todas", sort: "relevancia" };
+  const base: StoreFilters = { query: "", platform: "todas", onlyDiscount: false, hidePlus: false, price: "todas", sort: "relevancia" };
   const ids = (f: Partial<StoreFilters>) => filterProducts(list, { ...base, ...f }).map((p) => p.id);
   it("ordena por maior desconto, preço e nome", () => {
     expect(ids({ sort: "desconto" })).toEqual(["2", "3", "1"]);
@@ -68,6 +68,7 @@ describe("filtros e ordenação", () => {
     expect(ids({ query: "bet" })).toEqual(["3"]);
     expect(ids({ platform: "PS4" })).toEqual(["2", "3"]);
     expect(ids({ onlyDiscount: true })).toEqual(["2", "3"]);
+    expect(ids({ hidePlus: true })).toEqual(ids({}));
     expect(ids({ price: { min: 1, max: 10000 } })).toEqual(["1", "2"]);
     expect(ids({ price: { min: 10001, max: null } })).toEqual(["3"]);
     expect(ids({ price: "gratis" })).toEqual([]);
@@ -82,7 +83,7 @@ describe("faixas de preço", () => {
     const free = toStoreProduct({ id: "f", name: "F", price: { basePrice: "Gratuito", discountedPrice: "Gratuito", isFree: true } });
     const cheap = product("c", "C", "R$ 49,90", "R$ 49,90");
     const filter = (key: string) =>
-      filterProducts([free, cheap], { query: "", platform: "todas", onlyDiscount: false, sort: "relevancia", price: ranges.find((r) => r.key === key)!.range }).map((p) => p.id);
+      filterProducts([free, cheap], { query: "", platform: "todas", onlyDiscount: false, hidePlus: false, sort: "relevancia", price: ranges.find((r) => r.key === key)!.range }).map((p) => p.id);
     expect(filter("gratis")).toEqual(["f"]);
     expect(filter("0-5000")).toEqual(["c"]);
     expect(filter("5000-10000")).toEqual([]);
@@ -120,5 +121,17 @@ describe("PS Plus", () => {
     expect(toStoreProduct({ ...base, price: { basePrice: "R$ 10,00", upsellServiceBranding: ["PS_PLUS"] } }).plus).toBe(true);
     expect(toStoreProduct({ ...base, price: { basePrice: "Incluído", isTiedToSubscription: true } }).plus).toBe(true);
     expect(toStoreProduct({ ...base, price: { basePrice: "R$ 10,00", serviceBranding: ["NONE"] } }).plus).toBe(false);
+  });
+});
+
+describe("esconder PS Plus", () => {
+  it("tira da lista os jogos que dependem da assinatura", () => {
+    const base = { platforms: ["PS5"], media: [] };
+    const list = [
+      toStoreProduct({ ...base, id: "a", name: "A", price: { basePrice: "R$ 10,00", upsellServiceBranding: ["PS_PLUS"] } }),
+      toStoreProduct({ ...base, id: "b", name: "B", price: { basePrice: "R$ 10,00" } }),
+    ];
+    const f: StoreFilters = { query: "", platform: "todas", onlyDiscount: false, hidePlus: true, price: "todas", sort: "relevancia" };
+    expect(filterProducts(list, f).map((p) => p.id)).toEqual(["b"]);
   });
 });

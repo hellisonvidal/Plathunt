@@ -115,6 +115,16 @@ export function createPsnClient(): PsnClient {
     };
   }
 
+  /** Nomes, descrições e ícones dos troféus de um jogo (iguais para todo mundo). */
+  async function loadMeta(game: { id: string; service: Title["service"] }) {
+    const opts = { npServiceName: game.service, headerOverrides: headers() };
+    const meta = await cached(`meta:${game.id}`, 24 * 60 * MIN, async () => {
+      const res = await getTitleTrophies(await auth(), game.id, "all", opts);
+      return res.trophies;
+    });
+    return translatedMeta(game.id, meta);
+  }
+
   const client: PsnClient = {
     async me(force) {
       return cached(
@@ -217,11 +227,7 @@ export function createPsnClient(): PsnClient {
 
     async gameTrophies(accountId, game, force) {
       const opts = { npServiceName: game.service, headerOverrides: headers() };
-      const meta = await cached(`meta:${game.id}`, 24 * 60 * MIN, async () => {
-        const res = await getTitleTrophies(await auth(), game.id, "all", opts);
-        return res.trophies;
-      });
-      const shown = await translatedMeta(game.id, meta);
+      const shown = await loadMeta(game);
       const earned = await cached(
         `earned:${accountId}:${game.id}`,
         5 * MIN,
@@ -231,6 +237,10 @@ export function createPsnClient(): PsnClient {
         force,
       );
       return mergeTrophies(shown, earned);
+    },
+
+    async titleTrophies(game) {
+      return mergeTrophies(await loadMeta(game), []);
     },
 
     async friendIds(force) {

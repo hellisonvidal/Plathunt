@@ -274,3 +274,54 @@ export function compareTitles(mine: Title[], theirs: Title[]): TitleComparison {
     onlyTheirs: theirs.filter((t) => !used.has(t)).sort(byName),
   };
 }
+
+/** Do primeiro troféu à platina (ou ao último troféu, no 100%). */
+export interface CompletionSpan {
+  start: string;
+  end: string;
+  ms: number;
+}
+
+/**
+ * Quanto tempo levou a platina e o 100% de um jogo, a partir das datas dos
+ * troféus: começa no primeiro troféu conquistado e termina na platina (ou no
+ * último troféu, quando o jogo está 100%).
+ */
+export function completionSpans(trophies: TrophyRow[]): { platinum: CompletionSpan | null; full: CompletionSpan | null } {
+  const earned = trophies
+    .filter((t) => t.earned && t.earnedAt)
+    .map((t) => ({ type: t.type, at: Date.parse(t.earnedAt!) }))
+    .filter((t) => Number.isFinite(t.at))
+    .sort((a, b) => a.at - b.at);
+  if (!earned.length) return { platinum: null, full: null };
+  const span = (start: number, end: number): CompletionSpan => ({
+    start: new Date(start).toISOString(),
+    end: new Date(end).toISOString(),
+    ms: Math.max(0, end - start),
+  });
+  const first = earned[0].at;
+  const plat = earned.find((t) => t.type === "platinum");
+  const all = trophies.length > 0 && trophies.every((t) => t.earned);
+  return {
+    platinum: plat ? span(first, plat.at) : null,
+    full: all ? span(first, earned[earned.length - 1].at) : null,
+  };
+}
+
+/** Duração longa e legível: "5 h", "12 dias", "3 meses e 4 dias", "1 ano e 2 meses". */
+export function formatSpan(ms: number): string {
+  const hours = ms / 3_600_000;
+  if (hours < 1) return "menos de 1 h";
+  if (hours < 48) return `${Math.round(hours)} h`;
+  const days = Math.round(hours / 24);
+  if (days < 60) return `${days} dias`;
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  if (days < 365) {
+    const months = Math.floor(days / 30);
+    const rest = days - months * 30;
+    return rest ? `${plural(months, "mês", "meses")} e ${plural(rest, "dia", "dias")}` : plural(months, "mês", "meses");
+  }
+  const years = Math.floor(days / 365);
+  const months = Math.floor((days - years * 365) / 30);
+  return months ? `${plural(years, "ano", "anos")} e ${plural(months, "mês", "meses")}` : plural(years, "ano", "anos");
+}

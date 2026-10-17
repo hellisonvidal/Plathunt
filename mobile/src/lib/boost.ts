@@ -105,3 +105,90 @@ export function shareLinks(text: string) {
     telegram: `https://t.me/share/url?url=${encodeURIComponent("https://www.playstation.com")}&text=${t}`,
   };
 }
+
+/** Jogo que pode ser escolhido na convocação (seu, de amigos ou da PlayStation Store). */
+export interface BoostCandidate {
+  key: string;
+  name: string;
+  platform: string;
+  iconUrl: string | null;
+  /** Lista de troféus na PSN (quando você ou um amigo jogou). */
+  title: Title | null;
+  /** Seu progresso, se você tem o jogo. */
+  myProgress: number | null;
+  /** Quantos amigos têm o jogo. */
+  friends: number;
+  inStore: boolean;
+}
+
+/**
+ * Junta todos os jogos conhecidos: os seus, os dos amigos (todos com lista de
+ * troféus da PSN) e o catálogo da PlayStation Store. O mesmo jogo aparece uma
+ * vez só, com a lista de troféus quando alguém já jogou.
+ */
+export function buildBoostCatalog(
+  mine: Title[],
+  friendsTitles: Title[][],
+  store: { name: string; platforms: string[]; imageUrl: string | null }[],
+): BoostCandidate[] {
+  const byName = new Map<string, BoostCandidate>();
+  const add = (name: string, make: () => BoostCandidate, update: (c: BoostCandidate) => void) => {
+    const key = normalizeGameName(name);
+    if (!key) return;
+    const found = byName.get(key);
+    if (found) update(found);
+    else byName.set(key, make());
+  };
+  for (const t of mine)
+    add(
+      t.name,
+      () => ({ key: normalizeGameName(t.name), name: t.name, platform: t.platform, iconUrl: t.iconUrl, title: t, myProgress: t.progress, friends: 0, inStore: false }),
+      () => {},
+    );
+  for (const list of friendsTitles) {
+    const seen = new Set<string>();
+    for (const t of list) {
+      const key = normalizeGameName(t.name);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      add(
+        t.name,
+        () => ({ key, name: t.name, platform: t.platform, iconUrl: t.iconUrl, title: t, myProgress: null, friends: 1, inStore: false }),
+        (c) => {
+          c.friends += 1;
+          c.title ??= t;
+        },
+      );
+    }
+  }
+  for (const p of store)
+    add(
+      p.name,
+      () => ({
+        key: normalizeGameName(p.name),
+        name: p.name,
+        platform: p.platforms.join("/") || "PS5",
+        iconUrl: p.imageUrl,
+        title: null,
+        myProgress: null,
+        friends: 0,
+        inStore: true,
+      }),
+      (c) => {
+        c.inStore = true;
+        c.iconUrl ??= p.imageUrl;
+      },
+    );
+  return [...byName.values()];
+}
+
+/** Busca por nome: primeiro os seus jogos, depois os mais jogados pelos amigos, depois a loja. */
+export function searchBoostCatalog(catalog: BoostCandidate[], query: string, limit = 20): BoostCandidate[] {
+  const q = normalizeGameName(query);
+  if (!q) return [];
+  const rank = (c: BoostCandidate) => (c.myProgress !== null ? 0 : c.title ? 1 : 2);
+  return catalog
+    .filter((c) => c.key.includes(q))
+    .sort((a, b) => rank(a) - rank(b) || b.friends - a.friends || Number(!a.key.startsWith(q)) - Number(!b.key.startsWith(q)) || a.name.localeCompare(b.name))
+    .slice(0, limit);
+}
