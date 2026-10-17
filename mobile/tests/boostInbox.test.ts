@@ -10,7 +10,7 @@ globalThis.localStorage = {
   length: 0,
 } as Storage;
 
-const { boostLink, getInbox, importBoost, parseBoostText, setInboxStatus } = await import("../src/lib/boostInbox");
+const { boostLink, cloudPayload, getInbox, importBoost, parseBoostText, setInboxStatus } = await import("../src/lib/boostInbox");
 const { notificationsEnabled } = await import("../src/lib/notify");
 const { DEFAULT_SETTINGS } = await import("../src/lib/settings");
 
@@ -50,5 +50,33 @@ describe("pedidos de boost recebidos", () => {
     expect(notificationsEnabled("merits", { ...DEFAULT_SETTINGS })).toBe(true);
     expect(notificationsEnabled("merits", { ...DEFAULT_SETTINGS, notifications: false })).toBe(false);
     expect(notificationsEnabled("friends", { ...DEFAULT_SETTINGS, notifyFriends: false })).toBe(false);
+  });
+});
+
+describe("cloudPayload", () => {
+  it("leva o pedido sem a imagem do jogo e com quem enviou", () => {
+    const p = cloudPayload(
+      {
+        id: "b1",
+        game: { id: "NPWR1", name: "Jogo", platform: "PS5", iconUrl: "https://img/x.png" },
+        trophies: ["Online"],
+        players: 2,
+        when: "Agora",
+        note: "oi",
+        createdAt: "2026-10-17T00:00:00.000Z",
+      },
+      "Amigo",
+    );
+    expect(p).toEqual({
+      boostId: "b1",
+      from: "Amigo",
+      game: { id: "NPWR1", name: "Jogo", platform: "PS5", iconUrl: null },
+      trophies: ["Online"],
+      players: 2,
+      when: "Agora",
+      note: "oi",
+      createdAt: "2026-10-17T00:00:00.000Z",
+    });
+    expect(JSON.stringify(p).length).toBeLessThan(8000);
   });
 });

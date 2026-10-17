@@ -19,6 +19,8 @@ import { countReactedItems } from "./reactions";
 import { BUILD_NUMBER, getSettings } from "./settings";
 import { matchPlayed } from "./stats";
 import { checkForUpdate } from "./updates";
+import { syncCloudInbox } from "./boostInbox";
+import { cloudIdentity, likesOnMine } from "./cloud";
 
 /** Posições de um desafio agora, pelas datas de conquista na PSN de cada jogador. */
 export async function rankChallengeNow(client: PsnClient, c: Challenge, force = false): Promise<Record<string, PlayerResult>> {
@@ -45,6 +47,7 @@ interface CheckState {
   at: number;
   feedSince: string | null;
   updateNotified: number | null;
+  likesSince: string | null;
 }
 const KEY = "tm.checks";
 /** Intervalo mínimo entre verificações (para não gastar chamadas à PSN). */
@@ -54,9 +57,14 @@ let running = false;
 function readState(): CheckState {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) ?? "{}");
-    return { at: Number(s.at) || 0, feedSince: s.feedSince ?? null, updateNotified: s.updateNotified ?? null };
+    return {
+      at: Number(s.at) || 0,
+      feedSince: s.feedSince ?? null,
+      updateNotified: s.updateNotified ?? null,
+      likesSince: s.likesSince ?? null,
+    };
   } catch {
-    return { at: 0, feedSince: null, updateNotified: null };
+    return { at: 0, feedSince: null, updateNotified: null, likesSince: null };
   }
 }
 
@@ -84,6 +92,7 @@ export async function runBackgroundChecks(client: PsnClient, now = Date.now()): 
     if (notificationsEnabled("merits", settings)) await checkMerits(client);
     if (notificationsEnabled("friends", settings)) state.feedSince = await checkFriends(client, state.feedSince, now);
     if (notificationsEnabled("updates", settings)) state.updateNotified = await checkUpdate(state.updateNotified);
+    if (notificationsEnabled("social", settings)) state.likesSince = await checkSocial(state.likesSince, now);
     writeState(state);
   } finally {
     running = false;
@@ -155,6 +164,30 @@ async function checkFriends(client: PsnClient, since: string | null, now: number
       `plat:${item.key}`,
       t("🏆 {name} platinou!", { name: item.owner.onlineId }),
       item.game.name,
+    );
+  }
+  return stamp;
+}
+
+/** Recursos online: curtidas nas suas conquistas e pedidos de boost que chegaram. */
+async function checkSocial(since: string | null, now: number): Promise<string | null> {
+  if (!(await cloudIdentity())) return since;
+  const stamp = new Date(now).toISOString();
+  const requests = await syncCloudInbox().catch(() => []);
+  for (const r of requests.slice(0, 3)) {
+    await notify("social", `boost-req:${r.id}`, t("📥 Pedido de boost de {from}", { from: r.from }), r.game.name);
+  }
+  if (!since) return stamp;
+  const likes = await likesOnMine(since).catch(() => []);
+  const names = [...new Set(likes.map((l) => l.online_id).filter(Boolean))] as string[];
+  if (names.length === 1) {
+    await notify("social", `likes:${stamp}`, t("❤️ {name} curtiu sua conquista", { name: names[0] }), t("Veja em Atividades."));
+  } else if (names.length > 1) {
+    await notify(
+      "social",
+      `likes:${stamp}`,
+      t("❤️ {n} jogadores curtiram suas conquistas", { n: names.length }),
+      names.slice(0, 3).join(", "),
     );
   }
   return stamp;

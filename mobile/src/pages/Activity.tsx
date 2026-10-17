@@ -6,7 +6,8 @@ import { ChallengesView } from "../components/Challenges";
 import { usePrefetchGameCatalog } from "../components/GamePicker";
 import { MeritsView } from "../components/Merits";
 import { PageHeader } from "../components/PageHeader";
-import { ReactionBar } from "../components/Reactions";
+import { ReactionBar, type OtherLike } from "../components/Reactions";
+import { appUsers, likesFor, useCloud } from "../lib/cloud";
 import { Avatar, ErrorBox, GameIcon, RemoteImage, Spinner, TrophyBadge, rarityLabel, timeAgo } from "../components/ui";
 import { t } from "../i18n";
 import { groupFeed, type FeedGroup } from "../lib/feed";
@@ -40,6 +41,23 @@ export function ActivityPage() {
     return !types || types.includes(i.trophy.type);
   });
   const groups = groupFeed(items);
+  // Recursos online: curtidas de outros jogadores nestas conquistas (exceto as suas).
+  const cloudState = useCloud();
+  const groupKeys = groups.map((g) => g.key).join("|");
+  const others = useData(async () => {
+    const me = cloudState.identity;
+    if (!me || !groupKeys) return new Map<string, OtherLike[]>();
+    const likes = (await likesFor(groupKeys.split("|"))).filter((l) => l.liker_account_id !== me.accountId);
+    const names = await appUsers([...new Set(likes.map((l) => l.liker_account_id))]);
+    const map = new Map<string, OtherLike[]>();
+    for (const l of likes) {
+      const list = map.get(l.item_key) ?? [];
+      list.push({ reaction: l.reaction, name: names.get(l.liker_account_id) ?? "?" });
+      map.set(l.item_key, list);
+    }
+    return map;
+  }, [cloudState.identity?.accountId, groupKeys]);
+  const othersByKey = others.data ?? new Map<string, OtherLike[]>();
 
   return (
     <>
@@ -105,7 +123,7 @@ export function ActivityPage() {
             )}
 
             {groups.map((group) => (
-              <GroupCard key={group.key} group={group} />
+              <GroupCard key={group.key} group={group} others={othersByKey.get(group.key)} />
             ))}
 
             {data && items.length > 0 && (
@@ -125,7 +143,7 @@ const PREVIEW = 3;
 const TYPE_ORDER = ["platinum", "gold", "silver", "bronze"] as const;
 
 /** Um cartão por jogador, jogo e dia, com os troféus conquistados agrupados. */
-function GroupCard({ group }: { group: FeedGroup }) {
+function GroupCard({ group, others }: { group: FeedGroup; others?: OtherLike[] }) {
   const [expanded, setExpanded] = useState(false);
   const { owner, game, items, counts } = group;
   const hasPlatinum = counts.platinum > 0;
@@ -194,7 +212,7 @@ function GroupCard({ group }: { group: FeedGroup }) {
       )}
 
       <div className="px-4 pb-4">
-        <ReactionBar itemKey={group.key} />
+        <ReactionBar itemKey={group.key} ownerAccountId={group.owner.accountId} others={others} />
       </div>
     </article>
   );

@@ -7,7 +7,7 @@ import { getSettings, type Settings } from "./settings";
  * desligado, e há uma chave geral. No app usa as notificações do Android; no
  * navegador (demonstração), as do navegador, se permitidas.
  */
-export type NotifyKind = "merits" | "challenges" | "boost" | "friends" | "updates";
+export type NotifyKind = "merits" | "challenges" | "boost" | "friends" | "updates" | "social";
 
 const SETTING: Record<NotifyKind, keyof Settings> = {
   merits: "notifyMerits",
@@ -15,6 +15,7 @@ const SETTING: Record<NotifyKind, keyof Settings> = {
   boost: "notifyBoost",
   friends: "notifyFriends",
   updates: "notifyUpdates",
+  social: "notifySocial",
 };
 
 export function notificationsEnabled(kind: NotifyKind, settings = getSettings()): boolean {

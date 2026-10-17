@@ -15,6 +15,7 @@
     "@capacitor/core": "8.5.2",
     "@capacitor/local-notifications": "8.3.1",
     "@capacitor/preferences": "8.0.1",
+    "@supabase/supabase-js": "2.75.0",
     "psn-api": "2.18.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",

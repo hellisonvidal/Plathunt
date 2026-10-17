@@ -34,17 +34,26 @@ Versão **1.1.0** (o número do build vai junto: "1.1.0 (build N)"). Na tela de 
 - **Desafios:** quando alguém vence e um dia antes do fim do prazo;
 - **Lembretes de boost** no horário do pedido (hoje à noite e amanhã às 20h, fim de semana no sábado às 15h);
 - **Platinas dos amigos**;
-- **Novas versões do app**.
+- **Novas versões do app**;
+- **Curtidas e pedidos recebidos** (com os recursos online ligados).
 
 As verificações rodam ao abrir o app e ao voltar para ele (no máximo a cada 15 minutos); lembretes e prazos ficam agendados no Android mesmo com o app fechado. Desligar a chave geral cancela os agendados.
 
 **Temas:** o Astro Bot ganhou fundo azul (um tom médio, bem diferente do Claro) (bem diferente do Claro, que é cinza neutro) com as barras pretas do visor. O contraste de texto, destaques e do verde "online" foi conferido em todos os temas, e o Automático passou a receber do Android se o sistema está no modo escuro (WebViews antigos sempre respondiam "claro").
 
+## Recursos online (opcionais, Supabase gratuito)
+
+Em Configurações → Recursos online, quem entrou com a PSN pode ligar:
+- **Curtidas compartilhadas:** a curtida chega ao dono da conquista, que vê "curtido por…" em Atividades e recebe notificação;
+- **Pedidos de boost direto no app:** no card do pedido, "📲 Enviar direto no app" lista os amigos que também usam o Trophy Mania com recursos online; o pedido aparece em "Pedidos recebidos" deles, e a resposta (aceitou/recusou) volta para quem enviou.
+
+O servidor é um projeto Supabase (plano gratuito, região São Paulo). A função `supabase/functions/psn-login` confirma o ID da PSN com o token da própria sessão PSN (usado uma vez, não é guardado) e devolve a sessão do app; as tabelas (`supabase/migrations/`) têm regras de acesso (RLS) para que cada um só grave as próprias curtidas e pedidos. O app usa só a chave pública (publishable). Ficam guardados apenas ID e avatar da PSN, curtidas e pedidos de boost — veja a [política de privacidade](docs/privacidade.md).
+
 ## Idiomas
 
 O app é multilíngue: português (Brasil), inglês, espanhol, francês, alemão, italiano e japonês. Na primeira abertura usa o idioma do aparelho (ou inglês, se o idioma não for um desses) e pode ser trocado em Configurações → Idioma, que vale para a interface e para os nomes de jogos e troféus da PSN. O país da loja também segue o aparelho (Brasil, Portugal, Estados Unidos, México, Argentina, Espanha, França, Alemanha, Itália, Reino Unido ou Japão). Os textos ficam em português no código e passam por `t()` (`mobile/src/i18n`); as traduções estão em `mobile/src/i18n/locales/`, e o teste `tests/i18n.test.ts` confere que todo texto tem tradução em todos os idiomas.
 
-## App Android (sem servidor)
+## App Android
 
 ### Instalar
 
