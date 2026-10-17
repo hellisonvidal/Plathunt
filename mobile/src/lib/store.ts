@@ -64,8 +64,25 @@ export const STORE_REGIONS = [
   { value: "es-MX", label: "México" },
   { value: "es-AR", label: "Argentina" },
   { value: "es-ES", label: "Espanha" },
+  { value: "fr-FR", label: "França" },
+  { value: "de-DE", label: "Alemanha" },
+  { value: "it-IT", label: "Itália" },
+  { value: "en-GB", label: "Reino Unido" },
+  { value: "ja-JP", label: "Japão" },
 ] as const;
 export type StoreRegion = (typeof STORE_REGIONS)[number]["value"];
+
+/** País da loja do aparelho (moeda e preços), quando a loja existe no app; senão, Estados Unidos. */
+export function deviceStoreRegion(): StoreRegion {
+  const tags = typeof navigator !== "undefined" ? [...(navigator.languages ?? []), navigator.language] : [];
+  for (const tag of tags.filter(Boolean)) {
+    const found = STORE_REGIONS.find((r) => r.value.toLowerCase() === tag.toLowerCase());
+    if (found) return found.value;
+  }
+  const base = tags.find(Boolean)?.slice(0, 2).toLowerCase();
+  const byLanguage: Record<string, StoreRegion> = { pt: "pt-BR", es: "es-ES", fr: "fr-FR", de: "de-DE", it: "it-IT", ja: "ja-JP" };
+  return (base && byLanguage[base]) || "en-US";
+}
 
 /**
  * Lê um preço da loja em centavos: "R$ 1.249,90", "US$29.99", "29,99 €".
@@ -166,6 +183,11 @@ const PRICE_STEPS: Record<StoreRegion, number[]> = {
   "es-MX": [150, 300, 500, 700, 900, 1200, 1500, 1800],
   "es-AR": [5, 10, 20, 30, 40, 50, 60, 80],
   "es-ES": [5, 10, 20, 30, 40, 50, 60, 80],
+  "fr-FR": [5, 10, 20, 30, 40, 50, 60, 80],
+  "de-DE": [5, 10, 20, 30, 40, 50, 60, 80],
+  "it-IT": [5, 10, 20, 30, 40, 50, 60, 80],
+  "en-GB": [5, 10, 20, 30, 40, 50, 60, 80],
+  "ja-JP": [500, 1000, 2000, 3000, 4000, 5000, 7000, 9000],
 };
 
 /** Opções do filtro de preço na moeda da região (até X, X–Y, …, acima de Z). */
@@ -234,6 +256,11 @@ export function formatPrice(cents: number, region: StoreRegion): string {
     "es-MX": "MXN",
     "es-AR": "ARS",
     "es-ES": "EUR",
+    "fr-FR": "EUR",
+    "de-DE": "EUR",
+    "it-IT": "EUR",
+    "en-GB": "GBP",
+    "ja-JP": "JPY",
   };
   try {
     return (cents / 100).toLocaleString(region, { style: "currency", currency: currency[region] });

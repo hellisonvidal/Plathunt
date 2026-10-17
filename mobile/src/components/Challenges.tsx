@@ -372,7 +372,7 @@ function ChallengeCard({ challenge: c }: { challenge: Challenge }) {
                 ? t("encerrado")
                 : left !== null
                   ? left === 1
-                    ? t("{n} dia restantes", { n: Math.max(0, left) })
+                    ? t("{n} dia restante", { n: Math.max(0, left) })
                     : t("{n} dias restantes", { n: Math.max(0, left) })
                   : t("sem prazo"),
               rarityLabel(c.trophy.rate),

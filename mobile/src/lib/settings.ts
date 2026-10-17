@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { deviceLanguage, LANGUAGES, setLanguage, t, type Language } from "../i18n";
 import { persistSet } from "./persist";
+import { deviceStoreRegion, STORE_REGIONS, type StoreRegion } from "./store";
 
 /** Preferências do app, salvas no celular. */
 export interface Settings {
@@ -17,7 +18,7 @@ export interface Settings {
   /** Aba em que o app abre. */
   startTab: "/" | "/stats" | "/friends" | "/activity" | "/store";
   /** País da PlayStation Store (moeda e preços da aba Loja). */
-  storeRegion: "pt-BR" | "pt-PT" | "en-US" | "es-MX" | "es-AR" | "es-ES";
+  storeRegion: StoreRegion;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -27,7 +28,8 @@ export const DEFAULT_SETTINGS: Settings = {
   revealSecrets: false,
   autoTranslate: true,
   startTab: "/",
-  storeRegion: "pt-BR",
+  // Na primeira abertura, o país do aparelho.
+  storeRegion: deviceStoreRegion(),
   theme: "playstation",
 };
 
@@ -47,6 +49,7 @@ export function getSettings(): Settings {
     if (saved.startTab === "/ranking") saved.startTab = "/stats";
     const merged = { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) } as Settings;
     if (!LANGUAGES.some((l) => l.value === merged.language)) merged.language = DEFAULT_SETTINGS.language;
+    if (!STORE_REGIONS.some((r) => r.value === merged.storeRegion)) merged.storeRegion = DEFAULT_SETTINGS.storeRegion;
     return merged;
   } catch {
     return DEFAULT_SETTINGS;
