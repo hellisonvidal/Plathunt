@@ -15,8 +15,8 @@ export function PageHeader({
   refreshing?: boolean;
 }) {
   const navigate = useNavigate();
-  // Puxar a tela para baixo faz o mesmo que o botão ⟳. O indicador gira só
-  // nas atualizações feitas puxando (não na primeira carga da tela).
+  // Para atualizar, puxe a tela para baixo (não há botão). O indicador gira
+  // só nas atualizações feitas puxando (não na primeira carga da tela).
   const [fromPull, setFromPull] = useState(false);
   useEffect(() => {
     if (!refreshing) setFromPull(false);
@@ -40,16 +40,6 @@ export function PageHeader({
           </button>
         )}
         <h1 className="min-w-0 flex-1 truncate text-lg font-bold">{title}</h1>
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            disabled={refreshing}
-            aria-label="Atualizar"
-            className="rounded-full px-2 text-xl text-muted disabled:opacity-40"
-          >
-            <span className={refreshing ? "inline-block animate-spin" : ""}>⟳</span>
-          </button>
-        )}
         {!back && (
           <Link to="/settings" aria-label="Configurações" className="rounded-full p-1 text-muted active:text-ink">
             <SettingsIcon />

@@ -6,6 +6,8 @@ import {
   isNewLow,
   parsePrice,
   priceHistory,
+  priceRangeKey,
+  priceRanges,
   recordPrices,
   refreshWishlist,
   toggleWish,
@@ -55,20 +57,38 @@ describe("filtros e ordenação", () => {
     product("2", "Alfa", "R$ 300,00", "R$ 75,00", ["PS4"]),
     product("3", "Beta", "R$ 200,00", "R$ 150,00", ["PS5", "PS4"]),
   ];
-  const base: StoreFilters = { query: "", platform: "todas", onlyDiscount: false, maxPrice: null, sort: "relevancia" };
+  const base: StoreFilters = { query: "", platform: "todas", onlyDiscount: false, price: "todas", sort: "relevancia" };
   const ids = (f: Partial<StoreFilters>) => filterProducts(list, { ...base, ...f }).map((p) => p.id);
   it("ordena por maior desconto, preço e nome", () => {
     expect(ids({ sort: "desconto" })).toEqual(["2", "3", "1"]);
     expect(ids({ sort: "menor-preco" })).toEqual(["2", "1", "3"]);
     expect(ids({ sort: "maior-preco" })).toEqual(["3", "1", "2"]);
     expect(ids({ sort: "nome" })).toEqual(["2", "3", "1"]);
+    expect(ids({ sort: "nome-desc" })).toEqual(["1", "3", "2"]);
     expect(ids({})).toEqual(["1", "2", "3"]);
   });
   it("filtra por busca, plataforma, desconto e preço máximo", () => {
     expect(ids({ query: "bet" })).toEqual(["3"]);
     expect(ids({ platform: "PS4" })).toEqual(["2", "3"]);
     expect(ids({ onlyDiscount: true })).toEqual(["2", "3"]);
-    expect(ids({ maxPrice: 10000 })).toEqual(["1", "2"]);
+    expect(ids({ price: { min: 1, max: 10000 } })).toEqual(["1", "2"]);
+    expect(ids({ price: { min: 10001, max: null } })).toEqual(["3"]);
+    expect(ids({ price: "gratis" })).toEqual([]);
+  });
+});
+
+describe("faixas de preço", () => {
+  it("monta as faixas na moeda da região e reconhece a escolhida", () => {
+    const ranges = priceRanges("pt-BR");
+    expect(ranges.map((r) => r.key)).toEqual(["todas", "gratis", "0-5000", "5000-10000", "10000-20000", "20000+"]);
+    for (const r of ranges) expect(priceRangeKey(r.range)).toBe(r.key);
+    const free = toStoreProduct({ id: "f", name: "F", price: { basePrice: "Gratuito", discountedPrice: "Gratuito", isFree: true } });
+    const cheap = product("c", "C", "R$ 49,90", "R$ 49,90");
+    const filter = (key: string) =>
+      filterProducts([free, cheap], { query: "", platform: "todas", onlyDiscount: false, sort: "relevancia", price: ranges.find((r) => r.key === key)!.range }).map((p) => p.id);
+    expect(filter("gratis")).toEqual(["f"]);
+    expect(filter("0-5000")).toEqual(["c"]);
+    expect(filter("5000-10000")).toEqual([]);
   });
 });
 
