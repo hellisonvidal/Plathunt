@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { cached } from "../lib/cache";
 import {
   ALL_ID,
@@ -48,10 +49,10 @@ async function fetchPage(categoryId: string, region: StoreRegion, offset: number
   const res = await fetch(url, {
     headers: { "x-psn-store-locale-override": region, "content-type": "application/json" },
   });
-  if (!res.ok) throw new Error(`A PlayStation Store respondeu HTTP ${res.status}`);
+  if (!res.ok) throw new Error(t("A PlayStation Store respondeu HTTP {status}", { status: String(res.status) }));
   const json = await res.json();
   const grid = json?.data?.categoryGridRetrieve;
-  if (!grid) throw new Error("A PlayStation Store não devolveu o catálogo (a loja pode ter mudado).");
+  if (!grid) throw new Error(t("A PlayStation Store não devolveu o catálogo (a loja pode ter mudado)."));
   return {
     products: (grid.products ?? []).map(toStoreProduct) as StoreProduct[],
     total: (grid.pageInfo?.totalCount as number | undefined) ?? 0,

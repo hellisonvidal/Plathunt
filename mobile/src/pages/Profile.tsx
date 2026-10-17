@@ -8,6 +8,7 @@ import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge } from "../componen
 import { formatDuration, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import { PsPlusIcon } from "../components/icons";
+import { t } from "../i18n";
 
 type Sort = "recentes" | "progresso" | "tempo";
 
@@ -45,14 +46,14 @@ export function ProfilePage() {
   return (
     <>
       <PageHeader
-        title={isMe ? "Perfil" : (data?.profile.onlineId ?? "Perfil")}
+        title={isMe ? t("Perfil") : (data?.profile.onlineId ?? t("Perfil"))}
         back={!isMe}
         onRefresh={refresh}
         refreshing={loading}
       />
       <div className="space-y-4 px-4 pt-4">
         {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
-        {loading && !data && <Spinner label="Carregando perfil e jogos…" />}
+        {loading && !data && <Spinner label={t("Carregando perfil e jogos…")} />}
 
         {data && (
           <>
@@ -69,7 +70,9 @@ export function ProfilePage() {
               {data.profile.earned ? (
                 <>
                   <div className="mt-4 flex items-center gap-3">
-                    <span className="rounded-lg bg-ps-blue px-2 py-1 text-sm font-bold">Nv. {data.profile.level}</span>
+                    <span className="rounded-lg bg-ps-blue px-2 py-1 text-sm font-bold">
+                      {t("Nv. {n}", { n: data.profile.level ?? "" })}
+                    </span>
                     <div className="flex-1">
                       <ProgressBar value={data.profile.levelProgress ?? 0} />
                     </div>
@@ -82,13 +85,13 @@ export function ProfilePage() {
                     <TrophyBadge type="bronze" count={data.profile.earned.bronze} />
                   </div>
                   <p className="mt-2 text-xs text-muted">
-                    {data.titles?.length ?? 0} jogos
-                    {totalPlay > 0 && ` · ⏱ ${formatDuration(totalPlay)} jogados`}
+                    {t("{n} jogos", { n: data.titles?.length ?? 0 })}
+                    {totalPlay > 0 && t(" · ⏱ {time} jogados", { time: formatDuration(totalPlay) })}
                   </p>
                   {data.titles && <CompletionSummary titles={data.titles} />}
                 </>
               ) : (
-                <p className="mt-3 text-sm text-muted">Os troféus deste perfil são privados.</p>
+                <p className="mt-3 text-sm text-muted">{t("Os troféus deste perfil são privados.")}</p>
               )}
             </section>
 
@@ -98,24 +101,24 @@ export function ProfilePage() {
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Buscar jogo"
+                    placeholder={t("Buscar jogo")}
                     className="min-w-0 flex-1 rounded-full border border-line bg-surface-2 px-4 py-2 text-sm outline-none focus:border-ps-blue-2"
                   />
                   <select
                     value={sort}
                     onChange={(e) => setSort(e.target.value as Sort)}
-                    aria-label="Ordenar jogos"
+                    aria-label={t("Ordenar jogos")}
                     className="rounded-full border border-line bg-surface-2 px-3 text-sm"
                   >
-                    <option value="recentes">Recentes</option>
-                    <option value="progresso">Progresso</option>
-                    <option value="tempo">Tempo de jogo</option>
+                    <option value="recentes">{t("Recentes")}</option>
+                    <option value="progresso">{t("Progresso")}</option>
+                    <option value="tempo">{t("Tempo de jogo")}</option>
                   </select>
                 </div>
                 <TitleList titles={titles} accountId={accountId} playtime={data.playtime} />
                 {data.playtime.size === 0 && data.titles.length > 0 && (
                   <p className="text-center text-xs text-muted">
-                    O tempo de jogo não está disponível para este perfil (ou só há jogos de PS3/Vita).
+                    {t("O tempo de jogo não está disponível para este perfil (ou só há jogos de PS3/Vita).")}
                   </p>
                 )}
               </>

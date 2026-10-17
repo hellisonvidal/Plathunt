@@ -1,3 +1,4 @@
+import { locale, t } from "../i18n";
 import { persistSet } from "./persist";
 
 /**
@@ -173,15 +174,15 @@ export function priceRanges(region: StoreRegion): { key: string; label: string; 
   const f = (cents: number) => formatPrice(cents, region).replace(/[.,]00(?=\D*$)/, "");
   const last = steps[steps.length - 1];
   return [
-    { key: "todas", label: "Qualquer", range: "todas" },
-    { key: "gratis", label: "Grátis", range: "gratis" },
-    { key: `0-${steps[0]}`, label: `Até ${f(steps[0])}`, range: { min: 1, max: steps[0] } },
+    { key: "todas", label: t("Qualquer"), range: "todas" },
+    { key: "gratis", label: t("Grátis"), range: "gratis" },
+    { key: `0-${steps[0]}`, label: t("Até {price}", { price: f(steps[0]) }), range: { min: 1, max: steps[0] } },
     ...steps.slice(1).map((max, i) => ({
       key: `${steps[i]}-${max}`,
       label: `${f(steps[i])} – ${f(max)}`,
       range: { min: steps[i] + 1, max } as PriceRange,
     })),
-    { key: `${last}+`, label: `Acima de ${f(last)}`, range: { min: last + 1, max: null } },
+    { key: `${last}+`, label: t("Acima de {price}", { price: f(last) }), range: { min: last + 1, max: null } },
   ];
 }
 
@@ -216,9 +217,9 @@ export function filterProducts(products: StoreProduct[], f: StoreFilters): Store
     case "maior-preco":
       return [...list].sort((a, b) => (b.price ?? -1) - (a.price ?? -1));
     case "nome":
-      return [...list].sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
+      return [...list].sort((a, b) => a.name.localeCompare(b.name, locale(), { sensitivity: "base" }));
     case "nome-desc":
-      return [...list].sort((a, b) => b.name.localeCompare(a.name, "pt-BR", { sensitivity: "base" }));
+      return [...list].sort((a, b) => b.name.localeCompare(a.name, locale(), { sensitivity: "base" }));
     default:
       return list;
   }
