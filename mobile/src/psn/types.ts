@@ -112,6 +112,8 @@ export interface PsnClient {
   /** Perfis de todos os amigos (carrega cada um; pode demorar com listas grandes). */
   friends(force?: boolean): Promise<Profile[]>;
   profile(accountId: string, force?: boolean): Promise<Profile>;
+  /** Nome verdadeiro do jogador, quando ele compartilha na PSN; senão null. */
+  realName(onlineId: string, force?: boolean): Promise<string | null>;
   /** Status online/offline de vários amigos de uma vez (por accountId). */
   presences(accountIds: string[], force?: boolean): Promise<Record<string, Presence>>;
   feed(force?: boolean): Promise<FeedItem[]>;

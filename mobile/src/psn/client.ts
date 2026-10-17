@@ -1,6 +1,7 @@
 import {
   getBasicPresence,
   getProfileFromAccountId,
+  getProfileFromUserName,
   getTitleTrophies,
   getTitleTrophyGroups,
   getUserPlayedGames,
@@ -143,6 +144,25 @@ export function createPsnClient(): PsnClient {
     async profile(accountId, force) {
       // Perfis passam pelo limitador: a lista completa de amigos pode ter centenas.
       return cached(`profile:${accountId}`, 30 * MIN, () => limited(() => loadProfile(accountId)), force);
+    },
+
+    async realName(onlineId, force) {
+      return cached(
+        `realname:${onlineId}`,
+        24 * 60 * MIN,
+        async () => {
+          try {
+            // Só a API antiga de perfil traz o nome, e só se o jogador compartilha.
+            const res = await limited(async () => getProfileFromUserName(await auth(), onlineId));
+            const detail = res.profile.personalDetail;
+            const name = [detail?.firstName, detail?.lastName].filter(Boolean).join(" ").trim();
+            return name || null;
+          } catch {
+            return null;
+          }
+        },
+        force,
+      );
     },
 
     async titles(accountId, force) {
