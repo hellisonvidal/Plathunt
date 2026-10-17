@@ -7,12 +7,15 @@ import {
   filterProducts,
   formatPrice,
   isNewLow,
+  priceRangeKey,
+  priceRanges,
   priceHistory,
   recordPrices,
   refreshWishlist,
   STORE_CATEGORIES,
   STORE_SORTS,
   storeProductUrl,
+  storeWishlistUrl,
   toggleWish,
   useWishlist,
   type StoreFilters,
@@ -20,14 +23,11 @@ import {
   type StoreRegion,
 } from "../lib/store";
 import { useData } from "../lib/useData";
-import { demoStoreCategory, storeCategory } from "../psn/store";
+import { demoStoreCategory, storeCategory, type StoreProgress } from "../psn/store";
 
 /** Quantos jogos aparecem antes do "ver mais". */
 const PAGE = 40;
-/** Faixas de preço do filtro, na moeda da loja (em unidades, não centavos). */
-const PRICE_CAPS = [null, 50, 100, 200] as const;
-
-const DEFAULT_FILTERS: StoreFilters = { query: "", platform: "todas", onlyDiscount: false, maxPrice: null, sort: "relevancia" };
+const DEFAULT_FILTERS: StoreFilters = { query: "", platform: "todas", onlyDiscount: false, price: "todas", sort: "relevancia" };
 
 /**
  * Loja: catálogo da PlayStation Store (ofertas, PS5, PS4, grátis, PS Plus)
@@ -41,26 +41,31 @@ export function StorePage() {
   const [filters, setFilters] = useState<StoreFilters>(DEFAULT_FILTERS);
   const wishlist = useWishlist();
 
-  const load = (id: string, force: boolean) => (mode === "demo" ? demoStoreCategory(id) : storeCategory(id, region, force));
+  const load = (id: string, force: boolean, onProgress?: StoreProgress) =>
+    mode === "demo" ? demoStoreCategory(id) : storeCategory(id, region, force, onProgress);
 
+  // A loja tem milhares de jogos por categoria: eles aparecem enquanto as
+  // páginas chegam, com o progresso no topo.
+  const key = `${mode}:${region}:${categoryId}`;
+  const [partial, setPartial] = useState<{ key: string; products: StoreProduct[]; total: number } | null>(null);
   const catalog = useData(
     async (force) => {
-      const products = await load(categoryId, force);
+      const products = await load(categoryId, force, (list, total) => setPartial({ key, products: list, total }));
       recordPrices(products, region);
       refreshWishlist(products, region);
-      return products;
+      return { key, products };
     },
     [mode, categoryId, region],
   );
+  const current = catalog.data?.key === key ? catalog.data.products : null;
+  const streaming = !current && partial?.key === key ? partial : null;
+  const products = current ?? streaming?.products ?? null;
 
-  // Ao abrir a lista de desejos, atualiza os preços com as categorias principais.
+  // Ao abrir a lista de desejos, atualiza os preços com as ofertas da loja.
   const wishRefresh = useData(
     async (force) => {
       if (view !== "desejos") return null;
-      const lists = await Promise.all(
-        STORE_CATEGORIES.slice(0, 3).map((c) => load(c.id, force).catch(() => [] as StoreProduct[])),
-      );
-      const all = lists.flat();
+      const all = await load(STORE_CATEGORIES[0].id, force).catch(() => [] as StoreProduct[]);
       recordPrices(all, region);
       refreshWishlist(all, region);
       return all.length;
@@ -109,24 +114,39 @@ export function StorePage() {
           </nav>
         )}
 
-        <FilterBar filters={filters} onChange={setFilters} region={region} />
-
         {view === "catalogo" ? (
           <>
+            <FilterBar filters={filters} onChange={setFilters} region={region} />
             {catalog.error ? <ErrorBox error={catalog.error} onRetry={catalog.refresh} /> : null}
-            {catalog.loading && !catalog.data && <Spinner label="Buscando o catálogo da PlayStation Store…" />}
-            {catalog.data && (
+            {!products && !catalog.error && <Spinner label="Buscando o catálogo da PlayStation Store…" />}
+            {streaming && (
+              <div className="rounded-xl border border-line bg-surface p-3 text-xs text-muted">
+                <p>
+                  Carregando a loja… {streaming.products.length.toLocaleString("pt-BR")}
+                  {streaming.total > 0 && ` de ${streaming.total.toLocaleString("pt-BR")}`} jogos
+                </p>
+                {streaming.total > 0 && (
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2">
+                    <div
+                      className="h-full rounded-full bg-ps-blue-2"
+                      style={{ width: `${Math.min(100, (streaming.products.length / streaming.total) * 100)}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            {products && (
               <ProductGrid
                 key={`${categoryId}:${JSON.stringify(filters)}`}
-                products={filterProducts(catalog.data, filters)}
-                total={catalog.data.length}
+                products={filterProducts(products, filters)}
+                total={products.length}
                 region={region}
                 wished={new Set(wishlist.filter((w) => w.region === region).map((w) => w.product.id))}
               />
             )}
           </>
         ) : (
-          <Wishlist filters={filters} region={region} />
+          <Wishlist region={region} />
         )}
 
         <p className="pb-2 text-center text-[0.6875rem] text-muted">
@@ -150,7 +170,7 @@ function FilterBar({
   const [open, setOpen] = useState(false);
   const set = (patch: Partial<StoreFilters>) => onChange({ ...filters, ...patch });
   const active =
-    (filters.platform !== "todas" ? 1 : 0) + (filters.onlyDiscount ? 1 : 0) + (filters.maxPrice !== null ? 1 : 0);
+    (filters.platform !== "todas" ? 1 : 0) + (filters.onlyDiscount ? 1 : 0) + (filters.price !== "todas" ? 1 : 0);
 
   return (
     <div className="space-y-2">
@@ -198,9 +218,9 @@ function FilterBar({
           />
           <Chips
             label="Preço"
-            options={PRICE_CAPS.map((cap) => [String(cap), cap === null ? "Qualquer" : `até ${formatPrice(cap * 100, region)}`])}
-            value={String(filters.maxPrice === null ? null : filters.maxPrice / 100)}
-            onChange={(v) => set({ maxPrice: v === "null" ? null : Number(v) * 100 })}
+            options={priceRanges(region).map((r) => [r.key, r.label] as const)}
+            value={priceRangeKey(filters.price)}
+            onChange={(k) => set({ price: priceRanges(region).find((r) => r.key === k)?.range ?? "todas" })}
           />
           <label className="flex items-center justify-between">
             <span>Só jogos com desconto</span>
@@ -367,30 +387,72 @@ function ProductCard({ product: p, region, wished }: { product: StoreProduct; re
   );
 }
 
-function Wishlist({ filters, region }: { filters: StoreFilters; region: StoreRegion }) {
+function Wishlist({ region }: { region: StoreRegion }) {
   const wishlist = useWishlist();
+  const [sort, setSort] = useState<StoreFilters["sort"]>("relevancia");
   const mine = wishlist.filter((w) => w.region === region);
+  // Sem filtros aqui, só a ordenação (a ordem padrão é a de quando o jogo entrou na lista).
   const products = filterProducts(
-    mine.map((w) => w.product),
-    filters,
+    [...mine].reverse().map((w) => w.product),
+    { ...DEFAULT_FILTERS, sort },
   );
+
+  const official = (
+    <a
+      href={storeWishlistUrl(region)}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 text-sm"
+    >
+      <span className="text-2xl text-ps-blue-2" aria-hidden>
+        ♥
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold">Lista de desejos da sua conta PSN</span>
+        <span className="block text-xs text-muted">
+          A Sony não libera a lista da conta para outros apps; ela abre na PlayStation Store. Aqui fica a lista do app.
+        </span>
+      </span>
+      <span className="text-muted">↗</span>
+    </a>
+  );
+
   if (!mine.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">
-        <p className="text-3xl">♡</p>
-        <p className="mt-2">Sua lista de desejos está vazia.</p>
-        <p className="mt-1">Toque no ♡ de um jogo no Catálogo para acompanhar o preço dele aqui.</p>
-      </div>
+      <>
+        {official}
+        <div className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">
+          <p className="text-3xl">♡</p>
+          <p className="mt-2">Sua lista de desejos está vazia.</p>
+          <p className="mt-1">Toque no ♡ de um jogo no Catálogo para acompanhar o preço dele aqui.</p>
+        </div>
+      </>
     );
   }
   const onSale = mine.filter((w) => w.product.discount > 0).length;
   return (
     <>
-      <p className="text-xs text-muted">
-        {mine.length} {mine.length === 1 ? "jogo" : "jogos"} na lista
-        {onSale > 0 && ` · ${onSale} em promoção`}
-      </p>
-      {products.length ? (
+      {official}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted">
+          {mine.length} {mine.length === 1 ? "jogo" : "jogos"} na lista
+          {onSale > 0 && ` · ${onSale} em promoção`}
+        </p>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as StoreFilters["sort"])}
+          aria-label="Ordenar lista de desejos"
+          className="rounded-full border border-line bg-surface-2 px-3 py-1.5 text-sm"
+        >
+          <option value="relevancia">Adicionados por último</option>
+          {STORE_SORTS.filter((o) => o.value !== "relevancia").map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {products.length > 0 && (
         <ul className="space-y-2">
           {products.map((p) => (
             <li key={p.id}>
@@ -426,8 +488,6 @@ function Wishlist({ filters, region }: { filters: StoreFilters; region: StoreReg
             </li>
           ))}
         </ul>
-      ) : (
-        <p className="py-6 text-center text-sm text-muted">Nenhum jogo da lista com esses filtros.</p>
       )}
     </>
   );

@@ -25,10 +25,24 @@ export interface StoreProduct {
 }
 
 /** Categorias da loja (ids da PlayStation Store). */
+export const OFFERS_ID = "ofertas";
+export const PS5_ID = "4cbf39e2-5749-4970-ba81-93a489e4570c";
+export const PS4_ID = "44d8bb20-653e-431e-8ad0-c0a365f68d2f";
+/**
+ * Categorias de promoção conhecidas. A Sony troca essas categorias a cada
+ * campanha e por país, então "Ofertas" tenta todas e, se nenhuma trouxer
+ * jogos com desconto, monta as ofertas a partir do catálogo de PS5 e PS4.
+ */
+export const OFFER_CATEGORY_IDS = [
+  "dc464929-edee-48a5-bcd3-1e6f5250ae80",
+  "3f772501-f6f8-49b7-abac-874a88ca4897",
+  "803cee19-e5a1-4d59-a463-0b6b2701bf7c",
+  "16b8d09a-d0e3-44e3-96cb-a3b2a21b6d69",
+];
 export const STORE_CATEGORIES = [
-  { id: "803cee19-e5a1-4d59-a463-0b6b2701bf7c", label: "Ofertas" },
-  { id: "4cbf39e2-5749-4970-ba81-93a489e4570c", label: "PS5" },
-  { id: "44d8bb20-653e-431e-8ad0-c0a365f68d2f", label: "PS4" },
+  { id: OFFERS_ID, label: "Ofertas" },
+  { id: PS5_ID, label: "PS5" },
+  { id: PS4_ID, label: "PS4" },
   { id: "d9930400-c5c7-4a06-a28d-cc74888426dc", label: "Grátis" },
   { id: "038b4df3-bb4c-48f8-8290-3feb35f0f0fd", label: "PS Plus" },
 ] as const;
@@ -100,22 +114,59 @@ export function toStoreProduct(raw: RawGridProduct): StoreProduct {
   };
 }
 
-export type StoreSort = "relevancia" | "desconto" | "menor-preco" | "maior-preco" | "nome";
+export type StoreSort = "relevancia" | "desconto" | "menor-preco" | "maior-preco" | "nome" | "nome-desc";
 export const STORE_SORTS: { value: StoreSort; label: string }[] = [
   { value: "relevancia", label: "Mais vendidos" },
   { value: "desconto", label: "Maior desconto" },
   { value: "menor-preco", label: "Menor preço" },
   { value: "maior-preco", label: "Maior preço" },
   { value: "nome", label: "Nome (A–Z)" },
+  { value: "nome-desc", label: "Nome (Z–A)" },
 ];
+
+/** Faixa de preço: "gratis" ou [mínimo, máximo] em centavos (null = sem limite). */
+export type PriceRange = "todas" | "gratis" | { min: number | null; max: number | null };
 
 export interface StoreFilters {
   query: string;
   platform: "todas" | "PS5" | "PS4";
   onlyDiscount: boolean;
-  /** Preço máximo em centavos (null = sem limite). */
-  maxPrice: number | null;
+  price: PriceRange;
   sort: StoreSort;
+}
+
+/** Limites das faixas de preço em cada moeda (em unidades, não centavos). */
+const PRICE_STEPS: Record<StoreRegion, [number, number, number]> = {
+  "pt-BR": [50, 100, 200],
+  "pt-PT": [10, 25, 50],
+  "en-US": [10, 25, 50],
+  "es-MX": [300, 600, 1200],
+  "es-AR": [10, 25, 50],
+  "es-ES": [10, 25, 50],
+};
+
+/** Opções do filtro de preço na moeda da região (até X, X–Y, Y–Z, acima de Z). */
+export function priceRanges(region: StoreRegion): { key: string; label: string; range: PriceRange }[] {
+  const [a, b, c] = PRICE_STEPS[region].map((n) => n * 100);
+  const f = (cents: number) => formatPrice(cents, region);
+  return [
+    { key: "todas", label: "Qualquer", range: "todas" },
+    { key: "gratis", label: "Grátis", range: "gratis" },
+    { key: `0-${a}`, label: `Até ${f(a)}`, range: { min: 1, max: a } },
+    { key: `${a}-${b}`, label: `${f(a)} – ${f(b)}`, range: { min: a + 1, max: b } },
+    { key: `${b}-${c}`, label: `${f(b)} – ${f(c)}`, range: { min: b + 1, max: c } },
+    { key: `${c}+`, label: `Acima de ${f(c)}`, range: { min: c + 1, max: null } },
+  ];
+}
+
+export const priceRangeKey = (r: PriceRange) =>
+  typeof r === "string" ? r : r.max === null ? `${(r.min ?? 1) - 1}+` : `${(r.min ?? 1) - 1}-${r.max}`;
+
+function inRange(p: StoreProduct, r: PriceRange): boolean {
+  if (r === "todas") return true;
+  if (r === "gratis") return p.isFree || p.price === 0;
+  if (p.price === null || p.isFree || p.price === 0) return false;
+  return (r.min === null || p.price >= r.min) && (r.max === null || p.price <= r.max);
 }
 
 /** Aplica busca, filtros e ordenação (a ordem da loja é a de "mais vendidos"). */
@@ -126,7 +177,7 @@ export function filterProducts(products: StoreProduct[], f: StoreFilters): Store
       (!q || p.name.toLowerCase().includes(q)) &&
       (f.platform === "todas" || p.platforms.includes(f.platform)) &&
       (!f.onlyDiscount || p.discount > 0) &&
-      (f.maxPrice === null || (p.price !== null && p.price <= f.maxPrice)),
+      inRange(p, f.price),
   );
   const price = (p: StoreProduct) => p.price ?? Number.MAX_SAFE_INTEGER;
   switch (f.sort) {
@@ -138,6 +189,8 @@ export function filterProducts(products: StoreProduct[], f: StoreFilters): Store
       return [...list].sort((a, b) => (b.price ?? -1) - (a.price ?? -1));
     case "nome":
       return [...list].sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
+    case "nome-desc":
+      return [...list].sort((a, b) => b.name.localeCompare(a.name, "pt-BR", { sensitivity: "base" }));
     default:
       return list;
   }
@@ -276,6 +329,11 @@ export function useWishlist(): WishItem[] {
     return () => void wishListeners.delete(sync);
   }, []);
   return list;
+}
+
+/** Lista de desejos oficial da conta, na PlayStation Store (precisa estar logado lá). */
+export function storeWishlistUrl(region: StoreRegion): string {
+  return `https://store.playstation.com/${region.toLowerCase()}/wishlist`;
 }
 
 /** Endereço do produto na PlayStation Store (abre no navegador ou no app da loja). */

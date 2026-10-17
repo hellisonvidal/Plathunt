@@ -1,5 +1,5 @@
 import { cached } from "../lib/cache";
-import { toStoreProduct, type StoreProduct, type StoreRegion } from "../lib/store";
+import { OFFER_CATEGORY_IDS, OFFERS_ID, PS4_ID, PS5_ID, toStoreProduct, type StoreProduct, type StoreRegion } from "../lib/store";
 
 /**
  * Catálogo da PlayStation Store, pela mesma API pública que o site da loja
@@ -10,9 +10,14 @@ const ENDPOINT = "https://web.np.playstation.com/api/graphql/v1/op";
 /** Hash da consulta "categoryGridRetrieve" do site da loja. */
 const CATEGORY_GRID_HASH = "4ce7d410a4db2c8b635a48c1dcec375906ff63b19dadd87e073f8fd0c0481d35";
 const PAGE_SIZE = 100;
-/** Até 500 jogos por categoria: o suficiente para ordenar por desconto e buscar. */
-const MAX_PAGES = 5;
+/** Teto de segurança (20 mil jogos por categoria); na prática vem tudo o que a loja tiver. */
+const MAX_PAGES = 200;
+/** Páginas buscadas ao mesmo tempo. */
+const PARALLEL = 4;
 const MIN = 60_000;
+
+/** Recebe os jogos já carregados (em ordem) e o total da categoria, enquanto o resto chega. */
+export type StoreProgress = (products: StoreProduct[], total: number) => void;
 
 async function fetchPage(categoryId: string, region: StoreRegion, offset: number) {
   const variables = {
@@ -40,23 +45,64 @@ async function fetchPage(categoryId: string, region: StoreRegion, offset: number
   };
 }
 
-/** Jogos de uma categoria da loja, na ordem de mais vendidos. */
-export async function storeCategory(categoryId: string, region: StoreRegion, force = false): Promise<StoreProduct[]> {
+const dedupe = (list: StoreProduct[]) => [...new Map(list.map((p) => [p.id, p])).values()];
+
+/** Todas as páginas de uma categoria (várias ao mesmo tempo), avisando o progresso. */
+async function fetchAll(categoryId: string, region: StoreRegion, onProgress?: StoreProgress): Promise<StoreProduct[]> {
+  const first = await fetchPage(categoryId, region, 0);
+  const pages: StoreProduct[][] = [first.products];
+  const count = Math.min(MAX_PAGES, Math.ceil(first.total / PAGE_SIZE));
+  onProgress?.(first.products, first.total);
+  for (let start = 1; start < count; start += PARALLEL) {
+    const batch = Array.from({ length: Math.min(PARALLEL, count - start) }, (_, i) => start + i);
+    const results = await Promise.all(batch.map((page) => fetchPage(categoryId, region, page * PAGE_SIZE)));
+    results.forEach((r, i) => (pages[batch[i]] = r.products));
+    onProgress?.(dedupe(pages.flat()), first.total);
+    if (results.some((r) => r.products.length < PAGE_SIZE)) break;
+  }
+  return dedupe(pages.flat());
+}
+
+/**
+ * Ofertas: tenta as categorias de promoção conhecidas; se nenhuma trouxer
+ * jogos com desconto (a Sony troca essas categorias), monta as ofertas com os
+ * jogos com desconto do catálogo completo de PS5 e PS4.
+ */
+async function fetchOffers(region: StoreRegion, onProgress?: StoreProgress): Promise<StoreProduct[]> {
+  for (const id of OFFER_CATEGORY_IDS) {
+    try {
+      const first = await fetchPage(id, region, 0);
+      if (!first.products.some((p) => p.discount > 0)) continue;
+      const all = await fetchAll(id, region, (list, total) => onProgress?.(list.filter((p) => p.discount > 0), total));
+      return all.filter((p) => p.discount > 0);
+    } catch {
+      // Categoria que não existe neste país: tenta a próxima.
+    }
+  }
+  const found: StoreProduct[] = [];
+  for (const id of [PS5_ID, PS4_ID]) {
+    const list = await fetchAll(id, region, (partial) =>
+      onProgress?.(dedupe([...found, ...partial]).filter((p) => p.discount > 0), 0),
+    );
+    found.push(...list);
+  }
+  return dedupe(found).filter((p) => p.discount > 0);
+}
+
+/**
+ * Jogos de uma categoria da loja (todos os que a loja tiver), na ordem de mais
+ * vendidos. `onProgress` mostra os jogos enquanto as páginas chegam.
+ */
+export async function storeCategory(
+  categoryId: string,
+  region: StoreRegion,
+  force = false,
+  onProgress?: StoreProgress,
+): Promise<StoreProduct[]> {
   return cached(
     `store:${region}:${categoryId}`,
     30 * MIN,
-    async () => {
-      const first = await fetchPage(categoryId, region, 0);
-      const all = [...first.products];
-      const pages = Math.min(MAX_PAGES, Math.ceil(first.total / PAGE_SIZE));
-      for (let page = 1; page < pages; page++) {
-        const next = await fetchPage(categoryId, region, page * PAGE_SIZE);
-        all.push(...next.products);
-        if (next.products.length < PAGE_SIZE) break;
-      }
-      // A mesma edição pode aparecer duas vezes em páginas diferentes.
-      return [...new Map(all.map((p) => [p.id, p])).values()];
-    },
+    () => (categoryId === OFFERS_ID ? fetchOffers(region, onProgress) : fetchAll(categoryId, region, onProgress)),
     force,
   );
 }
@@ -98,9 +144,9 @@ export async function demoStoreCategory(categoryId: string): Promise<StoreProduc
     }),
   );
   const pick: Record<string, (p: StoreProduct) => boolean> = {
-    "803cee19-e5a1-4d59-a463-0b6b2701bf7c": (p) => p.discount > 0,
-    "4cbf39e2-5749-4970-ba81-93a489e4570c": (p) => p.platforms.includes("PS5"),
-    "44d8bb20-653e-431e-8ad0-c0a365f68d2f": (p) => p.platforms.includes("PS4"),
+    [OFFERS_ID]: (p) => p.discount > 0,
+    [PS5_ID]: (p) => p.platforms.includes("PS5"),
+    [PS4_ID]: (p) => p.platforms.includes("PS4"),
     "d9930400-c5c7-4a06-a28d-cc74888426dc": (p) => p.isFree,
     "038b4df3-bb4c-48f8-8290-3feb35f0f0fd": (p) => ["Returnal", "Sackboy: Uma Grande Aventura", "Bloodborne"].includes(p.name),
   };
