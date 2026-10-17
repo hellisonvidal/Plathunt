@@ -9,6 +9,7 @@ import {
   challengeMessage,
   findTrophy,
   isFinished,
+  platinumGoal,
   rankChallenge,
   removeChallenge,
   saveResults,
@@ -18,7 +19,7 @@ import {
   type ChallengePlayer,
 } from "../lib/challenges";
 import { useData } from "../lib/useData";
-import type { Title, TrophyRow } from "../psn/types";
+import type { Title } from "../psn/types";
 import { GamePicker, TrophyPicker } from "./GamePicker";
 import { Avatar, ErrorBox, GameIcon, RemoteImage, Spinner, TrophyBadge, rarityLabel, timeAgo } from "./ui";
 
@@ -69,7 +70,7 @@ export function ChallengesView() {
 function ChallengeForm({ onClose }: { onClose: () => void }) {
   const { client } = useApp();
   const [game, setGame] = useState<BoostCandidate | null>(null);
-  const [trophy, setTrophy] = useState<TrophyRow | null>(null);
+  const [trophy, setTrophy] = useState<Challenge["trophy"] | null>(null);
   const [rivals, setRivals] = useState<string[]>([]);
   const [deadline, setDeadline] = useState<number | null>(null);
   const [query, setQuery] = useState("");
@@ -82,7 +83,9 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
       const list = await client.friends(force);
       const owners = await mapLimit(list, 5, async (f) => {
         if (f.level === null) return false;
-        const titles = await client.recentTitles(f.accountId).catch(() => [] as Title[]);
+        const titles = await client
+          .titles(f.accountId)
+          .catch(() => client.recentTitles(f.accountId).catch(() => [] as Title[]));
         return titles.some((t) => sameGame(t, { id: game.title?.id ?? game.key, name: game.name }));
       });
       return list
@@ -101,7 +104,7 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
     `rounded-full px-3 py-1 text-sm ${active ? "bg-ps-blue font-semibold" : "border border-line text-muted"}`;
 
   const create = () => {
-    if (!game?.title || !trophy || !me.data) return;
+    if (!game || !trophy || !me.data) return;
     const players: ChallengePlayer[] = [
       { accountId: "me", onlineId: me.data.onlineId, avatarUrl: me.data.avatarUrl },
       ...(friends.data ?? [])
@@ -113,18 +116,11 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
         game: {
           name: game.name,
           iconUrl: game.iconUrl,
-          titleId: game.title.id,
-          service: game.title.service,
+          titleId: game.title?.id ?? game.key,
+          service: game.title?.service ?? "trophy2",
           platform: game.platforms.join("/"),
         },
-        trophy: {
-          id: trophy.id,
-          name: trophy.name,
-          detail: trophy.detail,
-          type: trophy.type,
-          iconUrl: trophy.iconUrl,
-          rate: trophy.rate,
-        },
+        trophy,
         players,
       },
       deadline,
@@ -143,8 +139,8 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
 
       {!game ? (
         <div className="space-y-2">
-          <p className="text-xs text-muted">1. Escolha o jogo (só jogos com lista de troféus na PSN)</p>
-          <GamePicker onPick={setGame} onlyWithTrophies />
+          <p className="text-xs text-muted">1. Escolha o jogo (todo o catálogo PlayStation, por plataforma ou pela busca)</p>
+          <GamePicker onPick={setGame} />
         </div>
       ) : (
         <>
@@ -187,8 +183,35 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
                   Trocar
                 </button>
               </div>
+            ) : game.title ? (
+              <div className="space-y-2">
+                <button
+                  onClick={() => setTrophy(platinumGoal())}
+                  className="w-full rounded-xl border border-dashed border-line p-2 text-sm font-semibold text-ps-blue-2"
+                >
+                  🏆 Corrida da platina (quem platinar primeiro)
+                </button>
+                <TrophyPicker
+                  game={game}
+                  selected={[]}
+                  multiple={false}
+                  onChange={(_, rows) => {
+                    const t = rows[0];
+                    if (t)
+                      setTrophy({ id: t.id, name: t.name, detail: t.detail, type: t.type, iconUrl: t.iconUrl, rate: t.rate });
+                  }}
+                />
+              </div>
             ) : (
-              <TrophyPicker game={game} selected={[]} multiple={false} onChange={(_, rows) => setTrophy(rows[0] ?? null)} />
+              <div className="space-y-2">
+                <p className="text-sm text-muted">
+                  Ninguém da sua lista jogou este jogo ainda, então a PSN não mostra a lista de troféus. O desafio pode ser
+                  a corrida da platina: vence quem platinar primeiro.
+                </p>
+                <button onClick={() => setTrophy(platinumGoal())} className="w-full rounded-xl bg-ps-blue py-2.5 font-semibold">
+                  🏆 Desafio: platina do jogo
+                </button>
+              </div>
             )}
           </div>
 

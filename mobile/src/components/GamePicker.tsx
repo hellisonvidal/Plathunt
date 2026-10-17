@@ -24,7 +24,12 @@ export function useGameCatalog() {
       const [friendsTitles, store] = await Promise.all([
         client
           .friendIds(force)
-          .then((ids) => mapLimit(ids, 5, (id) => client.recentTitles(id, force).catch(() => [] as Title[])))
+          // Lista completa de jogos de cada amigo (não só os recentes): mais jogos para escolher.
+          .then((ids) =>
+            mapLimit(ids, 5, (id) =>
+              client.titles(id, force).catch(() => client.recentTitles(id, force).catch(() => [] as Title[])),
+            ),
+          )
           .catch(() => [] as Title[][]),
         (mode === "demo" ? demoStoreCategory(ALL_ID) : storeCategory(ALL_ID, storeRegion, force)).catch(() => []),
       ]);
