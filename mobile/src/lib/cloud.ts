@@ -13,6 +13,7 @@ const URL = "https://stewwpwwkhuegghgfjhr.supabase.co";
 /** Chave pública (publishable): só permite o que as regras do banco (RLS) deixam. */
 const PUBLISHABLE_KEY = "sb_publishable_KXvZdqxhcjZGrh8Txkfo5A_zr790wc9";
 const SESSION_KEY = "tm.cloud" as const;
+export const PRIVACY_URL = "https://github.com/hellisonvidal/Trophy-Mania/blob/main/docs/privacidade.md";
 
 /** A sessão fica no localStorage e na cópia nativa (sobrevive a atualizações do app). */
 const storage = {

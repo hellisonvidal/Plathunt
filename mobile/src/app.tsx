@@ -11,6 +11,7 @@ import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
 import { createDemoClient } from "./psn/demo";
 import type { PsnClient } from "./psn/types";
+import { CloudNotice } from "./components/CloudNotice";
 import { ControllerIcon, FriendsIcon, ProfileIcon, StatsIcon, StoreIcon } from "./components/icons";
 import { ActivityPage } from "./pages/Activity";
 import { FriendsPage } from "./pages/Friends";
@@ -87,6 +88,7 @@ export function App() {
         <BackButton />
         <BoostLinks />
         <BackgroundChecks />
+        {state.mode === "psn" && <CloudNotice />}
         <div className="safe-top mx-auto min-h-[100dvh] max-w-2xl pb-24">
           {state.mode === "demo" && (
             <div className="bg-gold/15 px-4 py-2 text-center text-xs text-gold">

@@ -32,6 +32,10 @@ const translations: Translations = {
     "Ligar recursos online": "Turn on online features",
     "Curtidas e pedidos recebidos": "Likes and received requests",
     "Recursos online: quando curtem sua conquista ou mandam um pedido de boost": "Online features: when someone likes your achievement or sends a boost request",
+    "🌐 Recursos online ativados": "🌐 Online features on",
+    "Você pode mudar isso quando quiser em Configurações → Recursos online.": "You can change this anytime in Settings → Online features.",
+    "Desligar": "Turn off",
+    "Manter ligados": "Keep on",
   },
   "es-ES": {
     "Ligue os recursos online em Configurações para enviar o pedido direto no app dos amigos.": "Activa las funciones en línea en Ajustes para enviar la solicitud directo a la app de tus amigos.",
@@ -63,6 +67,10 @@ const translations: Translations = {
     "Ligar recursos online": "Activar funciones en línea",
     "Curtidas e pedidos recebidos": "Me gusta y solicitudes recibidas",
     "Recursos online: quando curtem sua conquista ou mandam um pedido de boost": "Funciones en línea: cuando le dan me gusta a tu logro o te envían una solicitud de boost",
+    "🌐 Recursos online ativados": "🌐 Funciones en línea activadas",
+    "Você pode mudar isso quando quiser em Configurações → Recursos online.": "Puedes cambiarlo cuando quieras en Ajustes → Funciones en línea.",
+    "Desligar": "Desactivar",
+    "Manter ligados": "Mantener activadas",
   },
   "fr-FR": {
     "Ligue os recursos online em Configurações para enviar o pedido direto no app dos amigos.": "Activez les fonctions en ligne dans Paramètres pour envoyer la demande directement dans l'app de vos amis.",
@@ -94,6 +102,10 @@ const translations: Translations = {
     "Ligar recursos online": "Activer les fonctions en ligne",
     "Curtidas e pedidos recebidos": "J'aime et demandes reçues",
     "Recursos online: quando curtem sua conquista ou mandam um pedido de boost": "Fonctions en ligne : quand on aime votre exploit ou vous envoie une demande de boost",
+    "🌐 Recursos online ativados": "🌐 Fonctions en ligne activées",
+    "Você pode mudar isso quando quiser em Configurações → Recursos online.": "Vous pouvez changer cela à tout moment dans Paramètres → Fonctions en ligne.",
+    "Desligar": "Désactiver",
+    "Manter ligados": "Garder activées",
   },
   "de-DE": {
     "Ligue os recursos online em Configurações para enviar o pedido direto no app dos amigos.": "Aktiviere die Online-Funktionen in den Einstellungen, um die Anfrage direkt an die App deiner Freunde zu senden.",
@@ -125,6 +137,10 @@ const translations: Translations = {
     "Ligar recursos online": "Online-Funktionen einschalten",
     "Curtidas e pedidos recebidos": "Likes und erhaltene Anfragen",
     "Recursos online: quando curtem sua conquista ou mandam um pedido de boost": "Online-Funktionen: wenn jemand deinen Erfolg liked oder eine Boost-Anfrage schickt",
+    "🌐 Recursos online ativados": "🌐 Online-Funktionen aktiviert",
+    "Você pode mudar isso quando quiser em Configurações → Recursos online.": "Du kannst das jederzeit unter Einstellungen → Online-Funktionen ändern.",
+    "Desligar": "Ausschalten",
+    "Manter ligados": "Eingeschaltet lassen",
   },
   "it-IT": {
     "Ligue os recursos online em Configurações para enviar o pedido direto no app dos amigos.": "Attiva le funzioni online in Impostazioni per inviare la richiesta direttamente nell'app dei tuoi amici.",
@@ -156,6 +172,10 @@ const translations: Translations = {
     "Ligar recursos online": "Attiva funzioni online",
     "Curtidas e pedidos recebidos": "Like e richieste ricevute",
     "Recursos online: quando curtem sua conquista ou mandam um pedido de boost": "Funzioni online: quando mettono like a un tuo traguardo o ti inviano una richiesta di boost",
+    "🌐 Recursos online ativados": "🌐 Funzioni online attivate",
+    "Você pode mudar isso quando quiser em Configurações → Recursos online.": "Puoi cambiarlo quando vuoi in Impostazioni → Funzioni online.",
+    "Desligar": "Disattiva",
+    "Manter ligados": "Mantieni attive",
   },
   "ja-JP": {
     "Ligue os recursos online em Configurações para enviar o pedido direto no app dos amigos.": "設定でオンライン機能をオンにすると、フレンドのアプリにリクエストを直接送れます。",
@@ -187,6 +207,10 @@ const translations: Translations = {
     "Ligar recursos online": "オンライン機能をオンにする",
     "Curtidas e pedidos recebidos": "いいねと受信したリクエスト",
     "Recursos online: quando curtem sua conquista ou mandam um pedido de boost": "オンライン機能：実績にいいねされたときやブーストリクエストが届いたとき",
+    "🌐 Recursos online ativados": "🌐 オンライン機能がオンです",
+    "Você pode mudar isso quando quiser em Configurações → Recursos online.": "設定 → オンライン機能でいつでも変更できます。",
+    "Desligar": "オフにする",
+    "Manter ligados": "オンのままにする",
   },
 };
 export default translations;

@@ -5,7 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Avatar, ProgressBar } from "../components/ui";
 import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
-import { connectCloud, disconnectCloud, useCloud } from "../lib/cloud";
+import { connectCloud, disconnectCloud, PRIVACY_URL, useCloud } from "../lib/cloud";
 import { cancelAllNotifications, requestNotificationPermission } from "../lib/notify";
 import { appVersion, updateSettings, useSettings, type Settings } from "../lib/settings";
 import { STORE_REGIONS } from "../lib/store";
@@ -575,7 +575,6 @@ function Choice<T extends string | number>({
   );
 }
 
-const PRIVACY_URL = "https://github.com/hellisonvidal/Trophy-Mania/blob/main/docs/privacidade.md";
 
 /**
  * Recursos online (opcionais): curtidas que o dono vê e pedidos de boost
@@ -613,7 +612,10 @@ function CloudSettings({ demo, onMessage }: { demo: boolean; onMessage: (m: stri
       ) : identity ? (
         <button
           disabled={busy}
-          onClick={() => run(disconnectCloud, t("Recursos online desligados neste celular."))}
+          onClick={() => run(async () => {
+            await disconnectCloud();
+            updateSettings({ cloudOff: true, cloudNoticeSeen: true });
+          }, t("Recursos online desligados neste celular."))}
           className="w-full rounded-xl border border-line py-2.5 text-sm font-semibold disabled:opacity-50"
         >
           {t("Desligar recursos online")}
@@ -621,7 +623,10 @@ function CloudSettings({ demo, onMessage }: { demo: boolean; onMessage: (m: stri
       ) : (
         <button
           disabled={busy || !ready}
-          onClick={() => run(connectCloud, t("Recursos online ligados!"))}
+          onClick={() => run(async () => {
+            await connectCloud();
+            updateSettings({ cloudOff: false, cloudNoticeSeen: true });
+          }, t("Recursos online ligados!"))}
           className="w-full rounded-xl bg-ps-blue py-2.5 text-sm font-semibold disabled:opacity-50"
         >
           {busy ? t("Conectando…") : t("Ligar recursos online")}
