@@ -9,7 +9,7 @@ import { cancelAllNotifications, requestNotificationPermission } from "../lib/no
 import { appVersion, updateSettings, useSettings, type Settings } from "../lib/settings";
 import { STORE_REGIONS } from "../lib/store";
 import { LANGUAGES, locale, t } from "../i18n";
-import { THEMES } from "../lib/theme";
+import { applyTheme, THEMES } from "../lib/theme";
 import { checkForUpdate, RELEASES_PAGE, type UpdateResult } from "../lib/updates";
 import { useData } from "../lib/useData";
 import { AppUpdater, isNativeApp } from "../psn/native";
@@ -226,6 +226,16 @@ function ThemesButton({ current }: { current: Settings["theme"] }) {
   );
 }
 
+/** Salva e aplica o tema na hora (aplica direto também, sem depender só do aviso das configurações). */
+function selectTheme(theme: Settings["theme"]) {
+  updateSettings({ theme });
+  try {
+    applyTheme(theme);
+  } catch (e) {
+    console.error("Tema:", e);
+  }
+}
+
 /** Tela de temas (Configurações → Temas). A escolha vale na hora. */
 export function ThemesPage() {
   const settings = useSettings();
@@ -240,7 +250,7 @@ export function ThemesPage() {
               key={th.value}
               theme={th}
               selected={settings.theme === th.value}
-              onSelect={() => updateSettings({ theme: th.value })}
+              onSelect={() => selectTheme(th.value)}
             />
           ))}
         </div>
@@ -254,7 +264,7 @@ export function ThemesPage() {
               key={th.value}
               theme={th}
               selected={settings.theme === th.value}
-              onSelect={() => updateSettings({ theme: th.value })}
+              onSelect={() => selectTheme(th.value)}
             />
           ))}
         </div>

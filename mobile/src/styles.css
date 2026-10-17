@@ -62,14 +62,14 @@ html[data-theme="light"] {
  */
 html:not([data-theme]) {
   color-scheme: only light;
-  --color-bg: #e4eeff;
+  --color-bg: #bfd5fb;
   --color-surface: #ffffff;
-  --color-surface-2: #d9e6ff;
-  --color-line: #b9cdf2;
+  --color-surface-2: #dbe7fd;
+  --color-line: #9fbbea;
   --color-ink: #0a1630;
-  --color-muted: #42547a;
+  --color-muted: #3a4b6e;
   --color-ps-blue: #0a6cff;
-  --color-ps-blue-2: #0057d6;
+  --color-ps-blue-2: #004bb8;
   --color-bronze: #97562a;
   --color-silver: #56637a;
   --color-gold: #7d5b00;

@@ -74,7 +74,14 @@ export function updateSettings(patch: Partial<Settings>): Settings {
   const next = { ...getSettings(), ...patch };
   persistSet(KEY, JSON.stringify(next));
   setLanguage(next.language);
-  listeners.forEach((l) => l());
+  // Um ouvinte com erro (ex.: tema) não pode impedir os outros (ex.: a tela) de atualizar.
+  listeners.forEach((l) => {
+    try {
+      l();
+    } catch (e) {
+      console.error("Configurações:", e);
+    }
+  });
   return next;
 }
 

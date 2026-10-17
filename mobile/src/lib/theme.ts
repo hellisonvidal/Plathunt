@@ -18,7 +18,7 @@ export const THEMES: {
   { value: "auto", label: "Automático", description: "Claro ou escuro, como o sistema do celular", swatch: ["#f5f6f8", "#0d0f13", "#2d7ff9"], standard: true },
   { value: "claro", label: "Claro", description: "Fundo claro com o azul PlayStation", swatch: ["#f5f6f8", "#ffffff", "#0070d1"], standard: true },
   { value: "escuro", label: "Escuro", description: "Fundo escuro com o azul PlayStation", swatch: ["#0d0f13", "#1f242c", "#2d7ff9"], standard: true },
-  { value: "playstation", label: "Astro Bot", description: "Azul-céu, branco do robô, preto do visor e azul dos olhos", swatch: ["#e4eeff", "#ffffff", "#0a6cff"], bars: "#0b0d12" },
+  { value: "playstation", label: "Astro Bot", description: "Azul-céu, branco do robô, preto do visor e azul dos olhos", swatch: ["#bfd5fb", "#ffffff", "#0a6cff"], bars: "#0b0d12" },
   { value: "light", label: "Gran Turismo", description: "Vermelho do logo com branco de pista", swatch: ["#8c0013", "#b3001a", "#ffffff"] },
   { value: "oled", label: "Demon's Souls", description: "Preto puro (OLED) com o prata da armadura do Slayer", swatch: ["#000000", "#1c1c1c", "#b9c0ca"] },
   { value: "green", label: "The Last of Us", description: "Verde-oliva de Ellie com o cáqui de Joel", swatch: ["#13140c", "#282b1a", "#5e7a24"] },
@@ -94,24 +94,41 @@ export function resolveTheme(theme: Settings["theme"], systemDark = typeof windo
 export function applyTheme(chosen: Settings["theme"] = getSettings().theme) {
   const theme = resolveTheme(chosen);
   const root = document.documentElement;
-  if (theme === "playstation") delete root.dataset.theme;
-  else root.dataset.theme = theme;
-  publishRgbChannels(root);
-  // No Astro Bot as barras são pretas (o visor), então a barra do sistema também.
-  const bg = theme === "playstation" ? "#0b0d12" : (THEMES.find((t) => t.value === theme)?.swatch[0] ?? "#0b0d12");
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bg);
+  if (theme === "playstation") root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", theme);
+  // Extras: se algum falhar num WebView diferente, o tema já está aplicado.
+  try {
+    publishRgbChannels(root);
+    // No Astro Bot as barras são pretas (o visor), então a barra do sistema também.
+    const bg = theme === "playstation" ? "#0b0d12" : (THEMES.find((t) => t.value === theme)?.swatch[0] ?? "#0b0d12");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bg);
+  } catch (e) {
+    console.error("Tema:", e);
+  }
 }
 
 /** Aplica o tema salvo e acompanha mudanças feitas nas Configurações. */
 export function initTheme() {
-  applyTheme();
-  onSettingsChange(() => applyTheme());
-  // No automático, acompanha a troca de claro/escuro do sistema com o app aberto.
-  const query = darkQuery();
-  const onSystemChange = () => {
-    if (getSettings().theme === "auto") applyTheme();
+  // Os ouvintes vêm antes: mesmo que a primeira aplicação falhe, trocar o tema continua funcionando.
+  const safeApply = () => {
+    try {
+      applyTheme();
+    } catch (e) {
+      console.error("Tema:", e);
+    }
   };
-  if (query?.addEventListener) query.addEventListener("change", onSystemChange);
-  else query?.addListener?.(onSystemChange);
-  window.addEventListener("tm-system-theme", onSystemChange);
+  onSettingsChange(safeApply);
+  // No automático, acompanha a troca de claro/escuro do sistema com o app aberto.
+  const onSystemChange = () => {
+    if (getSettings().theme === "auto") safeApply();
+  };
+  try {
+    const query = darkQuery();
+    if (query?.addEventListener) query.addEventListener("change", onSystemChange);
+    else query?.addListener?.(onSystemChange);
+    window.addEventListener("tm-system-theme", onSystemChange);
+  } catch (e) {
+    console.error("Tema:", e);
+  }
+  safeApply();
 }
