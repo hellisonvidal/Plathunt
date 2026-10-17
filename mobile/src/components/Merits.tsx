@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useApp } from "../app";
 import { evaluateMerits, MERIT_CATEGORIES, type MeritResult } from "../lib/merits";
 import { challengeStats, getChallenges } from "../lib/challenges";
+import { meritDateLabel, recordMeritDates, type MeritDate } from "../lib/meritDates";
 import { countReactedItems } from "../lib/reactions";
 import { matchPlayed } from "../lib/stats";
 import { useData } from "../lib/useData";
@@ -25,7 +26,7 @@ export function MeritsView() {
         client.playedGames(who, force),
         isMe ? client.friendIds(force) : Promise.resolve(null),
       ]);
-      if (!titles) return { who, results: null };
+      if (!titles) return { who, results: null, dates: {} as Record<string, MeritDate> };
       const play = matchPlayed(titles, played ?? []);
       const results = evaluateMerits({
         profile,
@@ -37,7 +38,12 @@ export function MeritsView() {
         challenges: isMe ? challengeStats(getChallenges()) : null,
         now: Date.now(),
       });
-      return { who, results };
+      // Data de conquista: a primeira vez que o app viu cada mérito liberado.
+      const dates = recordMeritDates(
+        profile.accountId,
+        results.filter((r) => r.done).map((r) => r.merit.id),
+      );
+      return { who, results, dates };
     },
     [client, who],
   );
@@ -45,6 +51,12 @@ export function MeritsView() {
   // Ao trocar de jogador, os méritos do anterior ficam até os novos chegarem.
   const current = data?.who === who ? data : null;
   const results = current?.results ?? null;
+  const dates = current?.dates ?? {};
+  // Últimos liberados (só os com data exata, não os de antes do registro).
+  const recent = (results ?? [])
+    .filter((r) => r.done && dates[r.merit.id] && !dates[r.merit.id].before)
+    .sort((a, b) => dates[b.merit.id].at.localeCompare(dates[a.merit.id].at))
+    .slice(0, 3);
   const unlocked = results?.filter((r) => r.done).length ?? 0;
   const next = results
     ?.filter((r) => !r.done)
@@ -97,6 +109,16 @@ export function MeritsView() {
             <div className="mt-3">
               <ProgressBar value={(unlocked / results.length) * 100} />
             </div>
+            {recent.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Conquistados recentemente</p>
+                <ul className="space-y-2">
+                  {recent.map((r) => (
+                    <MeritRow key={r.merit.id} result={r} date={dates[r.merit.id]} />
+                  ))}
+                </ul>
+              </div>
+            )}
             {next && next.length > 0 && (
               <div className="mt-4">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Próximos objetivos</p>
@@ -109,10 +131,15 @@ export function MeritsView() {
             )}
           </section>
 
+          <p className="px-1 text-[0.6875rem] text-muted">
+            📅 A data de cada mérito é registrada quando o app o vê liberado pela primeira vez. Os que já estavam
+            liberados na primeira consulta aparecem como “conquistado até” aquela data.
+          </p>
+
           {MERIT_CATEGORIES.map((cat) => {
             const list = results.filter((r) => r.merit.category === cat.id);
             if (!list.length) return null;
-            return <CategorySection key={cat.id} label={cat.label} icon={cat.icon} list={list} />;
+            return <CategorySection key={cat.id} label={cat.label} icon={cat.icon} list={list} dates={dates} />;
           })}
         </>
       )}
@@ -120,7 +147,17 @@ export function MeritsView() {
   );
 }
 
-function CategorySection({ label, icon, list }: { label: string; icon: string; list: MeritResult[] }) {
+function CategorySection({
+  label,
+  icon,
+  list,
+  dates,
+}: {
+  label: string;
+  icon: string;
+  list: MeritResult[];
+  dates: Record<string, MeritDate>;
+}) {
   const [open, setOpen] = useState(false);
   const done = list.filter((r) => r.done).length;
   return (
@@ -156,7 +193,7 @@ function CategorySection({ label, icon, list }: { label: string; icon: string; l
       {open && (
         <ul className="space-y-2 border-t border-line p-3">
           {list.map((r) => (
-            <MeritRow key={r.merit.id} result={r} />
+            <MeritRow key={r.merit.id} result={r} date={dates[r.merit.id]} />
           ))}
         </ul>
       )}
@@ -164,7 +201,7 @@ function CategorySection({ label, icon, list }: { label: string; icon: string; l
   );
 }
 
-function MeritRow({ result }: { result: MeritResult }) {
+function MeritRow({ result, date }: { result: MeritResult; date?: MeritDate }) {
   const { merit, done, value, ratio } = result;
   return (
     <li
@@ -186,6 +223,14 @@ function MeritRow({ result }: { result: MeritResult }) {
           {done && <span className="text-gold">✓</span>}
         </p>
         <p className="text-xs text-muted">{merit.description}</p>
+        {done && date && (
+          <p
+            className="mt-0.5 text-[0.6875rem] font-semibold text-gold"
+            title={date.before ? "Já estava liberado quando o app começou a registrar as datas" : undefined}
+          >
+            📅 {meritDateLabel(date)}
+          </p>
+        )}
         {!done && (
           <div className="mt-1.5 flex items-center gap-2">
             <div className="flex-1">
