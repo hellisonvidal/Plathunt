@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../app";
 import { evaluateMerits, MERIT_CATEGORIES, type MeritResult } from "../lib/merits";
+import { challengeStats, getChallenges } from "../lib/challenges";
 import { countReactedItems } from "../lib/reactions";
 import { matchPlayed } from "../lib/stats";
 import { useData } from "../lib/useData";
@@ -33,6 +34,7 @@ export function MeritsView() {
         playedOn: new Map([...play].map(([id, p]) => [id, p.platform])),
         friends: friendIds ? friendIds.length : null,
         reactions: isMe ? countReactedItems() : null,
+        challenges: isMe ? challengeStats(getChallenges()) : null,
         now: Date.now(),
       });
       return { who, results };

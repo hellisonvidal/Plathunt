@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { persistSet } from "./persist";
+import { parsePlatforms, PLATFORM_ORDER } from "./stats";
 import type { Title } from "../psn/types";
 
 /**
@@ -111,6 +112,8 @@ export interface BoostCandidate {
   key: string;
   name: string;
   platform: string;
+  /** Plataformas em que o jogo existe ("PS5", "PS4", "PS3", "PS Vita"…). */
+  platforms: string[];
   iconUrl: string | null;
   /** Lista de troféus na PSN (quando você ou um amigo jogou). */
   title: Title | null;
@@ -139,11 +142,14 @@ export function buildBoostCatalog(
     if (found) update(found);
     else byName.set(key, make());
   };
+  const join = (c: BoostCandidate, more: string[]) => {
+    c.platforms = [...new Set([...c.platforms, ...more])];
+  };
   for (const t of mine)
     add(
       t.name,
-      () => ({ key: normalizeGameName(t.name), name: t.name, platform: t.platform, iconUrl: t.iconUrl, title: t, myProgress: t.progress, friends: 0, inStore: false }),
-      () => {},
+      () => ({ key: normalizeGameName(t.name), name: t.name, platform: t.platform, platforms: parsePlatforms(t.platform), iconUrl: t.iconUrl, title: t, myProgress: t.progress, friends: 0, inStore: false }),
+      (c) => join(c, parsePlatforms(t.platform)),
     );
   for (const list of friendsTitles) {
     const seen = new Set<string>();
@@ -153,8 +159,9 @@ export function buildBoostCatalog(
       seen.add(key);
       add(
         t.name,
-        () => ({ key, name: t.name, platform: t.platform, iconUrl: t.iconUrl, title: t, myProgress: null, friends: 1, inStore: false }),
+        () => ({ key, name: t.name, platform: t.platform, platforms: parsePlatforms(t.platform), iconUrl: t.iconUrl, title: t, myProgress: null, friends: 1, inStore: false }),
         (c) => {
+          join(c, parsePlatforms(t.platform));
           c.friends += 1;
           c.title ??= t;
         },
@@ -168,6 +175,7 @@ export function buildBoostCatalog(
         key: normalizeGameName(p.name),
         name: p.name,
         platform: p.platforms.join("/") || "PS5",
+        platforms: p.platforms.length ? [...p.platforms] : ["PS5"],
         iconUrl: p.imageUrl,
         title: null,
         myProgress: null,
@@ -175,6 +183,7 @@ export function buildBoostCatalog(
         inStore: true,
       }),
       (c) => {
+        join(c, p.platforms);
         c.inStore = true;
         c.iconUrl ??= p.imageUrl;
       },
@@ -184,11 +193,30 @@ export function buildBoostCatalog(
 
 /** Busca por nome: primeiro os seus jogos, depois os mais jogados pelos amigos, depois a loja. */
 export function searchBoostCatalog(catalog: BoostCandidate[], query: string, limit = 20): BoostCandidate[] {
+  if (!normalizeGameName(query)) return [];
+  return browseCatalog(catalog, null, query).slice(0, limit);
+}
+
+/**
+ * Lista para navegar: os jogos de uma plataforma (ou de todas, com `null`),
+ * filtrados pela busca. Ordem: seus jogos, os que mais amigos têm, a loja (A–Z).
+ */
+export function browseCatalog(catalog: BoostCandidate[], platform: string | null, query = ""): BoostCandidate[] {
   const q = normalizeGameName(query);
-  if (!q) return [];
   const rank = (c: BoostCandidate) => (c.myProgress !== null ? 0 : c.title ? 1 : 2);
   return catalog
-    .filter((c) => c.key.includes(q))
-    .sort((a, b) => rank(a) - rank(b) || b.friends - a.friends || Number(!a.key.startsWith(q)) - Number(!b.key.startsWith(q)) || a.name.localeCompare(b.name))
-    .slice(0, limit);
+    .filter((c) => (!platform || c.platforms.includes(platform)) && (!q || c.key.includes(q)))
+    .sort(
+      (a, b) =>
+        rank(a) - rank(b) ||
+        b.friends - a.friends ||
+        (q ? Number(!a.key.startsWith(q)) - Number(!b.key.startsWith(q)) : 0) ||
+        a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }),
+    );
+}
+
+/** Plataformas presentes no catálogo, na ordem PS5, PS4, PS3, PS Vita. */
+export function catalogPlatforms(catalog: BoostCandidate[]): string[] {
+  const all = new Set(catalog.flatMap((c) => c.platforms));
+  return PLATFORM_ORDER.filter((p) => all.has(p));
 }

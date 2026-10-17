@@ -13,8 +13,9 @@ const profile: Profile = {
 };
 
 describe("méritos", () => {
-  it("tem 500 méritos, ids únicos e todas as categorias conhecidas", () => {
-    expect(MERITS.length).toBe(500);
+  it("tem 560 méritos, ids únicos e todas as categorias conhecidas", () => {
+    expect(MERITS.length).toBe(560);
+    expect(MERITS.filter((m) => m.category === "desafios")).toHaveLength(60);
     expect(new Set(MERITS.map((m) => m.id)).size).toBe(MERITS.length);
     const cats = new Set(MERIT_CATEGORIES.map((c) => c.id));
     expect(MERITS.every((m) => cats.has(m.category))).toBe(true);
@@ -53,5 +54,6 @@ describe("méritos", () => {
   it("méritos sem dado (amigos e curtidas de outro jogador) ficam de fora", () => {
     const results = evaluateMerits({ profile, titles: [], playtime: new Map(), playedOn: new Map(), friends: null, reactions: null, now: NOW });
     expect(results.some((r) => r.merit.category === "social")).toBe(false);
+    expect(results.some((r) => r.merit.category === "desafios")).toBe(false);
   });
 });

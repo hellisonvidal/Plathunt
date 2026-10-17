@@ -1,10 +1,12 @@
 import type { Counts, Profile, Title } from "../psn/types";
+import type { ChallengeStats } from "./challenges";
 import { primaryPlatform, withEarnedTrophies, type PlayedOn } from "./stats";
 
 /**
  * Méritos: conquistas do próprio app, liberadas quando o jogador atinge
  * objetivos definidos aqui (platinas, troféus, nível, tempo de jogo...).
- * Tudo é calculado no celular a partir dos dados da PSN. São 500 méritos.
+ * Tudo é calculado no celular a partir dos dados da PSN e dos desafios
+ * salvos no app. São 560 méritos.
  */
 
 export interface MeritContext {
@@ -16,6 +18,8 @@ export interface MeritContext {
   /** null quando não se aplica (méritos de um amigo). */
   friends: number | null;
   reactions: number | null;
+  /** Seus desafios (Atividades → Desafios); null para amigos. */
+  challenges?: ChallengeStats | null;
   now: number;
 }
 
@@ -65,6 +69,7 @@ export const MERIT_CATEGORIES: MeritCategory[] = [
   { id: "social", label: "Social", icon: "🤝" },
   { id: "curiosidades", label: "Curiosidades", icon: "🎲" },
   { id: "especiais", label: "Especiais", icon: "✨" },
+  { id: "desafios", label: "Desafios", icon: "🏁" },
 ];
 
 interface PlatformStats {
@@ -113,6 +118,7 @@ export interface MeritStats {
   platinumRate: number;
   friends: number | null;
   reactions: number | null;
+  challenges: ChallengeStats | null;
   isPlus: boolean;
   hasAboutMe: boolean;
 }
@@ -186,6 +192,7 @@ export function meritStats(ctx: MeritContext): MeritStats {
     platinumRate: played.length >= 4 ? Math.round((played.filter((t) => t.earned.platinum > 0).length / played.length) * 100) : 0,
     friends: ctx.friends,
     reactions: ctx.reactions,
+    challenges: ctx.challenges ?? null,
     isPlus: ctx.profile.isPlus,
     hasAboutMe: !!ctx.profile.aboutMe?.trim(),
   };
@@ -289,7 +296,7 @@ function platformMerits(p: (typeof PLATFORMS)[number], category: string, icon: s
   ];
 }
 
-export const MERITS: Merit[] = [
+const BASE_MERITS: Merit[] = [
   // Platinas
   ...series({
     key: "platinas",
@@ -655,6 +662,120 @@ export const MERITS: Merit[] = [
   one("especial-mil-e-platina", "especiais", "🏅", "Pacote Completo", "Tenha 1.000 troféus, 10 platinas e nível 100", (s) =>
     [s.total >= 1000, s.earned.platinum >= 10, (s.level ?? 0) >= 100].filter(Boolean).length, 3),
 ];
+
+/** Valor de um número dos desafios (null quando não há dados: méritos de um amigo). */
+const ch = (pick: (c: ChallengeStats) => number) => (s: MeritStats) => (s.challenges ? pick(s.challenges) : null);
+
+/** Méritos dos Desafios (60): criar, vencer, subir ao pódio, derrotar rivais. */
+const CHALLENGE_MERITS: Merit[] = [
+  ...series({
+    key: "desafio-criados",
+    category: "desafios",
+    icon: "🏁",
+    targets: [1, 3, 5, 10, 25, 50, 100],
+    names: ["Desafiante", "Provocador", "Organizador", "Juiz da Arena", "Mestre de Cerimônias", "Comissário", "Liga Própria"],
+    base: "Desafios Criados",
+    describe: (n) => `Crie ${plural(n, "desafio", "desafios")}`,
+    value: ch((c) => c.created),
+  }),
+  ...series({
+    key: "desafio-vitorias",
+    category: "desafios",
+    icon: "🥇",
+    targets: [1, 3, 5, 10, 20, 30, 50, 75, 100, 150],
+    names: ["Primeira Vitória", "Tricampeão", "Pentacampeão", "Dezena de Ouro", "Imbatível", "Dominante", "Campeão da Liga", "Lenda da Arena", "Centenário", "Invencível"],
+    base: "Vitórias",
+    describe: (n) => `Vença ${plural(n, "desafio", "desafios")} (seja o primeiro a conquistar o troféu)`,
+    value: ch((c) => c.wins),
+  }),
+  ...series({
+    key: "desafio-podios",
+    category: "desafios",
+    icon: "🏅",
+    targets: [1, 5, 10, 25, 50],
+    names: ["No Pódio", "Frequentador do Pódio", "Sempre Entre os Três", "Dono do Pódio", "Pódio Cativo"],
+    base: "Pódios",
+    describe: (n) => `Termine ${plural(n, "desafio", "desafios")} entre os 3 primeiros`,
+    value: ch((c) => c.podiums),
+  }),
+  ...series({
+    key: "desafio-concluidos",
+    category: "desafios",
+    icon: "✅",
+    targets: [1, 5, 10, 25, 50, 100],
+    names: ["Missão Cumprida", "Cumpridor", "Persistente", "Incansável", "Obstinado", "Cem Missões"],
+    base: "Desafios Cumpridos",
+    describe: (n) => `Conquiste o troféu de ${plural(n, "desafio", "desafios")} dentro do desafio`,
+    value: ch((c) => c.completed),
+  }),
+  ...series({
+    key: "desafio-rivais",
+    category: "desafios",
+    icon: "⚔️",
+    targets: [1, 3, 5, 10, 20, 50],
+    names: ["Rival à Vista", "Trio de Rivais", "Lista de Rivais", "Arquirrivais", "Torneio Aberto", "Contra Todos"],
+    base: "Rivais",
+    describe: (n) => `Desafie ${plural(n, "amigo diferente", "amigos diferentes")}`,
+    value: ch((c) => c.rivals),
+  }),
+  ...series({
+    key: "desafio-derrotados",
+    category: "desafios",
+    icon: "💥",
+    targets: [1, 3, 5, 10, 25],
+    names: ["Primeiro Derrotado", "Três no Chão", "Cinco Superados", "Dez Superados", "Rei da Arena"],
+    base: "Rivais Superados",
+    describe: (n) => `Vença ${plural(n, "amigo diferente", "amigos diferentes")} em desafios`,
+    value: ch((c) => c.defeated),
+  }),
+  ...series({
+    key: "desafio-platina",
+    category: "desafios",
+    icon: "🏆",
+    targets: [1, 3, 5, 10, 25],
+    names: ["Corrida da Platina", "Platina na Frente", "Cinco Corridas", "Dez Corridas", "Senhor das Platinas"],
+    base: "Corrida da Platina",
+    describe: (n) => `Vença ${plural(n, "desafio", "desafios")} de platina`,
+    value: ch((c) => c.platinumWins),
+  }),
+  ...series({
+    key: "desafio-ouro",
+    category: "desafios",
+    icon: "🪙",
+    targets: [1, 5, 10],
+    names: ["Corrida do Ouro", "Garimpeiro Veloz", "Febre do Ouro"],
+    base: "Corrida do Ouro",
+    describe: (n) => `Vença ${plural(n, "desafio", "desafios")} de troféu de ouro`,
+    value: ch((c) => c.goldWins),
+  }),
+  ...series({
+    key: "desafio-sequencia",
+    category: "desafios",
+    icon: "🔥",
+    targets: [2, 3, 5, 7, 10],
+    names: ["Embalado", "Em Chamas", "Sequência Quente", "Semana Perfeita", "Dez Seguidas"],
+    base: "Sequência",
+    describe: (n) => `Vença ${fmt(n)} desafios seguidos`,
+    value: ch((c) => c.bestStreak),
+  }),
+  ...series({
+    key: "desafio-jogos",
+    category: "desafios",
+    icon: "🎮",
+    targets: [1, 5, 10, 25],
+    names: ["Campeão de um Jogo", "Versátil", "Multicampeão", "Campeão Universal"],
+    base: "Jogos Vencidos",
+    describe: (n) => `Vença desafios em ${plural(n, "jogo diferente", "jogos diferentes")}`,
+    value: ch((c) => c.gamesWon),
+  }),
+  one("desafio-relampago", "desafios", "⚡", "Relâmpago", "Vença um desafio em menos de 24 horas", ch((c) =>
+    has(c.fastestWinHours !== null && c.fastestWinHours < 24))),
+  one("desafio-multidao", "desafios", "🏟️", "Multidão", "Vença um desafio com 5 ou mais jogadores", ch((c) => c.bigWins)),
+  one("desafio-raridade", "desafios", "💎", "Caçador de Raridades", "Vença um desafio por um troféu com menos de 5% dos jogadores", ch((c) => c.rareWins)),
+  one("desafio-no-prazo", "desafios", "⏳", "Contra o Relógio", "Conquiste o troféu de um desafio com prazo dentro do prazo", ch((c) => c.onTime)),
+];
+
+export const MERITS: Merit[] = [...BASE_MERITS, ...CHALLENGE_MERITS];
 
 /** Avalia todos os méritos para um jogador. Méritos sem dado (null) ficam de fora. */
 export function evaluateMerits(ctx: MeritContext): MeritResult[] {
