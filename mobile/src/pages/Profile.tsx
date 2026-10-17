@@ -10,7 +10,7 @@ import { useData } from "../lib/useData";
 import { PsPlusIcon } from "../components/icons";
 import { t } from "../i18n";
 
-type Sort = "recentes" | "progresso" | "tempo";
+type Sort = "recentes" | "antigos" | "progresso" | "tempo";
 
 /** Perfil: o seu (aba 1) ou o de um amigo (/u/:accountId). */
 export function ProfilePage() {
@@ -29,7 +29,9 @@ export function ProfilePage() {
         client.playedGames(accountId, force),
       ]);
       const playtime = titles && played ? matchPlaytime(titles, played) : new Map<string, number>();
-      return { profile, titles, playtime };
+      // Nome verdadeiro, quando o jogador compartilha na PSN.
+      const realName = await client.realName(profile.onlineId, force).catch(() => null);
+      return { profile, titles, playtime, realName };
     },
     [client, accountId],
   );
@@ -39,7 +41,8 @@ export function ProfilePage() {
     .sort((a, b) => {
       if (sort === "progresso") return b.progress - a.progress;
       if (sort === "tempo") return (data!.playtime.get(b.id) ?? 0) - (data!.playtime.get(a.id) ?? 0);
-      return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+      const recent = new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+      return sort === "antigos" ? -recent : recent;
     });
   const totalPlay = data ? [...data.playtime.values()].reduce((a, b) => a + b, 0) : 0;
 
@@ -62,6 +65,7 @@ export function ProfilePage() {
                 <Avatar src={data.profile.avatarUrl} name={data.profile.onlineId} size={84} />
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-xl font-bold">{data.profile.onlineId}</h2>
+                  {data.realName && <p className="truncate text-sm font-medium text-muted">{data.realName}</p>}
                   <PsPlusInfo isPlus={data.profile.isPlus} />
                   {data.profile.aboutMe && <p className="mt-0.5 text-sm text-muted">{data.profile.aboutMe}</p>}
                 </div>
@@ -111,6 +115,7 @@ export function ProfilePage() {
                     className="rounded-full border border-line bg-surface-2 px-3 text-sm"
                   >
                     <option value="recentes">{t("Recentes")}</option>
+                    <option value="antigos">{t("Menos recentes")}</option>
                     <option value="progresso">{t("Progresso")}</option>
                     <option value="tempo">{t("Tempo de jogo")}</option>
                   </select>

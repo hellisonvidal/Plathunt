@@ -3,6 +3,7 @@ import type { Translations } from "../index";
 /** Traduções da versão 1.1.0: temas padrão, multiplayer do Boost e filtros das Conquistas. */
 const translations: Translations = {
   "en-US": {
+    "Menos recentes": "Least recent",
     "👥 Só jogos com multiplayer": "👥 Multiplayer games only",
     "Verificando os troféus online… faltam {n} jogos": "Checking online trophies… {n} games left",
     "Jogos com troféus online ou cooperativos": "Games with online or co-op trophies",
@@ -22,6 +23,7 @@ const translations: Translations = {
     "Bronze": "Bronze",
   },
   "es-ES": {
+    "Menos recentes": "Menos recientes",
     "👥 Só jogos com multiplayer": "👥 Solo juegos multijugador",
     "Verificando os troféus online… faltam {n} jogos": "Comprobando trofeos online… faltan {n} juegos",
     "Jogos com troféus online ou cooperativos": "Juegos con trofeos online o cooperativos",
@@ -41,6 +43,7 @@ const translations: Translations = {
     "Bronze": "Bronce",
   },
   "fr-FR": {
+    "Menos recentes": "Moins récents",
     "👥 Só jogos com multiplayer": "👥 Jeux multijoueur uniquement",
     "Verificando os troféus online… faltam {n} jogos": "Vérification des trophées en ligne… {n} jeux restants",
     "Jogos com troféus online ou cooperativos": "Jeux avec des trophées en ligne ou en coopération",
@@ -60,6 +63,7 @@ const translations: Translations = {
     "Bronze": "Bronze",
   },
   "de-DE": {
+    "Menos recentes": "Älteste zuerst",
     "👥 Só jogos com multiplayer": "👥 Nur Mehrspieler-Spiele",
     "Verificando os troféus online… faltam {n} jogos": "Online-Trophäen werden geprüft… noch {n} Spiele",
     "Jogos com troféus online ou cooperativos": "Spiele mit Online- oder Koop-Trophäen",
@@ -79,6 +83,7 @@ const translations: Translations = {
     "Bronze": "Bronze",
   },
   "it-IT": {
+    "Menos recentes": "Meno recenti",
     "👥 Só jogos com multiplayer": "👥 Solo giochi multigiocatore",
     "Verificando os troféus online… faltam {n} jogos": "Verifica dei trofei online… mancano {n} giochi",
     "Jogos com troféus online ou cooperativos": "Giochi con trofei online o cooperativi",
@@ -98,6 +103,7 @@ const translations: Translations = {
     "Bronze": "Bronzo",
   },
   "ja-JP": {
+    "Menos recentes": "古い順",
     "👥 Só jogos com multiplayer": "👥 マルチプレイ対応ゲームのみ",
     "Verificando os troféus online… faltam {n} jogos": "オンライントロフィーを確認中… 残り{n}本",
     "Jogos com troféus online ou cooperativos": "オンラインまたは協力プレイのトロフィーがあるゲーム",

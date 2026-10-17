@@ -8,14 +8,17 @@ export const THEMES: {
   value: Settings["theme"];
   label: string;
   description: string;
+  /** Fundo, cartões e destaque. */
   swatch: [string, string, string];
+  /** Cor das barras de cima e de baixo, quando diferente do fundo (ex.: Astro Bot). */
+  bars?: string;
   /** Temas padrão (claro, escuro e automático); os outros são temas de jogos. */
   standard?: boolean;
 }[] = [
   { value: "auto", label: "Automático", description: "Claro ou escuro, como o sistema do celular", swatch: ["#f5f6f8", "#0d0f13", "#2d7ff9"], standard: true },
   { value: "claro", label: "Claro", description: "Fundo claro com o azul PlayStation", swatch: ["#f5f6f8", "#ffffff", "#0070d1"], standard: true },
   { value: "escuro", label: "Escuro", description: "Fundo escuro com o azul PlayStation", swatch: ["#0d0f13", "#1f242c", "#2d7ff9"], standard: true },
-  { value: "playstation", label: "Astro Bot", description: "Branco do robô, preto do visor e azul dos olhos", swatch: ["#f2f4f8", "#0b0d12", "#1463ff"] },
+  { value: "playstation", label: "Astro Bot", description: "Branco do robô, preto do visor e azul dos olhos", swatch: ["#f2f4f8", "#ffffff", "#1463ff"], bars: "#0b0d12" },
   { value: "light", label: "Gran Turismo", description: "Vermelho do logo com branco de pista", swatch: ["#8c0013", "#b3001a", "#ffffff"] },
   { value: "oled", label: "Demon's Souls", description: "Preto puro (OLED) com o prata da armadura do Slayer", swatch: ["#000000", "#1c1c1c", "#b9c0ca"] },
   { value: "green", label: "The Last of Us", description: "Verde-oliva de Ellie com o cáqui de Joel", swatch: ["#13140c", "#282b1a", "#5e7a24"] },

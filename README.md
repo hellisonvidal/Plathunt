@@ -19,7 +19,9 @@ O repositório tem duas versões:
 
 ## Versão e temas
 
-Versão **1.1.0** (o número do build vai junto: "1.1.0 (build N)"). Além dos temas de jogos, há dois temas padrão, **Claro** e **Escuro**, e o **Automático** (padrão em instalações novas), que segue o claro/escuro do sistema do celular e acompanha a troca com o app aberto. No Perfil, o gráfico de conclusão dos jogos usa uma cor por faixa (verde, azul, roxo, laranja e vermelho) em todos os temas; as listas de jogos abaixo continuam nas cores do tema.
+No Perfil aparece o **nome verdadeiro** do jogador, quando ele compartilha o nome na PSN, e a lista de jogos pode ser ordenada por recentes, **menos recentes**, progresso ou tempo de jogo.
+
+Versão **1.1.0** (o número do build vai junto: "1.1.0 (build N)"). Na tela de Temas, os temas aparecem em ordem alfabética e cada miniatura mostra uma tela do tema (barras, fundo, cartão e destaque), com o Automático metade claro e metade escuro. Além dos temas de jogos, há dois temas padrão, **Claro** e **Escuro**, e o **Automático** (padrão em instalações novas), que segue o claro/escuro do sistema do celular e acompanha a troca com o app aberto. No Perfil, o gráfico de conclusão dos jogos usa uma cor por faixa (verde, azul, roxo, laranja e vermelho) em todos os temas; as listas de jogos abaixo continuam nas cores do tema.
 
 **Boost só com jogos multiplayer:** a PSN e a PlayStation Store não informam se um jogo tem modo online. O app considera multiplayer os jogos com troféus online, cooperativos, de partidas ranqueadas ou de versus (no idioma da PSN), que são justamente os que precisam de boost. A lista de troféus de cada jogo é verificada em segundo plano (seus jogos primeiro, depois os mais comuns entre os amigos) e a resposta fica guardada no celular; jogos só da loja, sem lista de troféus conhecida, ficam de fora desse filtro, que pode ser desligado.
 

@@ -7,7 +7,7 @@ import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
 import { appVersion, updateSettings, useSettings, type Settings } from "../lib/settings";
 import { STORE_REGIONS } from "../lib/store";
-import { LANGUAGES, t } from "../i18n";
+import { LANGUAGES, locale, t } from "../i18n";
 import { THEMES } from "../lib/theme";
 import { checkForUpdate, RELEASES_PAGE, type UpdateResult } from "../lib/updates";
 import { useData } from "../lib/useData";
@@ -203,7 +203,7 @@ export function ThemesPage() {
       <div className="px-4 pb-8 pt-4">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t("Padrão")}</h2>
         <div className="mb-5 grid grid-cols-3 gap-2" role="radiogroup" aria-label={t("Tema padrão")}>
-          {THEMES.filter((th) => th.standard).map((th) => (
+          {sortedThemes(THEMES.filter((th) => th.standard)).map((th) => (
             <ThemeCard
               key={th.value}
               theme={th}
@@ -217,7 +217,7 @@ export function ThemesPage() {
           {t("Cada tema usa as cores do personagem principal de um jogo de PlayStation.")}
         </p>
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("Tema")}>
-          {THEMES.filter((th) => !th.standard).map((th) => (
+          {sortedThemes(THEMES.filter((th) => !th.standard)).map((th) => (
             <ThemeCard
               key={th.value}
               theme={th}
@@ -231,18 +231,64 @@ export function ThemesPage() {
   );
 }
 
-/** Miniatura das cores de um tema: fundo, cartões e destaque. */
+/**
+ * Miniatura de uma tela no tema: barra de cima, fundo, cartão com texto e
+ * botão de destaque, e barra de baixo. O Automático mostra metade clara e
+ * metade escura.
+ */
 function ThemeSwatch({ theme, className = "" }: { theme: (typeof THEMES)[number]; className?: string }) {
-  const [bg, card, accent] = theme.swatch;
-  return (
-    <span className={`flex flex-col justify-end gap-1 rounded-lg p-1.5 ${className}`} style={{ background: bg }}>
-      <span className="block h-2 w-3/4 rounded-sm" style={{ background: card }} />
-      <span className="flex items-center gap-1">
-        <span className="block h-2 flex-1 rounded-sm" style={{ background: card }} />
-        <span className="block h-3 w-6 rounded-sm" style={{ background: accent }} />
+  if (theme.value === "auto") {
+    const light = THEMES.find((th) => th.value === "claro")!;
+    const dark = THEMES.find((th) => th.value === "escuro")!;
+    return (
+      <span className={`relative flex overflow-hidden rounded-lg border border-line ${className}`}>
+        <MiniScreen theme={light} className="w-1/2" />
+        <MiniScreen theme={dark} className="w-1/2" />
+        <span className="absolute inset-0 flex items-center justify-center text-base" aria-hidden>
+          <span className="rounded-full bg-black/60 px-1.5 text-white">◐</span>
+        </span>
       </span>
+    );
+  }
+  return <MiniScreen theme={theme} className={`overflow-hidden rounded-lg border border-line ${className}`} />;
+}
+
+function MiniScreen({ theme, className = "" }: { theme: (typeof THEMES)[number]; className?: string }) {
+  const [bg, card, accent] = theme.swatch;
+  const bars = theme.bars ?? bg;
+  const light = isLightColor(bg);
+  const ink = light ? "rgba(0,0,0,.55)" : "rgba(255,255,255,.7)";
+  const barInk = isLightColor(bars) ? "rgba(0,0,0,.55)" : "rgba(255,255,255,.7)";
+  return (
+    <span className={`flex flex-col ${className}`} style={{ background: bg }}>
+      <span className="flex h-2.5 items-center px-1" style={{ background: bars }}>
+        <span className="block h-0.5 w-1/3 rounded-full" style={{ background: barInk }} />
+      </span>
+      <span className="flex flex-1 flex-col justify-center gap-1 p-1.5">
+        <span
+          className="flex items-center gap-1 rounded-sm p-1"
+          style={{ background: card, boxShadow: card === bg ? `inset 0 0 0 1px ${ink}` : undefined }}
+        >
+          <span className="block h-1 flex-1 rounded-full" style={{ background: ink }} />
+          <span className="block h-2 w-4 rounded-sm" style={{ background: accent }} />
+        </span>
+      </span>
+      <span className="block h-2" style={{ background: bars }} />
     </span>
   );
+}
+
+/** Cor clara (para escolher traços escuros ou claros na miniatura). */
+function isLightColor(hex: string): boolean {
+  const n = parseInt(hex.replace("#", "").padEnd(6, "0").slice(0, 6), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150;
+}
+
+/** Temas em ordem alfabética (pelo nome no idioma atual). */
+function sortedThemes(list: typeof THEMES) {
+  const collator = new Intl.Collator(locale(), { sensitivity: "base" });
+  return [...list].sort((a, b) => collator.compare(t(a.label), t(b.label)));
 }
 
 function ThemeCard({
