@@ -5,6 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Avatar, ProgressBar } from "../components/ui";
 import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
+import { connectCloud, disconnectCloud, useCloud } from "../lib/cloud";
 import { cancelAllNotifications, requestNotificationPermission } from "../lib/notify";
 import { appVersion, updateSettings, useSettings, type Settings } from "../lib/settings";
 import { STORE_REGIONS } from "../lib/store";
@@ -119,6 +120,10 @@ export function SettingsPage() {
           />
         </Section>
 
+        <Section title={t("Recursos online")}>
+          <CloudSettings demo={mode === "demo"} onMessage={flash} />
+        </Section>
+
         <Section title={t("Notificações")}>
           <Toggle
             label={t("🔔 Notificações")}
@@ -138,6 +143,7 @@ export function SettingsPage() {
                 ["notifyBoost", "Lembretes de boost", "No horário combinado do pedido (hoje à noite, amanhã, fim de semana)"],
                 ["notifyFriends", "Platinas dos amigos", "Quando um amigo conquista uma platina"],
                 ["notifyUpdates", "Novas versões do app", "Quando há uma atualização para instalar"],
+                ["notifySocial", "Curtidas e pedidos recebidos", "Recursos online: quando curtem sua conquista ou mandam um pedido de boost"],
               ] as const
             ).map(([key, label, hint]) => (
               <Toggle
@@ -565,6 +571,62 @@ function Choice<T extends string | number>({
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+const PRIVACY_URL = "https://github.com/hellisonvidal/Trophy-Mania/blob/main/docs/privacidade.md";
+
+/**
+ * Recursos online (opcionais): curtidas que o dono vê e pedidos de boost
+ * direto no app. Ao ligar, o ID da PSN é confirmado no servidor do app.
+ */
+function CloudSettings({ demo, onMessage }: { demo: boolean; onMessage: (m: string) => void }) {
+  const { identity, ready } = useCloud();
+  const [busy, setBusy] = useState(false);
+  const run = async (action: () => Promise<unknown>, ok: string) => {
+    setBusy(true);
+    try {
+      await action();
+      onMessage(ok);
+    } catch {
+      onMessage(t("Não foi possível conectar agora. Tente de novo em instantes."));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="space-y-3 p-4">
+      <p className="text-sm">
+        {identity ? t("🌐 Conectado como {name}", { name: identity.onlineId }) : t("🌐 Desligados")}
+      </p>
+      <p className="text-xs text-muted">
+        {t(
+          "Com os recursos online, suas curtidas chegam ao dono da conquista e os pedidos de boost vão direto para o app dos amigos que também usam o Trophy Mania. Ficam guardados no servidor do app só seu ID e avatar da PSN, suas curtidas e seus pedidos de boost.",
+        )}{" "}
+        <a href={PRIVACY_URL} target="_blank" rel="noreferrer" className="text-ps-blue-2 underline">
+          {t("Política de privacidade")}
+        </a>
+      </p>
+      {demo ? (
+        <p className="text-xs text-muted">{t("Disponível ao entrar com a PSN (não funciona no modo demonstração).")}</p>
+      ) : identity ? (
+        <button
+          disabled={busy}
+          onClick={() => run(disconnectCloud, t("Recursos online desligados neste celular."))}
+          className="w-full rounded-xl border border-line py-2.5 text-sm font-semibold disabled:opacity-50"
+        >
+          {t("Desligar recursos online")}
+        </button>
+      ) : (
+        <button
+          disabled={busy || !ready}
+          onClick={() => run(connectCloud, t("Recursos online ligados!"))}
+          className="w-full rounded-xl bg-ps-blue py-2.5 text-sm font-semibold disabled:opacity-50"
+        >
+          {busy ? t("Conectando…") : t("Ligar recursos online")}
+        </button>
+      )}
     </div>
   );
 }

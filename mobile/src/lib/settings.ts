@@ -26,6 +26,7 @@ export interface Settings {
   notifyBoost: boolean;
   notifyFriends: boolean;
   notifyUpdates: boolean;
+  notifySocial: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -45,6 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyBoost: true,
   notifyFriends: true,
   notifyUpdates: true,
+  notifySocial: true,
 };
 
 const KEY = "tm.settings" as const;

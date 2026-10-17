@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Boost } from "./boost";
+import { answerBoostRequest, myBoostRequests } from "./cloud";
 import { persistSet } from "./persist";
 
 /**
@@ -19,6 +20,8 @@ export interface ReceivedBoost {
   createdAt: string;
   receivedAt: string;
   status: "novo" | "aceito";
+  /** Pedido que chegou pelos recursos online (id no servidor). */
+  cloudId?: string;
 }
 
 type Payload = Pick<ReceivedBoost, "from" | "game" | "trophies" | "players" | "when" | "note" | "createdAt">;
@@ -109,11 +112,54 @@ export function importBoost(text: string, me: string | null, now = new Date()): 
 }
 
 export function setInboxStatus(id: string, status: ReceivedBoost["status"]) {
-  save(getInbox().map((r) => (r.id === id ? { ...r, status } : r)));
+  const list = getInbox();
+  const found = list.find((r) => r.id === id);
+  save(list.map((r) => (r.id === id ? { ...r, status } : r)));
+  if (found?.cloudId && status === "aceito") void answerBoostRequest(found.cloudId, "aceito").catch(() => {});
 }
 
 export function removeFromInbox(id: string) {
-  save(getInbox().filter((r) => r.id !== id));
+  const list = getInbox();
+  const found = list.find((r) => r.id === id);
+  // Recusar um pedido que veio pelo app avisa quem pediu.
+  if (found?.cloudId && found.status === "novo") void answerBoostRequest(found.cloudId, "recusado").catch(() => {});
+  save(list.filter((r) => r.id !== id));
+}
+
+/**
+ * Traz os pedidos que chegaram pelos recursos online para o painel. Devolve
+ * os novos (para avisar). Pedidos recusados ou já apagados não voltam.
+ */
+export async function syncCloudInbox(now = new Date()): Promise<ReceivedBoost[]> {
+  const { received } = await myBoostRequests();
+  const list = getInbox();
+  const known = new Set(list.map((r) => r.cloudId).filter(Boolean));
+  const added: ReceivedBoost[] = [];
+  for (const r of received) {
+    if (known.has(r.id) || r.status === "recusado") continue;
+    const p = r.payload as Partial<Payload>;
+    if (!p.game?.name) continue;
+    added.push({
+      id: `cloud:${r.id}`,
+      cloudId: r.id,
+      from: String(p.from ?? ""),
+      game: { id: String(p.game.id ?? ""), name: String(p.game.name), platform: String(p.game.platform ?? ""), iconUrl: null },
+      trophies: Array.isArray(p.trophies) ? p.trophies.map(String) : [],
+      players: Number(p.players) || 1,
+      when: String(p.when ?? ""),
+      note: String(p.note ?? ""),
+      createdAt: r.created_at,
+      receivedAt: now.toISOString(),
+      status: r.status === "aceito" ? "aceito" : "novo",
+    });
+  }
+  if (added.length) save([...added, ...list]);
+  return added;
+}
+
+/** O que vai para o servidor ao enviar um pedido direto no app. */
+export function cloudPayload(b: Pick<Boost, "id" | "game" | "trophies" | "players" | "when" | "note" | "createdAt">, from: string) {
+  return { boostId: b.id, from, game: { ...b.game, iconUrl: null }, trophies: b.trophies, players: b.players, when: b.when, note: b.note, createdAt: b.createdAt };
 }
 
 export function useInbox(): ReceivedBoost[] {

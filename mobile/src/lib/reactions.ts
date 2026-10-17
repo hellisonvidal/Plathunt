@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
+import { syncLike } from "./cloud";
 import { persistRemove, persistSet } from "./persist";
 
 /**
- * Reações às conquistas. Sem servidor, ficam salvas só neste celular (os
- * amigos não veem). Os ids "ps:*" são os botões do controle PlayStation.
+ * Reações às conquistas. Ficam salvas neste celular e, com os recursos
+ * online ligados, também vão para o dono da conquista ver (lib/cloud.ts).
+ * Os ids "ps:*" são os botões do controle PlayStation.
  */
 export const STANDARD_REACTIONS = ["👍", "❤️", "🔥", "👏", "😮", "😂", "🎉", "💪"] as const;
 export const PLAYSTATION_REACTIONS = ["ps:triangle", "ps:circle", "ps:cross", "ps:square", "🎮", "🏆"] as const;
@@ -40,14 +42,22 @@ export function clearReactions() {
   listeners.forEach((l) => l());
 }
 
-export function useReactions(itemKey: string) {
+export function useReactions(itemKey: string, ownerAccountId?: string) {
   const [mine, setMine] = useState<string[]>(() => readAll()[itemKey] ?? []);
   useEffect(() => {
     const sync = () => setMine(readAll()[itemKey] ?? []);
     listeners.add(sync);
     return () => void listeners.delete(sync);
   }, [itemKey]);
-  const toggle = useCallback((r: string) => setMine(toggleReaction(itemKey, r)), [itemKey]);
+  const toggle = useCallback(
+    (r: string) => {
+      const next = toggleReaction(itemKey, r);
+      setMine(next);
+      // Recursos online: o dono da conquista vê a curtida (se estiverem ligados).
+      if (ownerAccountId) void syncLike(itemKey, ownerAccountId, r, next.includes(r)).catch(() => {});
+    },
+    [itemKey, ownerAccountId],
+  );
   return { mine, toggle };
 }
 

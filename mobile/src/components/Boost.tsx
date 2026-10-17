@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import {
@@ -14,7 +14,17 @@ import {
   type BoostCandidate,
 } from "../lib/boost";
 import { t } from "../i18n";
-import { boostLink, importBoost, removeFromInbox, setInboxStatus, useInbox, type ReceivedBoost } from "../lib/boostInbox";
+import {
+  boostLink,
+  cloudPayload,
+  importBoost,
+  removeFromInbox,
+  setInboxStatus,
+  syncCloudInbox,
+  useInbox,
+  type ReceivedBoost,
+} from "../lib/boostInbox";
+import { appUsers, myBoostRequests, sendBoostRequests, useCloud } from "../lib/cloud";
 import { cancelNotification, notify } from "../lib/notify";
 import { mapLimit } from "../lib/cache";
 import { presenceRank, presenceText } from "../lib/presence";
@@ -296,6 +306,7 @@ function BoostCard({ boost: b }: { boost: Boost }) {
         <span className="text-muted">{showFriends ? "▴" : "▾"}</span>
       </button>
       {showFriends && <FriendsWithGame boost={b} />}
+      {b.kind !== "ajuda" && !b.done && <SendInApp boost={b} myId={myId} />}
 
       <div className="flex justify-between text-xs">
         <button onClick={() => updateBoost(b.id, { done: !b.done })} className="font-semibold text-ps-blue-2">
@@ -423,6 +434,11 @@ function BoostInbox() {
   const { client } = useApp();
   const me = useData((force) => client.me(force), [client]);
   const inbox = useInbox();
+  const { identity } = useCloud();
+  // Pedidos que chegaram direto no app (recursos online).
+  useEffect(() => {
+    if (identity) void syncCloudInbox().catch(() => {});
+  }, [identity]);
   const [text, setText] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -563,5 +579,93 @@ function ReceivedCard({ request: r, me }: { request: ReceivedBoost; me: string }
         </>
       )}
     </article>
+  );
+}
+
+/**
+ * Recursos online: envia o pedido direto para o app dos amigos que também
+ * usam o Trophy Mania e mostra quem já respondeu.
+ */
+function SendInApp({ boost: b, myId }: { boost: Boost; myId: string }) {
+  const { client } = useApp();
+  const { identity } = useCloud();
+  const [chosen, setChosen] = useState<string[]>([]);
+  const [sending, setSending] = useState(false);
+  const data = useData(async () => {
+    if (!identity) return null;
+    const [ids, { sent }] = await Promise.all([client.friendIds(), myBoostRequests()]);
+    const users = await appUsers(ids);
+    const answers = new Map(
+      sent.filter((r) => (r.payload as { boostId?: string }).boostId === b.id).map((r) => [r.to_account_id, r.status]),
+    );
+    return { users: [...users].sort((x, y) => x[1].localeCompare(y[1])), answers };
+  }, [client, identity?.accountId, b.id]);
+
+  if (!identity) {
+    return (
+      <p className="rounded-xl bg-surface-2 p-2.5 text-[0.6875rem] text-muted">
+        {t("Ligue os recursos online em Configurações para enviar o pedido direto no app dos amigos.")}
+      </p>
+    );
+  }
+  if (data.loading && !data.data) return <p className="text-xs text-muted">{t("Procurando amigos que usam o app…")}</p>;
+  const users = data.data?.users ?? [];
+  const answers = data.data?.answers ?? new Map<string, string>();
+  const label = (status: string | undefined) =>
+    status === "aceito" ? t("✔ Aceitou") : status === "recusado" ? t("Recusou") : status ? t("Enviado") : null;
+
+  return (
+    <section className="space-y-2 rounded-xl border border-line p-3">
+      <p className="text-sm font-semibold">{t("📲 Enviar direto no app")}</p>
+      {users.length === 0 ? (
+        <p className="text-xs text-muted">{t("Nenhum amigo seu usa o Trophy Mania com recursos online ainda.")}</p>
+      ) : (
+        <>
+          <ul className="space-y-1">
+            {users.map(([accountId, name]) => {
+              const status = answers.get(accountId);
+              const on = chosen.includes(accountId);
+              return (
+                <li key={accountId}>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      disabled={!!status}
+                      checked={on || !!status}
+                      onChange={() => setChosen((l) => (on ? l.filter((x) => x !== accountId) : [...l, accountId]))}
+                      className="h-4 w-4 accent-[var(--color-ps-blue)]"
+                    />
+                    <span className="flex-1 truncate">{name}</span>
+                    {status && (
+                      <span className={`text-[0.6875rem] ${status === "aceito" ? "font-semibold text-online" : "text-muted"}`}>
+                        {label(status)}
+                      </span>
+                    )}
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+          <button
+            disabled={!chosen.length || sending}
+            onClick={async () => {
+              setSending(true);
+              try {
+                await sendBoostRequests(chosen, cloudPayload(b, myId));
+                setChosen([]);
+                data.refresh();
+              } catch {
+                // Sem conexão: o usuário pode tentar de novo.
+              } finally {
+                setSending(false);
+              }
+            }}
+            className="w-full rounded-xl bg-ps-blue py-2 text-sm font-semibold disabled:opacity-50"
+          >
+            {sending ? t("Enviando…") : t("Enviar pedido ({n})", { n: chosen.length })}
+          </button>
+        </>
+      )}
+    </section>
   );
 }

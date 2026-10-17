@@ -15,13 +15,44 @@ export function ReactionGlyph({ reaction }: { reaction: string }) {
   return <span>{reaction}</span>;
 }
 
+/** Curtidas de outros jogadores (recursos online): emoji e quem curtiu. */
+export interface OtherLike {
+  reaction: string;
+  name: string;
+}
+
 /** Barra de curtidas com emojis padrão e os da PlayStation. */
-export function ReactionBar({ itemKey }: { itemKey: string }) {
-  const { mine, toggle } = useReactions(itemKey);
+export function ReactionBar({
+  itemKey,
+  ownerAccountId,
+  others = [],
+}: {
+  itemKey: string;
+  ownerAccountId?: string;
+  others?: OtherLike[];
+}) {
+  const { mine, toggle } = useReactions(itemKey, ownerAccountId);
   const [open, setOpen] = useState(false);
+  const counts = new Map<string, number>();
+  for (const o of others) counts.set(o.reaction, (counts.get(o.reaction) ?? 0) + 1);
+  const names = [...new Set(others.map((o) => o.name))];
 
   return (
     <div className="mt-3">
+      {others.length > 0 && (
+        <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs">
+          {[...counts].map(([r, n]) => (
+            <span key={r} className="flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5">
+              <ReactionGlyph reaction={r} /> <span className="font-semibold">{n}</span>
+            </span>
+          ))}
+          <span className="min-w-0 truncate text-muted">
+            {names.length <= 2
+              ? t("curtido por {names}", { names: names.join(", ") })
+              : t("curtido por {names} e mais {n}", { names: names.slice(0, 2).join(", "), n: names.length - 2 })}
+          </span>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         {mine.map((r) => (
           <button
