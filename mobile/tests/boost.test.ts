@@ -66,8 +66,8 @@ describe("catálogo do boost", async () => {
 });
 
 describe("catálogo por plataforma", async () => {
-  const { browseCatalog, buildBoostCatalog, catalogPlatforms } = await import("../src/lib/boost");
-  it("separa os jogos por plataforma, seus primeiro", () => {
+  const { browseCatalog, buildBoostCatalog, catalogPlatforms, myGames } = await import("../src/lib/boost");
+  it("separa os jogos por plataforma, em ordem alfabética", () => {
     const t = (id: string, name: string, platform: string, progress = 10) =>
       ({ id, name, service: "trophy" as const, iconUrl: null, platform, progress, earned: { platinum: 0, gold: 0, silver: 0, bronze: 0 },
         defined: { platinum: 0, gold: 0, silver: 0, bronze: 0 }, lastUpdated: "2026-01-01T00:00:00Z", hasGroups: false });
@@ -77,7 +77,12 @@ describe("catálogo por plataforma", async () => {
     ]);
     expect(catalogPlatforms(cat)).toEqual(["PS5", "PS4", "PS3", "PS Vita"]);
     expect(browseCatalog(cat, "PS4").map((c) => c.name)).toEqual(["Gravity Rush"]);
-    expect(browseCatalog(cat, null).map((c) => c.name)).toEqual(["Uncharted 2", "Gravity Rush", "Astro Bot"]);
+    expect(browseCatalog(cat, null).map((c) => c.name)).toEqual(["Astro Bot", "Gravity Rush", "Uncharted 2"]);
     expect(browseCatalog(cat, "PS Vita", "grav")).toHaveLength(1);
+    // Só os meus jogos: um item por jogo da lista, com os amigos que também têm.
+    const mine = [t("A", "Gravity Rush", "PS4"), t("A5", "Gravity Rush", "PS5"), t("C", "Uncharted 2", "PS3")];
+    const list = myGames(mine, buildBoostCatalog(mine, [[t("B", "Gravity Rush", "PS4")]], []));
+    expect(list).toHaveLength(3);
+    expect(list[0]).toMatchObject({ key: "me:A", friends: 1, myProgress: 10 });
   });
 });
