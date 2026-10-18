@@ -4,11 +4,11 @@ import { useApp } from "../app";
 import { CompletionSummary } from "../components/Completion";
 import { PageHeader } from "../components/PageHeader";
 import { TitleList } from "../components/TitleList";
-import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge } from "../components/ui";
+import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge, TrophyStack } from "../components/ui";
 import { formatDuration, isComplete, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import { PsPlusIcon } from "../components/icons";
-import { t } from "../i18n";
+import { locale, t } from "../i18n";
 import type { Title } from "../psn/types";
 
 type Sort = "recentes" | "antigos" | "progresso" | "tempo";
@@ -96,21 +96,24 @@ export function ProfilePage() {
                     </div>
                     <span className="text-xs text-muted">{data.profile.levelProgress ?? 0}%</span>
                   </div>
-                  {/* Total de troféus logo abaixo do nível. */}
-                  <p className="mt-2 text-sm">
-                    {t("{n} troféus no total", {
-                      n:
-                        data.profile.earned.platinum +
-                        data.profile.earned.gold +
-                        data.profile.earned.silver +
-                        data.profile.earned.bronze,
-                    })}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
                     <TrophyBadge type="platinum" count={data.profile.earned.platinum} />
                     <TrophyBadge type="gold" count={data.profile.earned.gold} />
                     <TrophyBadge type="silver" count={data.profile.earned.silver} />
                     <TrophyBadge type="bronze" count={data.profile.earned.bronze} />
+                    {/* Soma de todos os troféus, ao lado dos quatro tipos. */}
+                    <span
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold"
+                      title={t("Total de troféus")}
+                    >
+                      <TrophyStack />
+                      {(
+                        data.profile.earned.platinum +
+                        data.profile.earned.gold +
+                        data.profile.earned.silver +
+                        data.profile.earned.bronze
+                      ).toLocaleString(locale())}
+                    </span>
                   </div>
                   <p className="mt-2 text-xs text-muted">
                     {t("{n} jogos", { n: data.titles?.length ?? 0 })}

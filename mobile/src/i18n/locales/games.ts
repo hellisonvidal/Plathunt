@@ -50,7 +50,7 @@ const translations: Translations = {
     "🏆 Platina": "🏆 Platinum",
     "{n} faltando": "{n} missing",
     "Troféu de platina": "Platinum trophy",
-    "{n} troféus no total": "{n} trophies in total",
+    "Total de troféus": "Total trophies",
     "Troféus não conquistados": "Unearned trophies",
   },
   "es-ES": {
@@ -101,7 +101,7 @@ const translations: Translations = {
     "🏆 Platina": "🏆 Platino",
     "{n} faltando": "{n} pendientes",
     "Troféu de platina": "Trofeo de platino",
-    "{n} troféus no total": "{n} trofeos en total",
+    "Total de troféus": "Total de trofeos",
     "Troféus não conquistados": "Trofeos no conseguidos",
   },
   "fr-FR": {
@@ -152,7 +152,7 @@ const translations: Translations = {
     "🏆 Platina": "🏆 Platine",
     "{n} faltando": "{n} manquants",
     "Troféu de platina": "Trophée de platine",
-    "{n} troféus no total": "{n} trophées au total",
+    "Total de troféus": "Total des trophées",
     "Troféus não conquistados": "Trophées non obtenus",
   },
   "de-DE": {
@@ -203,7 +203,7 @@ const translations: Translations = {
     "🏆 Platina": "🏆 Platin",
     "{n} faltando": "{n} fehlen",
     "Troféu de platina": "Platin-Trophäe",
-    "{n} troféus no total": "{n} Trophäen insgesamt",
+    "Total de troféus": "Trophäen insgesamt",
     "Troféus não conquistados": "Nicht erhaltene Trophäen",
   },
   "it-IT": {
@@ -254,7 +254,7 @@ const translations: Translations = {
     "🏆 Platina": "🏆 Platino",
     "{n} faltando": "{n} mancanti",
     "Troféu de platina": "Trofeo di platino",
-    "{n} troféus no total": "{n} trofei in totale",
+    "Total de troféus": "Totale trofei",
     "Troféus não conquistados": "Trofei non ottenuti",
   },
   "ja-JP": {
@@ -305,7 +305,7 @@ const translations: Translations = {
     "🏆 Platina": "🏆 プラチナ",
     "{n} faltando": "残り {n}",
     "Troféu de platina": "プラチナトロフィー",
-    "{n} troféus no total": "合計 {n} 個のトロフィー",
+    "Total de troféus": "トロフィー合計",
     "Troféus não conquistados": "未獲得のトロフィー",
   },
 };
