@@ -7,13 +7,41 @@ import { meritDateLabel, recordMeritDates, type MeritDate } from "../lib/meritDa
 import { countReactedItems } from "../lib/reactions";
 import { matchPlayed } from "../lib/stats";
 import { useData } from "../lib/useData";
-import { ErrorBox, ProgressBar, Spinner } from "./ui";
+import { Avatar, ErrorBox, ProgressBar, Spinner } from "./ui";
+import { mapLimit } from "../lib/cache";
 
 /**
  * Méritos (Atividades → Méritos): conquistas do app por objetivos, divididas
  * em categorias. Dá para ver os seus ou os de um amigo com troféus públicos.
  */
 export function MeritsView() {
+  const [tab, setTab] = useState<"meus" | "ranking">("meus");
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-surface p-1 text-sm" role="tablist">
+        {(
+          [
+            ["meus", t("🏅 Méritos")],
+            ["ranking", t("🏆 Ranking de méritos")],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={`rounded-xl py-2 font-semibold ${tab === key ? "bg-ps-blue" : "text-muted"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === "ranking" ? <MeritRanking /> : <MyMerits />}
+    </div>
+  );
+}
+
+function MyMerits() {
   const { client } = useApp();
   const [who, setWho] = useState("me");
 
@@ -39,11 +67,14 @@ export function MeritsView() {
         challenges: isMe ? challengeStats(getChallenges()) : null,
         now: Date.now(),
       });
-      // Data de conquista: a primeira vez que o app viu cada mérito liberado.
-      const dates = recordMeritDates(
+      // Data de conquista: a do último troféu do jogo que liberou o mérito; sem
+      // troféu de origem (nível, tempo, amigos...), a primeira vez que o app o viu liberado.
+      const recorded = recordMeritDates(
         profile.accountId,
         results.filter((r) => r.done).map((r) => r.merit.id),
       );
+      const dates: Record<string, MeritDate> = { ...recorded };
+      for (const r of results) if (r.done && r.at) dates[r.merit.id] = { at: new Date(r.at).toISOString(), before: false };
       return { who, results, dates };
     },
     [client, who],
@@ -135,7 +166,7 @@ export function MeritsView() {
           <p className="px-1 text-[0.6875rem] text-muted">
             📅{" "}
             {t(
-              "A data de cada mérito é registrada quando o app o vê liberado pela primeira vez. Os que já estavam liberados na primeira consulta aparecem como “conquistado até” aquela data.",
+              "A data de cada mérito é a do último troféu do jogo que o liberou (a PSN informa a data da última conquista de cada jogo). Méritos sem troféu de origem (nível, tempo de jogo, amigos, curtidas e desafios) usam a primeira vez que o app os viu liberados; os que já estavam liberados aparecem como “conquistado até” aquela data.",
             )}
           </p>
 
@@ -246,5 +277,123 @@ function MeritRow({ result, date }: { result: MeritResult; date?: MeritDate }) {
         )}
       </div>
     </li>
+  );
+}
+
+interface RankingRow {
+  accountId: string;
+  onlineId: string;
+  avatarUrl: string | null;
+  unlocked: number;
+  total: number;
+  isMe: boolean;
+}
+
+/** Ranking de méritos guardado na memória enquanto o app está aberto. */
+let rankingCache: { at: number; rows: RankingRow[] } | null = null;
+
+/**
+ * Ranking de méritos entre você e os amigos com troféus públicos. Para ser
+ * justo, conta só os méritos calculados pelos dados da PSN (sem amigos,
+ * curtidas e desafios, que só existem no seu app).
+ */
+function MeritRanking() {
+  const { client } = useApp();
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const { data, error, loading, refresh } = useData(
+    async (force) => {
+      if (!force && rankingCache && Date.now() - rankingCache.at < 30 * 60_000) return rankingCache.rows;
+      const [me, friends] = await Promise.all([client.me(force), client.friends(force)]);
+      const players = [
+        { profile: me, accountId: "me", isMe: true },
+        ...friends.filter((f) => f.level !== null).map((f) => ({ profile: f, accountId: f.accountId, isMe: false })),
+      ];
+      let done = 0;
+      setProgress({ done, total: players.length });
+      const rows = await mapLimit(players, 4, async (p): Promise<RankingRow | null> => {
+        try {
+          const [titles, played] = await Promise.all([client.titles(p.accountId, force), client.playedGames(p.accountId, force)]);
+          const play = matchPlayed(titles, played ?? []);
+          const results = evaluateMerits({
+            profile: p.profile,
+            titles,
+            playtime: new Map([...play].map(([id, x]) => [id, x.seconds])),
+            playedOn: new Map([...play].map(([id, x]) => [id, x.platform])),
+            friends: null,
+            reactions: null,
+            challenges: null,
+            now: Date.now(),
+          });
+          return {
+            accountId: p.profile.accountId,
+            onlineId: p.profile.onlineId,
+            avatarUrl: p.profile.avatarUrl,
+            unlocked: results.filter((r) => r.done).length,
+            total: results.length,
+            isMe: p.isMe,
+          };
+        } catch {
+          return null;
+        } finally {
+          setProgress({ done: ++done, total: players.length });
+        }
+      });
+      const list = rows
+        .filter((r): r is RankingRow => !!r)
+        .sort((a, b) => b.unlocked - a.unlocked || a.onlineId.localeCompare(b.onlineId, locale(), { sensitivity: "base" }));
+      rankingCache = { at: Date.now(), rows: list };
+      return list;
+    },
+    [client],
+  );
+
+  return (
+    <div className="space-y-3">
+      {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
+      {loading && !data && (
+        <div className="space-y-2 rounded-2xl border border-line bg-surface p-4">
+          <p className="text-sm text-muted">
+            {progress
+              ? t("Calculando os méritos dos amigos… {n} de {total}", { n: progress.done, total: progress.total })
+              : t("Calculando os méritos…")}
+          </p>
+          <ProgressBar value={progress && progress.total ? (progress.done / progress.total) * 100 : 5} />
+        </div>
+      )}
+      {data && (
+        <>
+          <ol className="space-y-2">
+            {data.map((r, i) => (
+              <li
+                key={r.accountId}
+                className={`flex items-center gap-3 rounded-2xl border p-3 ${
+                  r.isMe ? "border-ps-blue-2 bg-ps-blue-2/10" : "border-line bg-surface"
+                }`}
+              >
+                <span className="w-7 text-center text-lg font-bold tabular-nums">
+                  {i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}
+                </span>
+                <Avatar src={r.avatarUrl} name={r.onlineId} size={40} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{r.isMe ? t("{name} (você)", { name: r.onlineId }) : r.onlineId}</span>
+                  <span className="mt-1 block">
+                    <ProgressBar value={(r.unlocked / Math.max(1, r.total)) * 100} />
+                  </span>
+                </span>
+                <span className="text-right">
+                  <span className="block font-bold tabular-nums">{r.unlocked.toLocaleString(locale())}</span>
+                  <span className="text-[0.6875rem] text-muted">{t("méritos")}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <p className="px-1 text-[0.6875rem] text-muted">
+            {t(
+              "Conta só os méritos calculados pelos troféus e jogos da PSN; amigos, curtidas e desafios ficam de fora para todos. Amigos com troféus privados não entram.",
+            )}
+          </p>
+        </>
+      )}
+    </div>
   );
 }

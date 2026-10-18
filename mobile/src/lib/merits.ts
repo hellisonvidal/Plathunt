@@ -1,13 +1,14 @@
-import { t } from "../i18n";
+import { locale, t } from "../i18n";
 import type { Counts, Profile, Title } from "../psn/types";
 import type { ChallengeStats } from "./challenges";
+import { genresOf, GENRES } from "./genres";
 import { isComplete, primaryPlatform, withEarnedTrophies, type PlayedOn } from "./stats";
 
 /**
  * Méritos: conquistas do próprio app, liberadas quando o jogador atinge
  * objetivos definidos aqui (platinas, troféus, nível, tempo de jogo...).
  * Tudo é calculado no celular a partir dos dados da PSN e dos desafios
- * salvos no app. São 560 méritos.
+ * salvos no app. São 2.000 méritos, incluindo os de gêneros de jogos.
  */
 
 export interface MeritContext {
@@ -30,21 +31,30 @@ export interface MeritCategory {
   icon: string;
 }
 
+/** Valor de "{x}" no texto; uma função é calculada na hora de mostrar (ex.: nome do gênero traduzido). */
+export type MeritVar = string | number | (() => string);
+
 export interface Merit {
   id: string;
   category: string;
   icon: string;
   /** Nome em português (chave de tradução); `nameVars` preenche "{p}" / "{y}". */
   name: string;
-  nameVars?: Record<string, string | number>;
+  nameVars?: Record<string, MeritVar>;
   /** Numeral romano dos méritos de série sem nome próprio (ex.: "VII" em "Lenda Platinada VII"). */
   suffix?: string;
   /** Descrição em português (chave de tradução); `vars` preenche "{n}" (a meta), "{p}"... */
   description: string;
-  vars?: Record<string, string | number>;
+  vars?: Record<string, MeritVar>;
   target: number;
   /** Valor atual do objetivo; null quando não dá para calcular. */
   value: (s: MeritStats) => number | null;
+  /**
+   * Quando o mérito foi liberado: a data do último troféu do jogo que fez o
+   * jogador atingir a meta (ms). Sem isso (nível, tempo, amigos...), vale a
+   * primeira vez que o app viu o mérito liberado.
+   */
+  when?: (s: MeritStats) => number | null;
 }
 
 export interface MeritResult {
@@ -53,17 +63,22 @@ export interface MeritResult {
   done: boolean;
   /** 0–1. */
   ratio: number;
+  /** Data (ms) do troféu que liberou o mérito, quando dá para saber. */
+  at: number | null;
 }
+
+const resolveVars = (vars?: Record<string, MeritVar>) =>
+  vars && Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, typeof v === "function" ? v() : v]));
 
 /** Nome do mérito no idioma atual (ex.: "Lenda Platinada VII"). */
 export function meritName(m: Merit): string {
-  const name = t(m.name, m.nameVars);
+  const name = t(m.name, resolveVars(m.nameVars));
   return m.suffix ? `${name} ${m.suffix}` : name;
 }
 
 /** Descrição do mérito no idioma atual, com a meta formatada (1.000 / 1,000). */
 export function meritDescription(m: Merit): string {
-  return t(m.description, m.vars);
+  return t(m.description, resolveVars(m.vars));
 }
 
 export const MERIT_CATEGORIES: MeritCategory[] = [
@@ -88,6 +103,10 @@ export const MERIT_CATEGORIES: MeritCategory[] = [
   { id: "curiosidades", label: "Curiosidades", icon: "🎲" },
   { id: "especiais", label: "Especiais", icon: "✨" },
   { id: "desafios", label: "Desafios", icon: "🏁" },
+  { id: "generos", label: "Gêneros", icon: "🎭" },
+  { id: "calendario", label: "Calendário", icon: "📆" },
+  { id: "marcos", label: "Marcos", icon: "🪜" },
+  { id: "alfabeto", label: "Alfabeto", icon: "🔤" },
 ];
 
 interface PlatformStats {
@@ -96,6 +115,11 @@ interface PlatformStats {
   completed: number;
   trophies: number;
   hours: number;
+  gold: number;
+  silver: number;
+  bronze: number;
+  progressSum: number;
+  half: number;
 }
 
 /** Números já calculados uma vez, usados por todos os méritos. */
@@ -139,6 +163,42 @@ export interface MeritStats {
   challenges: ChallengeStats | null;
   isPlus: boolean;
   hasAboutMe: boolean;
+  /** Jogos com troféus, do mais antigo ao mais recente (pela última conquista). */
+  sorted: Title[];
+  /** Data (ms) da última conquista de um jogo. */
+  timeOf: (t: Title) => number;
+  /** Data do n-ésimo jogo (em ordem de data) que atende a condição. */
+  nthAt: (pred: (t: Title) => boolean, n: number) => number | null;
+  /** Data em que a soma de `fn` pelos jogos (em ordem de data) chegou a n. */
+  sumAt: (fn: (t: Title) => number, n: number) => number | null;
+  platformOf: (t: Title) => string;
+  genres: Map<string, GenreStats>;
+  genresOf: (t: Title) => string[];
+  /** Por ano da última conquista. */
+  years: Map<number, { games: number; platinums: number; trophies: number }>;
+  /** Por mês (0–11) da última conquista. */
+  months: { games: number; platinums: number }[];
+  /** Por dia da semana (0 = domingo). */
+  weekdays: { games: number; platinums: number }[];
+  /** Por período do dia: madrugada, manhã, tarde, noite. */
+  periods: { games: number; platinums: number }[];
+  /** Iniciais (A–Z) dos jogos e dos jogos platinados. */
+  letters: Set<string>;
+  platinumLetters: Set<string>;
+  /** Jogos com número no nome (continuações). */
+  sequels: number;
+  /** Jogos com pelo menos `n` troféus de ouro. */
+  gamesWithGold: (n: number) => number;
+}
+
+export interface GenreStats {
+  games: number;
+  platinums: number;
+  completed: number;
+  trophies: number;
+  gold: number;
+  hours: number;
+  progressSum: number;
 }
 
 const DAY = 86_400_000;
@@ -167,13 +227,93 @@ export function meritStats(ctx: MeritContext): MeritStats {
   const platforms = new Map<string, PlatformStats>();
   for (const t of played) {
     const p = platformOf(t);
-    const s = platforms.get(p) ?? { games: 0, platinums: 0, completed: 0, trophies: 0, hours: 0 };
+    const s = platforms.get(p) ?? {
+      games: 0,
+      platinums: 0,
+      completed: 0,
+      trophies: 0,
+      hours: 0,
+      gold: 0,
+      silver: 0,
+      bronze: 0,
+      progressSum: 0,
+      half: 0,
+    };
     s.games += 1;
     s.platinums += t.earned.platinum;
     s.completed += isComplete(t) ? 1 : 0;
     s.trophies += sum(t.earned);
     s.hours += hoursOf(t);
+    s.gold += t.earned.gold;
+    s.silver += t.earned.silver;
+    s.bronze += t.earned.bronze;
+    s.progressSum += t.progress;
+    s.half += t.progress >= 50 ? 1 : 0;
     platforms.set(p, s);
+  }
+
+  // Datas: a última conquista de cada jogo (a PSN não dá a data de cada troféu na lista de jogos).
+  const timeOf = (t: Title) => Date.parse(t.lastUpdated);
+  const sorted = played.filter((t) => Number.isFinite(timeOf(t))).sort((a, b) => timeOf(a) - timeOf(b));
+  const nthAt = (pred: (t: Title) => boolean, n: number) => {
+    let count = 0;
+    for (const t of sorted) if (pred(t) && ++count >= n) return timeOf(t);
+    return null;
+  };
+  const sumAt = (fn: (t: Title) => number, n: number) => {
+    let total = 0;
+    for (const t of sorted) if ((total += fn(t)) >= n) return timeOf(t);
+    return null;
+  };
+
+  const genreCache = new Map<string, string[]>();
+  const genresOfTitle = (t: Title) => {
+    let g = genreCache.get(t.id);
+    if (!g) genreCache.set(t.id, (g = genresOf(t.name)));
+    return g;
+  };
+  const genres = new Map<string, GenreStats>();
+  for (const t of played) {
+    for (const g of genresOfTitle(t)) {
+      const s = genres.get(g) ?? { games: 0, platinums: 0, completed: 0, trophies: 0, gold: 0, hours: 0, progressSum: 0 };
+      s.games += 1;
+      s.platinums += t.earned.platinum > 0 ? 1 : 0;
+      s.completed += isComplete(t) ? 1 : 0;
+      s.trophies += sum(t.earned);
+      s.gold += t.earned.gold;
+      s.hours += hoursOf(t);
+      s.progressSum += t.progress;
+      genres.set(g, s);
+    }
+  }
+
+  const years = new Map<number, { games: number; platinums: number; trophies: number }>();
+  const months = Array.from({ length: 12 }, () => ({ games: 0, platinums: 0 }));
+  const weekdays = Array.from({ length: 7 }, () => ({ games: 0, platinums: 0 }));
+  const periods = Array.from({ length: 4 }, () => ({ games: 0, platinums: 0 }));
+  const letters = new Set<string>();
+  const platinumLetters = new Set<string>();
+  for (const t of sorted) {
+    const d = new Date(timeOf(t));
+    const plat = t.earned.platinum > 0 ? 1 : 0;
+    const y = years.get(d.getFullYear()) ?? { games: 0, platinums: 0, trophies: 0 };
+    y.games += 1;
+    y.platinums += plat;
+    y.trophies += sum(t.earned);
+    years.set(d.getFullYear(), y);
+    months[d.getMonth()].games += 1;
+    months[d.getMonth()].platinums += plat;
+    weekdays[d.getDay()].games += 1;
+    weekdays[d.getDay()].platinums += plat;
+    const period = Math.floor(d.getHours() / 6);
+    periods[period].games += 1;
+    periods[period].platinums += plat;
+  }
+  for (const t of played) {
+    const letter = initialOf(t.name);
+    if (!letter) continue;
+    letters.add(letter);
+    if (t.earned.platinum > 0) platinumLetters.add(letter);
   }
   const gamesByYear = new Map<number, number>();
   for (const t of played) gamesByYear.set(yearOf(t), (gamesByYear.get(yearOf(t)) ?? 0) + 1);
@@ -213,8 +353,37 @@ export function meritStats(ctx: MeritContext): MeritStats {
     challenges: ctx.challenges ?? null,
     isPlus: ctx.profile.isPlus,
     hasAboutMe: !!ctx.profile.aboutMe?.trim(),
+    sorted,
+    timeOf,
+    nthAt,
+    sumAt,
+    platformOf,
+    genres,
+    genresOf: genresOfTitle,
+    years,
+    months,
+    weekdays,
+    periods,
+    letters,
+    platinumLetters,
+    sequels: played.filter((t) => SEQUEL.test(t.name)).length,
+    gamesWithGold: (n) => played.filter((t) => t.earned.gold >= n).length,
   };
 }
+
+/** Inicial do jogo (A–Z), sem acento e ignorando "The". */
+function initialOf(name: string): string | null {
+  const n = name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/^the\s+/i, "")
+    .toUpperCase();
+  const m = n.match(/[A-Z]/);
+  return m ? m[0] : null;
+}
+
+/** Nome com número de continuação: "2", "III", "4: ...". */
+const SEQUEL = /(\s|^)(\d{1,2}|II|III|IV|V|VI|VII|VIII|IX|X)(\b|:)/;
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI", "XXII", "XXIII", "XXIV", "XXV", "XXVI", "XXVII", "XXVIII", "XXIX", "XXX"];
 /**
@@ -229,10 +398,12 @@ function series(opts: {
   targets: number[];
   names?: string[];
   base: string;
-  baseVars?: Record<string, string>;
+  baseVars?: Record<string, MeritVar>;
   describe: (n: number) => string;
-  vars?: Record<string, string>;
+  vars?: Record<string, MeritVar>;
   value: Merit["value"];
+  /** Data em que a meta n foi atingida (ver Merit.when). */
+  when?: (s: MeritStats, n: number) => number | null;
 }): Merit[] {
   return opts.targets.map((target, i) => {
     const own = opts.names?.[i];
@@ -246,6 +417,7 @@ function series(opts: {
       vars: { n: target, ...opts.vars },
       target,
       value: opts.value,
+      ...(opts.when ? { when: (s: MeritStats) => opts.when!(s, target) } : {}),
     };
   });
 }
@@ -258,10 +430,11 @@ const one = (
   description: string,
   value: Merit["value"],
   target = 1,
-  extra: Pick<Merit, "nameVars" | "vars"> = {},
+  extra: Pick<Merit, "nameVars" | "vars" | "when"> = {},
 ): Merit => ({ id, category, icon, name, description, target, value, ...extra });
 
 const has = (b: boolean) => (b ? 1 : 0);
+const yearOf = (t: Title) => new Date(t.lastUpdated).getFullYear();
 /** Texto no singular (meta 1) ou no plural. */
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 const platform = (s: MeritStats, p: string) => s.platforms.get(p);
@@ -283,6 +456,7 @@ function platformMerits(p: (typeof PLATFORMS)[number], category: string, icon: s
       baseVars: { p: tag },
       describe: (n) => plural(n, "Tenha troféus em {n} jogo de {p}", "Tenha troféus em {n} jogos de {p}"),
       vars: { p },
+      when: (s, n) => s.nthAt((t) => s.platformOf(t) === p, n),
       value: (s) => platform(s, p)?.games ?? 0,
     }),
     ...series({
@@ -294,6 +468,7 @@ function platformMerits(p: (typeof PLATFORMS)[number], category: string, icon: s
       baseVars: { p: tag },
       describe: (n) => plural(n, "Conquiste {n} platina no {p}", "Conquiste {n} platinas no {p}"),
       vars: { p },
+      when: (s, n) => s.nthAt((t) => s.platformOf(t) === p && t.earned.platinum > 0, n),
       value: (s) => platform(s, p)?.platinums ?? 0,
     }),
     ...series({
@@ -305,6 +480,7 @@ function platformMerits(p: (typeof PLATFORMS)[number], category: string, icon: s
       baseVars: { p: tag },
       describe: (n) => plural(n, "Complete {n} jogo de {p} em 100%", "Complete {n} jogos de {p} em 100%"),
       vars: { p },
+      when: (s, n) => s.nthAt((t) => s.platformOf(t) === p && isComplete(t), n),
       value: (s) => platform(s, p)?.completed ?? 0,
     }),
     ...series({
@@ -316,6 +492,7 @@ function platformMerits(p: (typeof PLATFORMS)[number], category: string, icon: s
       baseVars: { p: tag },
       describe: () => "Conquiste {n} troféus no {p}",
       vars: { p },
+      when: (s, n) => s.sumAt((t) => (s.platformOf(t) === p ? sum(t.earned) : 0), n),
       value: (s) => platform(s, p)?.trophies ?? 0,
     }),
     ...(p === "PS5" || p === "PS4"
@@ -344,6 +521,7 @@ const BASE_MERITS: Merit[] = [
     names: ["Primeira Platina", "Dose Dupla", "Trinca", "Quarteto", "Mão de Platina", "Caçador de Platinas", "Colecionador Platinado", "Vinte Brilhos", "Bodas de Prata", "Trinta e Contando", "Quarentão", "Meio Centenário", "Sessentão", "Brilho Eterno", "Noventa Graus", "Centurião Platinado"],
     base: "Lenda Platinada",
     describe: (n) => plural(n, "Conquiste {n} platina", "Conquiste {n} platinas"),
+    when: (s, n) => s.nthAt((t) => t.earned.platinum > 0, n),
     value: (s) => s.earned.platinum,
   }),
   // Troféus no total
@@ -355,6 +533,7 @@ const BASE_MERITS: Merit[] = [
     names: ["Primeiro Troféu", "Primeiros Passos", "Aquecendo", "Cinquentinha", "Centena", "Embalado", "Duzentos", "Dedicado", "Trezentos de Esparta", "Quatrocentos", "Meio Milhar", "Setecentos e Cinquenta", "Milhar"],
     base: "Colecionador de Troféus",
     describe: (n) => plural(n, "Conquiste {n} troféu no total", "Conquiste {n} troféus no total"),
+    when: (s, n) => s.sumAt((t) => sum(t.earned), n),
     value: (s) => s.total,
   }),
   ...series({
@@ -365,6 +544,7 @@ const BASE_MERITS: Merit[] = [
     names: ["Toque de Ouro", "Pepita", "Garimpeiro", "Veio de Ouro", "Mina de Ouro", "Barra de Ouro", "Cem Ouros", "Cofre Cheio", "Febre do Ouro", "Rei Midas"],
     base: "Tesouro Dourado",
     describe: (n) => plural(n, "Conquiste {n} troféu de ouro", "Conquiste {n} troféus de ouro"),
+    when: (s, n) => s.sumAt((t) => t.earned.gold, n),
     value: (s) => s.earned.gold,
   }),
   ...series({
@@ -375,6 +555,7 @@ const BASE_MERITS: Merit[] = [
     names: ["Primeira Prata", "Reflexo Prateado", "Talheres de Prata", "Prataria", "Cem Pratas", "Lua de Prata", "Bandeja de Prata"],
     base: "Baú de Prata",
     describe: (n) => plural(n, "Conquiste {n} troféu de prata", "Conquiste {n} troféus de prata"),
+    when: (s, n) => s.sumAt((t) => t.earned.silver, n),
     value: (s) => s.earned.silver,
   }),
   ...series({
@@ -385,6 +566,7 @@ const BASE_MERITS: Merit[] = [
     names: ["Primeiro Bronze", "Idade do Bronze", "Liga Metálica", "Cinquenta Bronzes", "Cem Bronzes", "Forja de Bronze", "Quinhentos Bronzes"],
     base: "Estátua de Bronze",
     describe: (n) => plural(n, "Conquiste {n} troféu de bronze", "Conquiste {n} troféus de bronze"),
+    when: (s, n) => s.sumAt((t) => t.earned.bronze, n),
     value: (s) => s.earned.bronze,
   }),
   ...series({
@@ -408,6 +590,7 @@ const BASE_MERITS: Merit[] = [
     names: ["Primeiro Jogo", "Prateleira", "Estante", "Gaveta Cheia", "Coleção Séria", "Biblioteca", "Trinta Títulos", "Acervo", "Cinquenta Jogos", "Colecionador", "Cem Jogos"],
     base: "Arquivo Vivo",
     describe: (n) => plural(n, "Tenha troféus em {n} jogo", "Tenha troféus em {n} jogos"),
+    when: (s, n) => s.nthAt(() => true, n),
     value: (s) => s.games,
   }),
   ...series({
@@ -418,6 +601,7 @@ const BASE_MERITS: Merit[] = [
     base: "Jogo Explorado",
     describe: (n) =>
       plural(n, "Tenha {n} jogo com 50 troféus ou mais conquistados", "Tenha {n} jogos com 50 troféus ou mais conquistados"),
+    when: (s, n) => s.nthAt((t) => sum(t.earned) >= 50, n),
     value: (s) => s.gamesWithTrophies(50),
   }),
   ...series({
@@ -428,6 +612,7 @@ const BASE_MERITS: Merit[] = [
     base: "Jogo Gigante",
     describe: (n) =>
       plural(n, "Tenha {n} jogo com 100 troféus ou mais conquistados", "Tenha {n} jogos com 100 troféus ou mais conquistados"),
+    when: (s, n) => s.nthAt((t) => sum(t.earned) >= 100, n),
     value: (s) => s.gamesWithTrophies(100),
   }),
   ...series({
@@ -448,6 +633,7 @@ const BASE_MERITS: Merit[] = [
     names: ["Completista", "Dois Perfeitos", "Três Perfeitos", "Cinco Perfeitos", "Dez Perfeitos", "Quinze Perfeitos", "Vinte Perfeitos", "Perfeccionista", "Trinta Perfeitos", "Quarenta Perfeitos", "Obsessivo", "Setenta e Cinco Perfeitos", "Cem por Cento"],
     base: "Perfeição Absoluta",
     describe: (n) => plural(n, "Complete {n} jogo em 100%", "Complete {n} jogos em 100%"),
+    when: (s, n) => s.nthAt(isComplete, n),
     value: (s) => s.completed,
   }),
   ...series({
@@ -466,6 +652,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 5, 10, 25, 50, 100, 200],
     base: "Não Abandona",
     describe: (n) => plural(n, "Passe de 50% em {n} jogo", "Passe de 50% em {n} jogos"),
+    when: (s, n) => s.nthAt((t) => t.progress >= 50, n),
     value: (s) => s.gamesAtLeast(50),
   }),
   ...series({
@@ -475,6 +662,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 5, 10, 25, 50, 100],
     base: "Reta Final",
     describe: (n) => plural(n, "Passe de 75% em {n} jogo", "Passe de 75% em {n} jogos"),
+    when: (s, n) => s.nthAt((t) => t.progress >= 75, n),
     value: (s) => s.gamesAtLeast(75),
   }),
   ...series({
@@ -484,6 +672,7 @@ const BASE_MERITS: Merit[] = [
     targets: [1, 10, 25, 50, 100, 200],
     base: "Sem Pressa",
     describe: (n) => plural(n, "Passe de 25% em {n} jogo", "Passe de 25% em {n} jogos"),
+    when: (s, n) => s.nthAt((t) => t.progress >= 25, n),
     value: (s) => s.gamesAtLeast(25),
   }),
   ...series({
@@ -513,6 +702,15 @@ const BASE_MERITS: Merit[] = [
         "Conquiste troféus em {n} plataforma (PS3, PS4, PS5 ou PS Vita)",
         "Conquiste troféus em {n} plataformas (PS3, PS4, PS5 ou PS Vita)",
       ),
+    when: (s, n) => {
+      const seen = new Set<string>();
+      for (const t of s.sorted) {
+        const p = s.platformOf(t);
+        if ((PLATFORMS as readonly string[]).includes(p)) seen.add(p);
+        if (seen.size >= n) return s.timeOf(t);
+      }
+      return null;
+    },
     value: (s) => PLATFORMS.filter((p) => (platform(s, p)?.games ?? 0) > 0).length,
   }),
   one("plataformas-platina-todas", "plataformas", "💎", "Platina em Todas", "Conquiste uma platina em PS3, PS4, PS5 e PS Vita", (s) =>
@@ -589,20 +787,21 @@ const BASE_MERITS: Merit[] = [
     names: ["Um Ano de Troféus", "Dois Anos", "Três Anos", "Velha Guarda", "Sete Anos", "Década de Troféus", "Doze Anos", "Quinze Anos"],
     base: "Veterano",
     describe: (n) => plural(n, "Tenha troféus de {n} ano atrás ou mais", "Tenha troféus de {n} anos atrás ou mais"),
+    when: (s, n) => (s.sorted.length ? s.timeOf(s.sorted[0]) + n * 365.25 * DAY : null),
     value: (s) => s.oldestYears,
   }),
   // Temporadas (por ano; vale o ano da última conquista de cada jogo)
   ...SEASONS.map((y) =>
     one(`temporada-${y}`, "temporadas", "🗓️", "Temporada {y}", "Tenha um jogo com troféus conquistados em {y}", (s) =>
-      s.gamesByYear.get(y) ?? 0, 1, season(y)),
+      s.gamesByYear.get(y) ?? 0, 1, { ...season(y), when: (s) => s.nthAt((t) => yearOf(t) === y, 1) }),
   ),
   ...SEASONS.map((y) =>
     one(`temporada-platina-${y}`, "temporadas", "🏆", "Platina de {y}", "Tenha um jogo platinado com a última conquista em {y}", (s) =>
-      has(s.platinumYears.has(y)), 1, season(y)),
+      has(s.platinumYears.has(y)), 1, { ...season(y), when: (s) => s.nthAt((t) => yearOf(t) === y && t.earned.platinum > 0, 1) }),
   ),
   ...SEASONS.map((y) =>
     one(`temporada-completo-${y}`, "temporadas", "💯", "Perfeição de {y}", "Tenha um jogo 100% com a última conquista em {y}", (s) =>
-      has(s.completedYears.has(y)), 1, season(y)),
+      has(s.completedYears.has(y)), 1, { ...season(y), when: (s) => s.nthAt((t) => yearOf(t) === y && isComplete(t), 1) }),
   ),
   ...series({
     key: "temporada-max",
@@ -623,6 +822,7 @@ const BASE_MERITS: Merit[] = [
     names: ["Expansão", "Conteúdo Extra", "Passe de Temporada", "Edição Completa", "Edição Definitiva"],
     base: "DLCs",
     describe: (n) => plural(n, "Tenha troféus em {n} jogo com DLC", "Tenha troféus em {n} jogos com DLC"),
+    when: (s, n) => s.nthAt((t) => t.hasGroups, n),
     value: (s) => s.dlcGames,
   }),
   // Social
@@ -647,15 +847,15 @@ const BASE_MERITS: Merit[] = [
     value: (s) => s.reactions,
   }),
   // Curiosidades
-  one("curioso-42", "curiosidades", "🌌", "A Resposta", "Conquiste {n} troféus no total", (s) => s.total, 42, { vars: { n: 42 } }),
+  one("curioso-42", "curiosidades", "🌌", "A Resposta", "Conquiste {n} troféus no total", (s) => s.total, 42, { vars: { n: 42 }, when: (s) => s.sumAt((t) => sum(t.earned), 42) }),
   one("curioso-777", "curiosidades", "🎰", "Sorte Grande", "Conquiste {n} troféus no total", (s) => s.total, 777, {
-    vars: { n: 777 },
+    vars: { n: 777 }, when: (s) => s.sumAt((t) => sum(t.earned), 777)
   }),
   one("curioso-1337", "curiosidades", "💻", "Elite 1337", "Conquiste {n} troféus no total", (s) => s.total, 1337, {
-    vars: { n: 1337 },
+    vars: { n: 1337 }, when: (s) => s.sumAt((t) => sum(t.earned), 1337)
   }),
   one("curioso-2048", "curiosidades", "🔢", "2048", "Conquiste {n} troféus no total", (s) => s.total, 2048, {
-    vars: { n: 2048 },
+    vars: { n: 2048 }, when: (s) => s.sumAt((t) => sum(t.earned), 2048)
   }),
   ...series({
     key: "curioso-ouro-jogo",
@@ -665,6 +865,7 @@ const BASE_MERITS: Merit[] = [
     names: ["Jogo Dourado", "Ouro Puro", "Reino Dourado", "Império Dourado", "Midas no Controle"],
     base: "Ouro no Jogo",
     describe: () => "Ganhe {n} troféus de ouro em um só jogo",
+    when: (s, n) => s.nthAt((t) => t.earned.gold >= n, 1),
     value: (s) => s.maxGoldInGame,
   }),
   ...series({
@@ -675,6 +876,7 @@ const BASE_MERITS: Merit[] = [
     names: ["Montanha de Troféus", "Cordilheira", "Everest"],
     base: "Troféus no Jogo",
     describe: () => "Conquiste {n} troféus em um só jogo",
+    when: (s, n) => s.nthAt((t) => sum(t.earned) >= n, 1),
     value: (s) => s.maxTrophiesInGame,
   }),
   ...series({
@@ -837,7 +1039,481 @@ const CHALLENGE_MERITS: Merit[] = [
   one("desafio-no-prazo", "desafios", "⏳", "Contra o Relógio", "Conquiste o troféu de um desafio com prazo dentro do prazo", ch((c) => c.onTime)),
 ];
 
-export const MERITS: Merit[] = [...BASE_MERITS, ...CHALLENGE_MERITS];
+
+/** Marcos numerados (nome com o número, ex.: "Marco de Platinas: 350"), só nas metas que a série principal não tem. */
+function ladder(opts: {
+  key: string;
+  category: string;
+  icon: string;
+  targets: number[];
+  skip: number[];
+  name: string;
+  describe: (n: number) => string;
+  value: Merit["value"];
+  when?: (s: MeritStats, n: number) => number | null;
+}): Merit[] {
+  return opts.targets
+    .filter((n) => !opts.skip.includes(n))
+    .map((target) => ({
+      id: `${opts.key}-${target}`,
+      category: opts.category,
+      icon: opts.icon,
+      name: opts.name,
+      nameVars: { n: target },
+      description: opts.describe(target),
+      vars: { n: target },
+      target,
+      value: opts.value,
+      ...(opts.when ? { when: (s: MeritStats) => opts.when!(s, target) } : {}),
+    }));
+}
+
+const range = (from: number, to: number, step: number) =>
+  Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => from + i * step);
+
+/** Nome do mês / dia da semana no idioma do app (na hora de mostrar). */
+const monthName = (m: number) => () => new Intl.DateTimeFormat(locale(), { month: "long" }).format(new Date(2020, m, 1));
+// 2023-01-01 foi um domingo.
+const weekdayName = (d: number) => () => new Intl.DateTimeFormat(locale(), { weekday: "long" }).format(new Date(2023, 0, 1 + d));
+const PERIODS = ["Madrugada", "Manhã", "Tarde", "Noite"] as const;
+const LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
+const genre = (s: MeritStats, id: string) => s.genres.get(id);
+const hourOf = (s: MeritStats, t: Title) => new Date(s.timeOf(t)).getHours();
+
+/** Méritos de gêneros: jogos, platinas, 100%, troféus, horas, média e ouro em cada gênero. */
+const GENRE_MERITS: Merit[] = GENRES.flatMap((g) => {
+  const label = () => t(g.label);
+  const inGenre = (s: MeritStats, x: Title) => s.genresOf(x).includes(g.id);
+  return [
+    ...series({
+      key: `genero-${g.id}-jogos`,
+      category: "generos",
+      icon: g.icon,
+      targets: [1, 3, 5, 10, 15, 20, 25, 30, 40, 50],
+      base: "Fã de {g}",
+      baseVars: { g: label },
+      describe: (n) => plural(n, "Tenha troféus em {n} jogo de {g}", "Tenha troféus em {n} jogos de {g}"),
+      vars: { g: label },
+      value: (s) => genre(s, g.id)?.games ?? 0,
+      when: (s, n) => s.nthAt((x) => inGenre(s, x), n),
+    }),
+    ...series({
+      key: `genero-${g.id}-platinas`,
+      category: "generos",
+      icon: "🏆",
+      targets: [1, 2, 3, 5, 10, 15, 20, 25],
+      base: "Platina em {g}",
+      baseVars: { g: label },
+      describe: (n) => plural(n, "Conquiste {n} platina em jogos de {g}", "Conquiste {n} platinas em jogos de {g}"),
+      vars: { g: label },
+      value: (s) => genre(s, g.id)?.platinums ?? 0,
+      when: (s, n) => s.nthAt((x) => inGenre(s, x) && x.earned.platinum > 0, n),
+    }),
+    ...series({
+      key: `genero-${g.id}-completos`,
+      category: "generos",
+      icon: "💯",
+      targets: [1, 3, 5, 10],
+      base: "Perfeição em {g}",
+      baseVars: { g: label },
+      describe: (n) => plural(n, "Complete {n} jogo de {g} em 100%", "Complete {n} jogos de {g} em 100%"),
+      vars: { g: label },
+      value: (s) => genre(s, g.id)?.completed ?? 0,
+      when: (s, n) => s.nthAt((x) => inGenre(s, x) && isComplete(x), n),
+    }),
+    ...series({
+      key: `genero-${g.id}-trofeus`,
+      category: "generos",
+      icon: "🎖️",
+      targets: [50, 100, 250, 500, 1000, 2500],
+      base: "Troféus de {g}",
+      baseVars: { g: label },
+      describe: () => "Conquiste {n} troféus em jogos de {g}",
+      vars: { g: label },
+      value: (s) => genre(s, g.id)?.trophies ?? 0,
+      when: (s, n) => s.sumAt((x) => (inGenre(s, x) ? sum(x.earned) : 0), n),
+    }),
+    ...series({
+      key: `genero-${g.id}-horas`,
+      category: "generos",
+      icon: "⏱️",
+      targets: [10, 50, 100, 250, 500],
+      base: "Horas de {g}",
+      baseVars: { g: label },
+      describe: () => "Jogue {n} horas em jogos de {g} (PS4 e PS5)",
+      vars: { g: label },
+      value: (s) => Math.floor(genre(s, g.id)?.hours ?? 0),
+    }),
+    ...series({
+      key: `genero-${g.id}-media`,
+      category: "generos",
+      icon: "📈",
+      targets: [50, 75],
+      base: "Domínio de {g}",
+      baseVars: { g: label },
+      describe: () => "Tenha conclusão média de {n}% em jogos de {g} (a partir de 3 jogos)",
+      vars: { g: label },
+      value: (s) => {
+        const x = genre(s, g.id);
+        return x && x.games >= 3 ? Math.round(x.progressSum / x.games) : 0;
+      },
+    }),
+    ...series({
+      key: `genero-${g.id}-ouro`,
+      category: "generos",
+      icon: "🥇",
+      targets: [10, 50, 100],
+      base: "Ouro em {g}",
+      baseVars: { g: label },
+      describe: () => "Conquiste {n} troféus de ouro em jogos de {g}",
+      vars: { g: label },
+      value: (s) => genre(s, g.id)?.gold ?? 0,
+      when: (s, n) => s.sumAt((x) => (inGenre(s, x) ? x.earned.gold : 0), n),
+    }),
+  ];
+});
+
+const EXTRA_MERITS: Merit[] = [
+  ...GENRE_MERITS,
+  ...series({
+    key: "generos-variados",
+    category: "generos",
+    icon: "🎭",
+    targets: [3, 5, 10, 15],
+    names: ["Eclético", "Versátil", "Gosto Amplo", "Todos os Gêneros"],
+    base: "Eclético",
+    describe: () => "Tenha jogos de {n} gêneros diferentes",
+    value: (s) => s.genres.size,
+  }),
+  // Temporadas: platinas, jogos e troféus em cada ano
+  ...SEASONS.flatMap((y) => [
+    ...series({
+      key: `ano-${y}-platinas`,
+      category: "temporadas",
+      icon: "🏆",
+      targets: [3, 5, 10],
+      base: "Platinas de {y}",
+      baseVars: { y: String(y) },
+      describe: () => "Conquiste {n} platinas em jogos com a última conquista em {y}",
+      vars: { y: String(y) },
+      value: (s) => s.years.get(y)?.platinums ?? 0,
+      when: (s, n) => s.nthAt((t) => yearOf(t) === y && t.earned.platinum > 0, n),
+    }),
+    ...series({
+      key: `ano-${y}-jogos`,
+      category: "temporadas",
+      icon: "🗓️",
+      targets: [5, 10, 25],
+      base: "Jogos de {y}",
+      baseVars: { y: String(y) },
+      describe: () => "Tenha {n} jogos com a última conquista em {y}",
+      vars: { y: String(y) },
+      value: (s) => s.years.get(y)?.games ?? 0,
+      when: (s, n) => s.nthAt((t) => yearOf(t) === y, n),
+    }),
+    ...series({
+      key: `ano-${y}-trofeus`,
+      category: "temporadas",
+      icon: "🎖️",
+      targets: [100, 500, 1000],
+      base: "Troféus de {y}",
+      baseVars: { y: String(y) },
+      describe: () => "Conquiste {n} troféus em jogos com a última conquista em {y}",
+      vars: { y: String(y) },
+      value: (s) => s.years.get(y)?.trophies ?? 0,
+      when: (s, n) => s.sumAt((t) => (yearOf(t) === y ? sum(t.earned) : 0), n),
+    }),
+  ]),
+  // Calendário: meses, dias da semana e períodos do dia
+  ...Array.from({ length: 12 }, (_, m) => [
+    ...series({
+      key: `mes-${m + 1}-jogos`,
+      category: "calendario",
+      icon: "📆",
+      targets: [1, 5, 10, 25],
+      base: "Mês de {m}",
+      baseVars: { m: monthName(m) },
+      describe: (n) => plural(n, "Tenha {n} jogo com a última conquista em {m}", "Tenha {n} jogos com a última conquista em {m}"),
+      vars: { m: monthName(m) },
+      value: (s) => s.months[m].games,
+      when: (s, n) => s.nthAt((t) => new Date(s.timeOf(t)).getMonth() === m, n),
+    }),
+    ...series({
+      key: `mes-${m + 1}-platinas`,
+      category: "calendario",
+      icon: "🏆",
+      targets: [1, 3, 5],
+      base: "Platina em {m}",
+      baseVars: { m: monthName(m) },
+      describe: (n) => plural(n, "Conquiste {n} platina em {m}", "Conquiste {n} platinas em {m}"),
+      vars: { m: monthName(m) },
+      value: (s) => s.months[m].platinums,
+      when: (s, n) => s.nthAt((t) => new Date(s.timeOf(t)).getMonth() === m && t.earned.platinum > 0, n),
+    }),
+  ]).flat(),
+  ...Array.from({ length: 7 }, (_, d) => [
+    ...series({
+      key: `semana-${d}-platinas`,
+      category: "calendario",
+      icon: "🏆",
+      targets: [1, 5, 10],
+      base: "Platina de {d}",
+      baseVars: { d: weekdayName(d) },
+      describe: (n) => plural(n, "Conquiste {n} platina no dia da semana: {d}", "Conquiste {n} platinas no dia da semana: {d}"),
+      vars: { d: weekdayName(d) },
+      value: (s) => s.weekdays[d].platinums,
+      when: (s, n) => s.nthAt((t) => new Date(s.timeOf(t)).getDay() === d && t.earned.platinum > 0, n),
+    }),
+    ...series({
+      key: `semana-${d}-jogos`,
+      category: "calendario",
+      icon: "📅",
+      targets: [5, 25],
+      base: "Jogador de {d}",
+      baseVars: { d: weekdayName(d) },
+      describe: () => "Tenha {n} jogos com a última conquista no dia da semana: {d}",
+      vars: { d: weekdayName(d) },
+      value: (s) => s.weekdays[d].games,
+      when: (s, n) => s.nthAt((t) => new Date(s.timeOf(t)).getDay() === d, n),
+    }),
+  ]).flat(),
+  ...PERIODS.flatMap((label, i) => [
+    ...series({
+      key: `periodo-${i}-platinas`,
+      category: "calendario",
+      icon: ["🌙", "🌅", "☀️", "🌆"][i],
+      targets: [1, 5, 10, 25],
+      base: "Platinas: {p}",
+      baseVars: { p: () => t(label) },
+      describe: (n) => plural(n, "Conquiste {n} platina no período: {p}", "Conquiste {n} platinas no período: {p}"),
+      vars: { p: () => t(label) },
+      value: (s) => s.periods[i].platinums,
+      when: (s, n) => s.nthAt((t) => Math.floor(hourOf(s, t) / 6) === i && t.earned.platinum > 0, n),
+    }),
+    ...series({
+      key: `periodo-${i}-jogos`,
+      category: "calendario",
+      icon: ["🌙", "🌅", "☀️", "🌆"][i],
+      targets: [10, 50],
+      base: "Turno: {p}",
+      baseVars: { p: () => t(label) },
+      describe: () => "Tenha {n} jogos com a última conquista no período: {p}",
+      vars: { p: () => t(label) },
+      value: (s) => s.periods[i].games,
+      when: (s, n) => s.nthAt((t) => Math.floor(hourOf(s, t) / 6) === i, n),
+    }),
+  ]),
+  // Plataformas: ouro, prata e bronze, média e jogos acima de 50% em cada uma
+  ...PLATFORMS.flatMap((p) => {
+    const tag = p === "PS Vita" ? "Vita" : p;
+    const category = { PS5: "ps5", PS4: "ps4", PS3: "ps3", "PS Vita": "vita" }[p];
+    const type = (key: "gold" | "silver" | "bronze", name: string, desc: string, icon: string) =>
+      series({
+        key: `${category}-${key}`,
+        category,
+        icon,
+        targets: [10, 50, 100, 250, 500],
+        base: name,
+        baseVars: { p: tag },
+        describe: () => desc,
+        vars: { p },
+        value: (s) => platform(s, p)?.[key] ?? 0,
+        when: (s, n) => s.sumAt((t) => (s.platformOf(t) === p ? t.earned[key] : 0), n),
+      });
+    return [
+      ...type("gold", "Ouro {p}", "Conquiste {n} troféus de ouro no {p}", "🥇"),
+      ...type("silver", "Prata {p}", "Conquiste {n} troféus de prata no {p}", "🥈"),
+      ...type("bronze", "Bronze {p}", "Conquiste {n} troféus de bronze no {p}", "🥉"),
+      ...series({
+        key: `${category}-media`,
+        category,
+        icon: "📈",
+        targets: [50, 75, 90],
+        base: "Média {p}",
+        baseVars: { p: tag },
+        describe: () => "Tenha conclusão média de {n}% nos jogos de {p}",
+        vars: { p },
+        value: (s) => {
+          const x = platform(s, p);
+          return x?.games ? Math.round(x.progressSum / x.games) : 0;
+        },
+      }),
+      ...series({
+        key: `${category}-metade`,
+        category,
+        icon: "🧭",
+        targets: [5, 25, 50],
+        base: "Dedicação {p}",
+        baseVars: { p: tag },
+        describe: () => "Passe de 50% em {n} jogos de {p}",
+        vars: { p },
+        value: (s) => platform(s, p)?.half ?? 0,
+        when: (s, n) => s.nthAt((t) => s.platformOf(t) === p && t.progress >= 50, n),
+      }),
+    ];
+  }),
+  // Alfabeto
+  ...LETTERS.map((l) =>
+    one(`letra-platina-${l}`, "alfabeto", "🔤", "Letra {l}", "Platine um jogo que comece com a letra {l}", (s) =>
+      has(s.platinumLetters.has(l)), 1, {
+      nameVars: { l },
+      vars: { l },
+      when: (s) => s.nthAt((t) => t.earned.platinum > 0 && initialOf(t.name) === l, 1),
+    }),
+  ),
+  ...LETTERS.map((l) =>
+    one(`letra-jogo-${l}`, "alfabeto", "🔠", "Inicial {l}", "Tenha troféus em um jogo que comece com a letra {l}", (s) =>
+      has(s.letters.has(l)), 1, {
+      nameVars: { l },
+      vars: { l },
+      when: (s) => s.nthAt((t) => initialOf(t.name) === l, 1),
+    }),
+  ),
+  ...series({
+    key: "alfabeto",
+    category: "alfabeto",
+    icon: "📖",
+    targets: [5, 10, 15, 20, 26],
+    names: ["Abecedário", "Dicionário", "Enciclopédia", "Quase Tudo", "De A a Z"],
+    base: "Alfabeto",
+    describe: () => "Tenha jogos começando com {n} letras diferentes",
+    value: (s) => s.letters.size,
+  }),
+  // Conclusão em degraus e jogos marcantes
+  ...[10, 20, 30, 40, 60, 70, 80, 90].flatMap((x) =>
+    series({
+      key: `acima-${x}`,
+      category: "conclusao",
+      icon: "📶",
+      targets: [1, 5, 10, 25, 50, 100],
+      base: "Acima de {x}%",
+      baseVars: { x },
+      describe: (n) => plural(n, "Passe de {x}% em {n} jogo", "Passe de {x}% em {n} jogos"),
+      vars: { x },
+      value: (s) => s.gamesAtLeast(x),
+      when: (s, n) => s.nthAt((t) => t.progress >= x, n),
+    }),
+  ),
+  ...[10, 25, 75, 150].flatMap((x) =>
+    series({
+      key: `jogo-${x}-trofeus`,
+      category: "colecao",
+      icon: "🎯",
+      targets: [1, 5, 10, 25, 50],
+      base: "Jogo com {x} Troféus",
+      baseVars: { x },
+      describe: (n) =>
+        plural(n, "Tenha {n} jogo com {x} troféus ou mais conquistados", "Tenha {n} jogos com {x} troféus ou mais conquistados"),
+      vars: { x },
+      value: (s) => s.gamesWithTrophies(x),
+      when: (s, n) => s.nthAt((t) => sum(t.earned) >= x, n),
+    }),
+  ),
+  ...[1, 5, 10].flatMap((x) =>
+    series({
+      key: `jogo-${x}-ouros`,
+      category: "ouro",
+      icon: "👑",
+      targets: [5, 10, 25, 50],
+      base: "Jogos de Ouro ({x}+)",
+      baseVars: { x },
+      describe: () => "Tenha {n} jogos com {x} troféus de ouro ou mais",
+      vars: { x },
+      value: (s) => s.gamesWithGold(x),
+      when: (s, n) => s.nthAt((t) => t.earned.gold >= x, n),
+    }),
+  ),
+  // Marcos numerados
+  ...ladder({
+    key: "nivel",
+    category: "marcos",
+    icon: "⭐",
+    targets: range(10, 990, 10),
+    skip: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900],
+    name: "Nível {n}",
+    describe: () => "Chegue ao nível {n} da PSN",
+    value: (s) => s.level,
+  }),
+  ...ladder({
+    key: "platinas",
+    category: "marcos",
+    icon: "🏆",
+    targets: range(10, 1000, 10),
+    skip: [10, 20, 30, 40, 50, 60, 90, 100, 150, 200, 250, 300, 400, 500],
+    name: "Marco de Platinas: {n}",
+    describe: () => "Conquiste {n} platinas",
+    value: (s) => s.earned.platinum,
+    when: (s, n) => s.nthAt((t) => t.earned.platinum > 0, n),
+  }),
+  ...ladder({
+    key: "trofeus",
+    category: "marcos",
+    icon: "🎖️",
+    targets: range(1000, 50000, 1000),
+    skip: [1000, 2000, 3000, 4000, 5000, 6000, 9000, 10000, 15000, 20000, 25000],
+    name: "Marco de Troféus: {n}",
+    describe: () => "Conquiste {n} troféus no total",
+    value: (s) => s.total,
+    when: (s, n) => s.sumAt((t) => sum(t.earned), n),
+  }),
+  ...ladder({
+    key: "ouro",
+    category: "marcos",
+    icon: "🥇",
+    targets: range(50, 2500, 50),
+    skip: [50, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000],
+    name: "Marco de Ouro: {n}",
+    describe: () => "Conquiste {n} troféus de ouro",
+    value: (s) => s.earned.gold,
+    when: (s, n) => s.sumAt((t) => t.earned.gold, n),
+  }),
+  ...ladder({
+    key: "prata",
+    category: "marcos",
+    icon: "🥈",
+    targets: range(100, 5000, 100),
+    skip: [100, 200, 300, 400, 500, 1000, 1500, 2000, 2500, 3500, 5000],
+    name: "Marco de Prata: {n}",
+    describe: () => "Conquiste {n} troféus de prata",
+    value: (s) => s.earned.silver,
+    when: (s, n) => s.sumAt((t) => t.earned.silver, n),
+  }),
+  ...ladder({
+    key: "bronze",
+    category: "marcos",
+    icon: "🥉",
+    targets: range(500, 20000, 500),
+    skip: [500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 15000],
+    name: "Marco de Bronze: {n}",
+    describe: () => "Conquiste {n} troféus de bronze",
+    value: (s) => s.earned.bronze,
+    when: (s, n) => s.sumAt((t) => t.earned.bronze, n),
+  }),
+  ...ladder({
+    key: "colecao",
+    category: "marcos",
+    icon: "📚",
+    targets: range(50, 1500, 50),
+    skip: [50, 100, 150, 200, 250, 300, 400, 500, 750, 1000],
+    name: "Marco da Coleção: {n}",
+    describe: () => "Tenha troféus em {n} jogos",
+    value: (s) => s.games,
+    when: (s, n) => s.nthAt(() => true, n),
+  }),
+  ...series({
+    key: "continuacoes",
+    category: "colecao",
+    icon: "🔁",
+    targets: [1, 5, 10],
+    base: "Continuações",
+    describe: (n) =>
+      plural(n, "Tenha troféus em {n} jogo com número no nome (continuação)", "Tenha troféus em {n} jogos com número no nome (continuações)"),
+    value: (s) => s.sequels,
+    when: (s, n) => s.nthAt((t) => SEQUEL.test(t.name), n),
+  }),
+];
+
+export const MERITS: Merit[] = [...BASE_MERITS, ...CHALLENGE_MERITS, ...EXTRA_MERITS];
 
 /** Avalia todos os méritos para um jogador. Méritos sem dado (null) ficam de fora. */
 export function evaluateMerits(ctx: MeritContext): MeritResult[] {
@@ -846,6 +1522,7 @@ export function evaluateMerits(ctx: MeritContext): MeritResult[] {
     const value = merit.value(stats);
     if (value === null) return [];
     const done = value >= merit.target;
-    return [{ merit, value, done, ratio: done ? 1 : Math.max(0, Math.min(1, value / merit.target)) }];
+    const at = done && merit.when ? merit.when(stats) : null;
+    return [{ merit, value, done, ratio: done ? 1 : Math.max(0, Math.min(1, value / merit.target)), at }];
   });
 }

@@ -18,11 +18,17 @@ export function QuickChallenge({
   game,
   trophy,
   friend,
+  friendHas,
+  iHave,
   onClose,
 }: {
   game: Title;
   trophy: Challenge["trophy"];
   friend: Profile;
+  /** O amigo já tem o troféu (não conta no desafio). */
+  friendHas: boolean;
+  /** Você já tem o troféu (não conta no desafio). */
+  iHave: boolean;
   onClose: () => void;
 }) {
   const { client } = useApp();
@@ -75,6 +81,20 @@ export function QuickChallenge({
           <Avatar src={friend.avatarUrl} name={friend.onlineId} size={32} />
         </div>
 
+        {!created && (friendHas || iHave) && (
+          <p className="rounded-xl bg-gold/10 p-3 text-xs text-gold">
+            {friendHas && iHave
+              ? t("Vocês dois já têm este troféu, então não há o que disputar. Escolha outro troféu.")
+              : friendHas
+                ? t("{name} já tem este troféu e não conta no desafio: vale para você conquistar dentro do prazo.", {
+                    name: friend.onlineId,
+                  })
+                : t("Você já tem este troféu e não conta no desafio: vale para {name} conquistar dentro do prazo.", {
+                    name: friend.onlineId,
+                  })}
+          </p>
+        )}
+
         {created ? (
           <div className="space-y-3 text-center">
             <p className="font-semibold">{t("✅ Desafio criado!")}</p>
@@ -113,7 +133,7 @@ export function QuickChallenge({
             </div>
             <button
               onClick={create}
-              disabled={!me.data}
+              disabled={!me.data || (friendHas && iHave)}
               className="w-full rounded-xl bg-ps-blue py-3 font-semibold disabled:opacity-50"
             >
               {t("Começar desafio")}
