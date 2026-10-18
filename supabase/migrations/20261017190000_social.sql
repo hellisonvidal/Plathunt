@@ -1,4 +1,4 @@
--- Recursos online do Trophy Mania (opcionais): perfis ligados ao ID da PSN,
+-- Recursos online do Plathunt (opcionais): perfis ligados ao ID da PSN,
 -- curtidas compartilhadas e pedidos de boost enviados direto no app.
 -- A identidade PSN é confirmada pela função psn-login; o app só lê e grava
 -- o que as regras abaixo (RLS) permitem.

@@ -236,7 +236,7 @@ function BoostCard({ boost: b }: { boost: Boost }) {
   // O link leva o pedido junto: quem recebe abre no app e vê em "Pedidos recebidos".
   const text =
     boostMessage(b, myId) +
-    (b.kind === "ajuda" ? "" : `\n🔗 ${t("Abrir no Trophy Mania")}: ${boostLink(b, myId)}`);
+    (b.kind === "ajuda" ? "" : `\n🔗 ${t("Abrir no Plathunt")}: ${boostLink(b, myId)}`);
   const links = shareLinks(text);
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
@@ -584,7 +584,7 @@ function ReceivedCard({ request: r, me }: { request: ReceivedBoost; me: string }
 
 /**
  * Recursos online: envia o pedido direto para o app dos amigos que também
- * usam o Trophy Mania e mostra quem já respondeu.
+ * usam o Plathunt e mostra quem já respondeu.
  */
 function SendInApp({ boost: b, myId }: { boost: Boost; myId: string }) {
   const { client } = useApp();
@@ -618,7 +618,7 @@ function SendInApp({ boost: b, myId }: { boost: Boost; myId: string }) {
     <section className="space-y-2 rounded-xl border border-line p-3">
       <p className="text-sm font-semibold">{t("📲 Enviar direto no app")}</p>
       {users.length === 0 ? (
-        <p className="text-xs text-muted">{t("Nenhum amigo seu usa o Trophy Mania com recursos online ainda.")}</p>
+        <p className="text-xs text-muted">{t("Nenhum amigo seu usa o Plathunt com recursos online ainda.")}</p>
       ) : (
         <>
           <ul className="space-y-1">

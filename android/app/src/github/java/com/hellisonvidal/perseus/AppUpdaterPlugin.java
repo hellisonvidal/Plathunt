@@ -75,8 +75,8 @@ public class AppUpdaterPlugin extends Plugin {
     private File download(String url) throws Exception {
         File dir = new File(getContext().getCacheDir(), "updates");
         if (!dir.exists() && !dir.mkdirs()) throw new Exception("sem espaço no aparelho");
-        File target = new File(dir, "PlayStation-Trophy-Mania.apk");
-        File partial = new File(dir, "PlayStation-Trophy-Mania.apk.part");
+        File target = new File(dir, "Plathunt.apk");
+        File partial = new File(dir, "Plathunt.apk.part");
 
         HttpURLConnection conn = open(url);
         try {

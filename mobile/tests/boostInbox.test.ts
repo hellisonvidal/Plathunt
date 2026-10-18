@@ -27,7 +27,7 @@ describe("pedidos de boost recebidos", () => {
   beforeEach(() => mem.clear());
 
   it("o pedido viaja no link da mensagem, com acentos e emojis", () => {
-    const text = `📣 BOOST…\n🔗 Abrir no Trophy Mania: ${boostLink(boost, "Aloy_Hunter")}`;
+    const text = `📣 BOOST…\n🔗 Abrir no Plathunt: ${boostLink(boost, "Aloy_Hunter")}`;
     const parsed = parseBoostText(text)!;
     expect(parsed).toMatchObject({ from: "Aloy_Hunter", trophies: boost.trophies, players: 3, note: "tenho mic 🎤" });
     expect(parsed.game.name).toBe(boost.game.name);

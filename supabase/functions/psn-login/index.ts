@@ -1,4 +1,4 @@
-// Login do Trophy Mania: confirma o ID da PSN com o token da própria sessão
+// Login do Plathunt: confirma o ID da PSN com o token da própria sessão
 // PSN do usuário (lido só para isso, nunca guardado) e devolve uma sessão do
 // Supabase ligada a esse ID. Assim ninguém consegue se passar por outro jogador.
 import { createClient } from "npm:@supabase/supabase-js@2";
