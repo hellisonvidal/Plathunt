@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -79,6 +80,11 @@ public class PsnLoginActivity extends AppCompatActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
+        // Gerenciador de senhas do Android (ex.: Google): oferece salvar o e-mail e a
+        // senha da Sony e preenche sozinho no próximo login. O app não guarda a senha.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
+        }
         // A Sony pode recusar o login em WebViews identificadas como tal.
         settings.setUserAgentString(settings.getUserAgentString().replace("; wv", "").replace(" Version/4.0", ""));
 

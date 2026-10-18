@@ -18,6 +18,16 @@ const SETTING: Record<NotifyKind, keyof Settings> = {
   social: "notifySocial",
 };
 
+/** Tela que cada tipo de notificação abre ao ser tocada (pode ser trocada em `notify`). */
+export const NOTIFY_ROUTES: Record<NotifyKind, string> = {
+  merits: "/activity?view=merits",
+  challenges: "/activity?view=challenges",
+  boost: "/activity?view=boost",
+  friends: "/activity",
+  updates: "/settings",
+  social: "/activity",
+};
+
 export function notificationsEnabled(kind: NotifyKind, settings = getSettings()): boolean {
   return settings.notifications && settings[SETTING[kind]] === true;
 }
@@ -51,19 +61,41 @@ export function notificationId(key: string): number {
  * Mostra (ou agenda, com `at`) uma notificação, se o tipo estiver ligado.
  * `key` identifica a notificação: a mesma chave substitui a anterior.
  */
-export async function notify(kind: NotifyKind, key: string, title: string, body: string, at?: Date): Promise<void> {
+export async function notify(
+  kind: NotifyKind,
+  key: string,
+  title: string,
+  body: string,
+  at?: Date,
+  /** Tela aberta ao tocar (padrão: a do tipo, em NOTIFY_ROUTES). */
+  route: string = NOTIFY_ROUTES[kind],
+): Promise<void> {
   if (!notificationsEnabled(kind)) return;
   if (at && at.getTime() <= Date.now()) return;
   try {
     if (native()) {
       if (!(await requestNotificationPermission())) return;
       await LocalNotifications.schedule({
-        notifications: [{ id: notificationId(key), title, body, smallIcon: "ic_stat_trophy", iconColor: "#7fc4ec", ...(at ? { schedule: { at, allowWhileIdle: true } } : {}) }],
+        notifications: [
+          {
+            id: notificationId(key),
+            title,
+            body,
+            smallIcon: "ic_stat_trophy",
+            iconColor: "#7fc4ec",
+            extra: { route },
+            ...(at ? { schedule: { at, allowWhileIdle: true } } : {}),
+          },
+        ],
       });
       return;
     }
     if (at || typeof Notification === "undefined" || Notification.permission !== "granted") return;
-    new Notification(title, { body, tag: key });
+    const n = new Notification(title, { body, tag: key });
+    n.onclick = () => {
+      window.focus();
+      location.hash = `#${route}`;
+    };
   } catch {
     // Notificação é um extra: se o aparelho recusar, o app segue normalmente.
   }
@@ -83,4 +115,20 @@ export async function cancelAllNotifications(): Promise<void> {
     const { notifications } = await LocalNotifications.getPending();
     if (notifications.length) await LocalNotifications.cancel({ notifications: notifications.map((n) => ({ id: n.id })) });
   } catch {}
+}
+
+/**
+ * Ao tocar numa notificação do Android, abre a tela dela. O Android guarda o
+ * toque até o app registrar o ouvinte, então funciona também com o app fechado.
+ */
+export function onNotificationTap(open: (route: string) => void): () => void {
+  if (!native()) return () => {};
+  let remove: (() => void) | undefined;
+  void LocalNotifications.addListener("localNotificationActionPerformed", ({ notification }) => {
+    const route = (notification.extra as { route?: unknown } | undefined)?.route;
+    if (typeof route === "string" && route.startsWith("/")) open(route);
+  })
+    .then((h) => (remove = () => void h.remove()))
+    .catch(() => {});
+  return () => remove?.();
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
+import { WhatsNewDialog } from "../components/WhatsNew";
 import { Avatar, ProgressBar } from "../components/ui";
 import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
@@ -31,6 +32,7 @@ export function SettingsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [update, setUpdate] = useState<UpdateResult | null>(null);
   const [checking, setChecking] = useState(false);
+  const [showNews, setShowNews] = useState(false);
 
   const flash = (msg: string) => {
     setToast(msg);
@@ -47,6 +49,7 @@ export function SettingsPage() {
     <>
       <PageHeader title={t("Configurações")} back />
       <div className="space-y-6 px-4 pb-8 pt-4">
+        {showNews && <WhatsNewDialog onClose={() => setShowNews(false)} />}
         <Section title={t("Conta")}>
           <div className="flex items-center gap-3 p-4">
             <Avatar src={me?.avatarUrl ?? null} name={me?.onlineId ?? "?"} size={44} />
@@ -55,9 +58,23 @@ export function SettingsPage() {
               <p className="text-xs text-muted">{mode === "demo" ? t("Modo demonstração") : t("Conectado à PSN")}</p>
             </div>
           </div>
+          {mode === "psn" && (
+            <Toggle
+              label={t("🔑 Lembrar a conta da Sony ao sair")}
+              hint={t(
+                "Ao sair, o login da Sony continua salvo neste celular e a próxima entrada é com um toque. Na tela da Sony, o gerenciador de senhas do Android (ex.: Google) oferece salvar e preencher seu e-mail e senha; o app nunca guarda a senha.",
+              )}
+              checked={settings.keepSonyLogin}
+              onChange={(keepSonyLogin) => updateSettings({ keepSonyLogin })}
+            />
+          )}
           <Row
             label={t("Sair / trocar de conta")}
-            hint={t("Na próxima entrada a PSN pede usuário e senha, então dá para usar outra conta")}
+            hint={
+              settings.keepSonyLogin
+                ? t("A conta da Sony fica lembrada; para usar outra conta, desligue a opção acima antes de sair")
+                : t("Na próxima entrada a PSN pede usuário e senha, então dá para usar outra conta")
+            }
             danger
             onClick={() => signOut()}
           />
@@ -112,8 +129,8 @@ export function SettingsPage() {
           <Choice
             label={t("Atualizar a loja salva no celular")}
             options={STORE_REFRESH.map((o) => ({ value: o.value, label: t(o.label) }))}
-            value={settings.storeRefresh}
-            onChange={(storeRefresh) => updateSettings({ storeRefresh })}
+            value={settings.storeUpdate}
+            onChange={(storeUpdate) => updateSettings({ storeUpdate })}
           />
           <p className="px-4 pb-4 text-xs text-muted">
             {t("A loja fica salva no celular e abre na hora. Puxe a tela da loja para baixo para atualizar quando quiser.")}
@@ -212,6 +229,7 @@ export function SettingsPage() {
             </button>
           </div>
           {update && <UpdateStatus result={update} />}
+          <Row label={t("📝 Novidades desta versão")} onClick={() => setShowNews(true)} />
         </Section>
       </div>
 

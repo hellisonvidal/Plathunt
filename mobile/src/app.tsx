@@ -8,12 +8,14 @@ import { importBoost } from "./lib/boostInbox";
 import { ALL_ID } from "./lib/store";
 import { storeCategory } from "./psn/store";
 import { runBackgroundChecks } from "./lib/checks";
+import { onNotificationTap } from "./lib/notify";
 import { getSettings, updateSettings } from "./lib/settings";
 import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
 import { createDemoClient } from "./psn/demo";
 import type { PsnClient } from "./psn/types";
 import { CloudNotice } from "./components/CloudNotice";
+import { WhatsNewOnUpdate } from "./components/WhatsNew";
 import { ControllerIcon, FriendsIcon, ProfileIcon, StatsIcon, StoreIcon } from "./components/icons";
 import { ActivityPage } from "./pages/Activity";
 import { FriendsPage } from "./pages/Friends";
@@ -53,6 +55,8 @@ function initialMode(): Mode | null {
 
 export function App() {
   const [mode, setMode] = useState<Mode | null>(initialMode);
+  // Já havia sessão ao abrir o app: é uma atualização (não uma instalação nova).
+  const [hadSession] = useState(() => initialMode() !== null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const state = useMemo<AppState | null>(() => {
@@ -61,8 +65,9 @@ export function App() {
       mode,
       client: mode === "demo" ? createDemoClient() : createPsnClient(),
       signOut: (reason) => {
-        // Sem motivo = o usuário tocou em "Sair": esquece também a conta da Sony.
-        clearSession(!reason);
+        // Sem motivo = o usuário tocou em "Sair": esquece também a conta da Sony,
+        // a não ser que ele tenha pedido para lembrar (Configurações → Conta).
+        clearSession(!reason && !getSettings().keepSonyLogin);
         persistRemove(MODE_KEY);
         setNotice(reason ?? null);
         setMode(null);
@@ -92,6 +97,8 @@ export function App() {
         <BoostLinks />
         <BackgroundChecks />
         <StorePreload />
+        <NotificationLinks />
+        <WhatsNewOnUpdate updated={hadSession} waitCloudNotice={state.mode === "psn"} />
         {state.mode === "psn" && <CloudNotice />}
         {/* Espaço no fim para o conteúdo não ficar atrás das abas e da barra de navegação do Android. */}
         <div className="safe-top mx-auto min-h-[100dvh] max-w-2xl pb-[calc(6rem+var(--sab))]">
@@ -158,6 +165,13 @@ function BoostLinks() {
     }
     return () => remove?.();
   }, [client, navigate]);
+  return null;
+}
+
+/** Tocar numa notificação abre a tela dela (méritos, desafios, boost, jogo do amigo...). */
+function NotificationLinks() {
+  const navigate = useNavigate();
+  useEffect(() => onNotificationTap((route) => navigate(route)), [navigate]);
   return null;
 }
 

@@ -138,7 +138,7 @@ export async function storeCategory(
   return cached(
     storeCacheKey(region, categoryId),
     // Salva no celular; atualiza no intervalo escolhido em Configurações (ou ao puxar a tela).
-    storeRefreshMs(getSettings().storeRefresh),
+    storeRefreshMs(getSettings().storeUpdate),
     () => {
       if (categoryId === ALL_ID) return fetchEverything(region, force, onProgress);
       const derived = DERIVED[categoryId];

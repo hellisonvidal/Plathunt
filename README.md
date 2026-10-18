@@ -49,6 +49,12 @@ Em todo o app (quadro "Jogos 100%", mural, filtro "100%" do perfil, tempos até 
 
 No perfil de um amigo, ao abrir um jogo dele, **cada troféu** tem o botão **⚔️ Desafiar**, e há a **corrida da platina**. Quem já tem o troféu não conta no desafio (a tela avisa; se os dois já têm, não dá para criar). Basta escolher o prazo: o desafio vai para Atividades → Desafios.
 
+## Novidades, notificações e login
+
+- **Novidades:** no primeiro acesso depois de uma atualização, uma janela mostra o que mudou (`mobile/src/lib/changelog.ts`); numa instalação nova ela não aparece. Fica também em Configurações → Atualizações → Novidades desta versão.
+- **Notificações:** tocar numa notificação abre a tela dela — méritos, desafios, boost, pedidos recebidos, o jogo do amigo que platinou ou as atualizações.
+- **Login mais fácil:** em Configurações → Conta, "Lembrar a conta da Sony ao sair" (ligado por padrão) mantém o login da Sony no celular, e a próxima entrada é com um toque. Na tela da Sony, o gerenciador de senhas do Android (ex.: Google) pode salvar e preencher o e-mail e a senha; o app nunca guarda a senha.
+
 ## Telas e barras do sistema
 
 No Android 15+ o app ocupa a tela toda, por baixo da barra de status e da barra de navegação. O cabeçalho de cada tela fica logo abaixo da barra de status (que mantém o fundo do tema), e o fim da lista sobra acima das abas e da barra de navegação. As medidas vêm do WebView ou, quando ele não informa, do próprio app (`MainActivity`, variáveis `--tm-inset-*`). As notificações usam um troféu de platina como ícone.
@@ -84,7 +90,7 @@ A engrenagem no topo das abas abre as Configurações:
 - **Atividades**: período de 7, 30 ou 90 dias.
 - **Troféus e jogos**: idioma dos nomes vindos da PSN (português, inglês ou espanhol), **tradução automática dos troféus** (ligada por padrão) e opção de revelar troféus secretos. Muitos jogos não têm os troféus traduzidos pela Sony, e aí a PSN manda o texto original, em geral em inglês. Com a tradução automática, nomes e descrições são traduzidos para o idioma escolhido pelo tradutor público do Google, direto do celular. A tradução fica salva no aparelho, então cada jogo é traduzido uma vez só; se o tradutor falhar, aparece o texto original. O botão "Dica em vídeo" continua buscando pelo nome original do troféu, que acha mais vídeos.
 - **Aparência**: botão **Temas**, que abre a tela de temas com 10 opções com as cores dos personagens principais de jogos de PlayStation: Astro Bot (padrão: branco do corpo do robô, barras pretas como o visor e o azul dos olhos), Gran Turismo (fundo vermelho do logo com branco de pista), Demon's Souls (preto puro para telas OLED com o prata da armadura do Slayer), The Last of Us (verde-oliva de Ellie e cáqui de Joel), God of War (cinza das cinzas de Kratos com a tatuagem vermelha), Ratchet & Clank (pelo dourado de Ratchet), Marvel's Spider-Man (azul do traje de Peter com o vermelho da máscara), Uncharted (bege de mapa antigo com verde militar), Death Stranding (claro como a Bridges, com detalhes em laranja) e Horizon (azul-petróleo do Focus com o ruivo de Aloy). O contraste do texto foi verificado (WCAG ≥ 4.5:1) em todos. Quem usava o antigo tema Grafite passa para o The Last of Us.
-- **Loja**: país da PlayStation Store (Brasil, Portugal, Estados Unidos, México, Argentina ou Espanha), que define a moeda e os preços, e de quanto em quanto tempo a loja salva no celular é atualizada (a cada 30 minutos, 6 horas, uma vez por dia ou só ao puxar a tela).
+- **Loja**: país da PlayStation Store (Brasil, Portugal, Estados Unidos, México, Argentina ou Espanha), que define a moeda e os preços, e de quanto em quanto tempo a loja salva no celular é atualizada (padrão: **só ao puxar a tela da loja**; ou a cada 30 minutos, 6 horas ou uma vez por dia).
 - **Geral**: aba em que o app abre.
 - **Dados**: atualizar tudo da PSN agora e apagar as curtidas.
 - **Atualizações**: versão instalada e "Verificar atualizações", que compara com a última Release do GitHub. "Baixar e instalar" baixa o APK dentro do app, com barra de progresso (`AppUpdaterPlugin.java`, só aceita endereços do GitHub), e abre o instalador do Android. Na primeira vez, o Android pede para permitir que o app instale atualizações.
