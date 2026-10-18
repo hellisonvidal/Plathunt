@@ -3,8 +3,8 @@ import { useId } from "react";
 /**
  * Ilustrações 2D dos controles de cada console para o menu "Plataformas
  * jogadas", fiéis aos originais: DualSense (PS5), DualShock 4 (PS4),
- * DualShock 3 (PS3), o PS Vita (que é o próprio controle) e o logo do PSone
- * para "Todas". As
+ * DualShock 3 (PS3), o PS Vita (que é o próprio controle) e o logo da
+ * PlayStation em prata para "Todas". As
  * cores são as dos controles; o quadradinho tem fundo claro neutro, para
  * ficarem bonitos em qualquer tema.
  */
@@ -203,22 +203,28 @@ function Vita() {
 }
 
 /**
- * Todas as plataformas: o logo do PSone, com o "P" vermelho em pé e o "S"
- * deitado em amarelo, verde e azul, e o nome PSone embaixo.
+ * Todas as plataformas: o logo da PlayStation em prata (o "P" em pé e o "S"
+ * deitado), sem texto.
  */
 function AllConsoles() {
+  const u = useUid();
   return (
     <svg viewBox="0 0 96 96" aria-hidden>
-      <path d="M37 10 L46 13 L46 54 L37 50 Z" fill="#e2231a"/>
-      <path d="M43 15 C60 17, 64 31, 49 35" fill="none" stroke="#e2231a" strokeWidth="7" strokeLinecap="round"/>
-      <g fill="none" strokeWidth="5.5" strokeLinecap="round">
-        <path d="M66 55 C58 50.5, 36 51, 32 56" stroke="#f4b400"/>
-        <path d="M32 56 C29 61, 58 59, 61 64.5" stroke="#00a651"/>
-        <path d="M61 64.5 C64 70, 42 72, 28 68" stroke="#2e6bd6"/>
+      <defs>
+        <linearGradient id={`${u}s`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="0.35" stopColor="#c9ced6" />
+          <stop offset="0.6" stopColor="#8e96a3" />
+          <stop offset="1" stopColor="#e3e7ec" />
+        </linearGradient>
+      </defs>
+      <g stroke="#6b7384" strokeWidth="1" strokeLinejoin="round">
+        <path d="M36 14 L46 17.5 L46 64 L36 59.5 Z" fill={`url(#${u}s)`} />
       </g>
-      <text x="48" y="88" textAnchor="middle" fontSize="15" fontWeight="800" fontStyle="italic" fill="#3a404c" fontFamily="system-ui, sans-serif">
-        PS<tspan fontWeight="500">one</tspan>
-      </text>
+      <path d="M42 19.5 C62 21.5, 66 37.5, 49 42" fill="none" stroke="#6b7384" strokeWidth="10" strokeLinecap="round" />
+      <path d="M42 19.5 C62 21.5, 66 37.5, 49 42" fill="none" stroke={`url(#${u}s)`} strokeWidth="8" strokeLinecap="round" />
+      <path d="M70 64 C60 58.5, 34 59, 29 65 C25.5 70.5, 60 68.5, 63 75 C66 81.5, 41 84, 24 79" fill="none" stroke="#6b7384" strokeWidth="8.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M70 64 C60 58.5, 34 59, 29 65 C25.5 70.5, 60 68.5, 63 75 C66 81.5, 41 84, 24 79" fill="none" stroke={`url(#${u}s)`} strokeWidth="6.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

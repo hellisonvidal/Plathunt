@@ -48,6 +48,10 @@ const translations: Translations = {
     "✅ Desafio criado!": "✅ Challenge created!",
     "🏁 Desafiar {name}": "🏁 Challenge {name}",
     "🏆 Platina": "🏆 Platinum",
+    "{n} faltando": "{n} missing",
+    "Troféu de platina": "Platinum trophy",
+    "{n} troféus no total": "{n} trophies in total",
+    "Troféus não conquistados": "Unearned trophies",
   },
   "es-ES": {
     "🏆 Platinas ({n})": "🏆 Platinos ({n})",
@@ -95,6 +99,10 @@ const translations: Translations = {
     "✅ Desafio criado!": "✅ ¡Desafío creado!",
     "🏁 Desafiar {name}": "🏁 Desafiar a {name}",
     "🏆 Platina": "🏆 Platino",
+    "{n} faltando": "{n} pendientes",
+    "Troféu de platina": "Trofeo de platino",
+    "{n} troféus no total": "{n} trofeos en total",
+    "Troféus não conquistados": "Trofeos no conseguidos",
   },
   "fr-FR": {
     "🏆 Platinas ({n})": "🏆 Platines ({n})",
@@ -142,6 +150,10 @@ const translations: Translations = {
     "✅ Desafio criado!": "✅ Défi créé !",
     "🏁 Desafiar {name}": "🏁 Défier {name}",
     "🏆 Platina": "🏆 Platine",
+    "{n} faltando": "{n} manquants",
+    "Troféu de platina": "Trophée de platine",
+    "{n} troféus no total": "{n} trophées au total",
+    "Troféus não conquistados": "Trophées non obtenus",
   },
   "de-DE": {
     "🏆 Platinas ({n})": "🏆 Platin ({n})",
@@ -189,6 +201,10 @@ const translations: Translations = {
     "✅ Desafio criado!": "✅ Herausforderung erstellt!",
     "🏁 Desafiar {name}": "🏁 {name} herausfordern",
     "🏆 Platina": "🏆 Platin",
+    "{n} faltando": "{n} fehlen",
+    "Troféu de platina": "Platin-Trophäe",
+    "{n} troféus no total": "{n} Trophäen insgesamt",
+    "Troféus não conquistados": "Nicht erhaltene Trophäen",
   },
   "it-IT": {
     "🏆 Platinas ({n})": "🏆 Platini ({n})",
@@ -236,6 +252,10 @@ const translations: Translations = {
     "✅ Desafio criado!": "✅ Sfida creata!",
     "🏁 Desafiar {name}": "🏁 Sfida {name}",
     "🏆 Platina": "🏆 Platino",
+    "{n} faltando": "{n} mancanti",
+    "Troféu de platina": "Trofeo di platino",
+    "{n} troféus no total": "{n} trofei in totale",
+    "Troféus não conquistados": "Trofei non ottenuti",
   },
   "ja-JP": {
     "🏆 Platinas ({n})": "🏆 プラチナ（{n}）",
@@ -283,6 +303,10 @@ const translations: Translations = {
     "✅ Desafio criado!": "✅ チャレンジを作成しました！",
     "🏁 Desafiar {name}": "🏁 {name} に挑戦",
     "🏆 Platina": "🏆 プラチナ",
+    "{n} faltando": "残り {n}",
+    "Troféu de platina": "プラチナトロフィー",
+    "{n} troféus no total": "合計 {n} 個のトロフィー",
+    "Troféus não conquistados": "未獲得のトロフィー",
   },
 };
 export default translations;

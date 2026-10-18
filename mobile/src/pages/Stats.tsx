@@ -18,7 +18,6 @@ import {
   matchPlayed,
   platformsOf,
   titlesByPlatform,
-  withEarnedTrophies,
   type PlayedOn,
   type PlayInfo,
   PLATFORM_ORDER,
@@ -78,21 +77,21 @@ export function StatsPage() {
   const friendTitles = friendData?.titles ?? null;
   const friendLoading = !!friend && !friendData && !theirs.error;
 
-  // Plataformas com troféus (suas e, se estiver comparando, do amigo).
-  // Jogos sem nenhum troféu conquistado ficam de fora das estatísticas.
+  // Plataformas jogadas (suas e, se estiver comparando, do amigo).
   // Cada jogo conta em uma só plataforma (a jogada ou a principal da lista).
   const friendPlay = friendTitles ? friendData : null;
   const platforms = data
     ? [
         ...new Set([
-          ...platformsOf(withEarnedTrophies(data.titles), data.playedOn),
-          ...(friendTitles ? platformsOf(withEarnedTrophies(friendTitles), friendPlay?.playedOn) : []),
+          ...platformsOf(data.titles, data.playedOn),
+          ...(friendTitles ? platformsOf(friendTitles, friendPlay?.playedOn) : []),
         ]),
       ].sort((a, b) => PLATFORM_RANK(a) - PLATFORM_RANK(b))
     : [];
 
+  // Todos os jogos da lista da PSN contam, inclusive os ainda sem troféu (como no perfil).
   const stats = (titles: Title[], playtime: Map<string, number>, playedOn: PlayedOn) =>
-    computeStats(filterByPlatform(withEarnedTrophies(titles), platform, playedOn), playtime, playedOn);
+    computeStats(filterByPlatform(titles, platform, playedOn), playtime, playedOn);
   const meStats = data ? stats(data.titles, data.playtime, data.playedOn) : null;
   const frStats =
     friend && friendTitles && friendPlay ? stats(friendTitles, friendPlay.playtime, friendPlay.playedOn) : null;
@@ -190,6 +189,7 @@ export function StatsPage() {
                       ["naoConcluidos", all.map((s) => s.unfinished.toLocaleString(locale()))],
                       ["conclusao", all.map((s) => `${s.avgProgress}%`)],
                       ["trofeus", all.map((s) => s.totalTrophies.toLocaleString(locale()))],
+                      ["faltam", all.map((s) => s.totalMissing.toLocaleString(locale()))],
                       ["tempo", all.map((s) => formatDuration(s.playSeconds))],
                     ] as [MuralCategory, string[]][]
                   ).map(([key, values]) => (
@@ -259,17 +259,35 @@ export function StatsPage() {
                       ))}
                     </span>
                   </div>
+                  {/* Troféus que ainda faltam, por tipo, em todos os jogos da lista. */}
+                  <div className="space-y-1.5 border-t border-line pt-3">
+                    <p className="text-sm font-semibold">{t("Troféus não conquistados")}</p>
+                    {all.map((s, i) => (
+                      <div key={names[i]} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                        {all.length > 1 && <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />}
+                        {TYPES.map((type) => (
+                          <span key={type} className="flex items-center gap-1 tabular-nums text-muted">
+                            <TrophyIconOnly type={type} />
+                            {s.missing[type].toLocaleString(locale())}
+                          </span>
+                        ))}
+                        <span className="ml-auto font-bold tabular-nums">
+                          {t("{n} faltando", { n: s.totalMissing })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </section>
 
                 <YearStats
                   onSelectYear={(year) => setMural({ year })}
                   players={[
-                    { name: names[0], titles: filterByPlatform(withEarnedTrophies(data.titles), platform, data.playedOn), firstPlayed: data.firstPlayed },
+                    { name: names[0], titles: filterByPlatform(data.titles, platform, data.playedOn), firstPlayed: data.firstPlayed },
                     ...(friend && friendTitles && friendPlay
                       ? [
                           {
                             name: friend.onlineId,
-                            titles: filterByPlatform(withEarnedTrophies(friendTitles), platform, friendPlay.playedOn),
+                            titles: filterByPlatform(friendTitles, platform, friendPlay.playedOn),
                             firstPlayed: friendPlay.firstPlayed,
                           },
                         ]
@@ -294,7 +312,7 @@ export function StatsPage() {
                   platform={platform}
                 />
 
-                <CompletionTimes titles={filterByPlatform(withEarnedTrophies(data.titles), platform, data.playedOn)} />
+                <CompletionTimes titles={filterByPlatform(data.titles, platform, data.playedOn)} />
 
                 {all.map((s, i) =>
                   s.topPlayed.length ? (
@@ -505,7 +523,7 @@ function PlatformPicker({
   counts: { name: string; titles: Title[]; playedOn: PlayedOn }[];
 }) {
   const [open, setOpen] = useState(false);
-  const perPlayer = counts.map((c) => titlesByPlatform(withEarnedTrophies(c.titles), c.playedOn));
+  const perPlayer = counts.map((c) => titlesByPlatform(c.titles, c.playedOn));
   const totalOf = (p: string | null) =>
     perPlayer.map((g) => (p ? (g.get(p)?.length ?? 0) : [...g.values()].reduce((a, l) => a + l.length, 0)));
   const pick = (p: string | null) => {
@@ -568,12 +586,12 @@ interface PlatformPlayer {
 }
 
 /**
- * Títulos jogados em cada plataforma (só jogos com troféus), para você e o
+ * Títulos jogados em cada plataforma (todos os jogos da lista), para você e o
  * amigo comparado. Cada plataforma abre e fecha ao tocar.
  */
 function PlatformTitles({ players, platform }: { players: PlatformPlayer[]; platform: string | null }) {
   const [open, setOpen] = useState<Set<string>>(new Set());
-  const grouped = players.map((p) => titlesByPlatform(withEarnedTrophies(p.titles), p.playedOn));
+  const grouped = players.map((p) => titlesByPlatform(p.titles, p.playedOn));
   const platforms = [...new Set(grouped.flatMap((g) => [...g.keys()]))]
     .filter((p) => !platform || p === platform)
     .sort((a, b) => PLATFORM_RANK(a) - PLATFORM_RANK(b));
