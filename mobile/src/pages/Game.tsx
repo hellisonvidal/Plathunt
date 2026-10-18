@@ -5,10 +5,21 @@ import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, GameIcon, ProgressBar, RemoteImage, Spinner, TrophyBadge, rarityLabel } from "../components/ui";
 import type { GroupSection } from "../lib/stats";
 import { useSettings } from "../lib/settings";
-import { gameWrittenGuideUrl, trophyGuideUrl, trophyWrittenGuideUrl } from "../lib/tips";
+import { gameWrittenGuideUrl, trophyGuideUrl, trophyWrittenGuideUrl, type GuideSite } from "../lib/tips";
 import { formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import type { Title, TrophyRow } from "../psn/types";
+
+/** Nomes usados nos links de guias: os oficiais em inglês, como nos sites. */
+interface GuideNames {
+  game: { name: string; platform: string };
+  trophies: Record<number, string>;
+}
+
+const GUIDE_SITES: { site: GuideSite; label: string }[] = [
+  { site: "pst", label: "PlayStationTrophies" },
+  { site: "psnp", label: "PSNProfiles" },
+];
 import { locale, t } from "../i18n";
 
 const TYPE_ORDER: Record<string, number> = { platinum: 0, gold: 1, silver: 2, bronze: 3 };
@@ -46,6 +57,16 @@ export function GamePage() {
     },
     [client, accountId, gameId, service],
   );
+
+  // Os sites de guias usam os nomes em inglês; enquanto chegam (ou se a PSN
+  // falhar), os links usam os nomes da tela.
+  const english = useData(() => client.englishNames({ id: gameId, service }).catch(() => null), [client, gameId, service]);
+  const guide: GuideNames | null = data?.title
+    ? {
+        game: { name: english.data?.name || data.title.name, platform: english.data?.platform || data.title.platform },
+        trophies: english.data?.trophies ?? {},
+      }
+    : null;
 
   const all = data?.trophies ?? [];
   const earnedCount = all.filter((t) => t.earned).length;
@@ -86,16 +107,21 @@ export function GamePage() {
                 <p className="mt-1 text-xs text-muted">
                   {t("{earned} de {total} troféus", { earned: earnedCount, total: all.length })}
                 </p>
-                {data.title && (
-                  <a
-                    href={gameWrittenGuideUrl(data.title.name)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
-                  >
-                    <span aria-hidden>📖</span>
-                    {t("Guia completo (PlayStationTrophies)")}
-                  </a>
+                {guide && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {GUIDE_SITES.map(({ site, label }) => (
+                      <a
+                        key={site}
+                        href={gameWrittenGuideUrl(site, guide.game)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
+                      >
+                        <span aria-hidden>📖</span>
+                        {t("Guia completo ({site})", { site: label })}
+                      </a>
+                    ))}
+                  </div>
                 )}
               </div>
             </header>
@@ -119,6 +145,7 @@ export function GamePage() {
                 key={section.group.id}
                 section={section}
                 gameName={data.title?.name ?? ""}
+                guide={guide}
                 rows={visible.filter((t) => section.trophies.includes(t))}
                 filter={filter}
                 expanded={sections.length === 1 || open.has(section.group.id)}
@@ -136,6 +163,7 @@ export function GamePage() {
 function GroupList({
   section,
   gameName,
+  guide,
   rows,
   filter,
   expanded,
@@ -143,6 +171,7 @@ function GroupList({
 }: {
   section: GroupSection;
   gameName: string;
+  guide: GuideNames | null;
   rows: TrophyRow[];
   filter: Filter;
   expanded: boolean;
@@ -214,7 +243,7 @@ function GroupList({
           ) : (
             <ul className="space-y-2">
               {rows.map((t) => (
-                <TrophyItem key={t.id} trophy={t} gameName={gameName} />
+                <TrophyItem key={t.id} trophy={t} gameName={gameName} guide={guide} />
               ))}
             </ul>
           )}
@@ -224,7 +253,7 @@ function GroupList({
   );
 }
 
-function TrophyItem({ trophy, gameName }: { trophy: TrophyRow; gameName: string }) {
+function TrophyItem({ trophy, gameName, guide }: { trophy: TrophyRow; gameName: string; guide: GuideNames | null }) {
   const { revealSecrets, language } = useSettings();
   const locked = !trophy.earned;
   const secret = trophy.hidden && locked && !revealSecrets;
@@ -285,16 +314,20 @@ function TrophyItem({ trophy, gameName }: { trophy: TrophyRow; gameName: string 
           </span>
           {secret ? t("Dica em vídeo (spoiler)") : t("Dica em vídeo")}
         </a>
-        {/* Guia escrito do PlayStationTrophies.org (o site usa os nomes em inglês). */}
-        <a
-          href={trophyWrittenGuideUrl(gameName, trophy.originalName ?? trophy.name)}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
-        >
-          <span aria-hidden>📖</span>
-          {t("Guia escrito")}
-        </a>
+        {/* Guias escritos do PlayStationTrophies.org e do PSNProfiles, com os nomes em inglês. */}
+        {guide &&
+          GUIDE_SITES.map(({ site, label }) => (
+            <a
+              key={site}
+              href={trophyWrittenGuideUrl(site, guide.game, guide.trophies[trophy.id] || trophy.originalName || trophy.name)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
+            >
+              <span aria-hidden>📖</span>
+              {label}
+            </a>
+          ))}
       </div>
     </li>
   );

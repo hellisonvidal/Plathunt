@@ -249,6 +249,22 @@ export function createPsnClient(): PsnClient {
       });
     },
 
+    async englishNames(game) {
+      return cached(`english:${game.id}`, 7 * 24 * 60 * MIN, async () => {
+        const opts = { npServiceName: game.service, headerOverrides: { "Accept-Language": "en-US" } };
+        const a = await auth();
+        const [groups, trophies] = await Promise.all([
+          getTitleTrophyGroups(a, game.id, opts),
+          getTitleTrophies(a, game.id, "all", opts),
+        ]);
+        return {
+          name: groups.trophyTitleName,
+          platform: groups.trophyTitlePlatform,
+          trophies: Object.fromEntries(trophies.trophies.map((t) => [t.trophyId, t.trophyName ?? ""])),
+        };
+      });
+    },
+
     async gameTrophies(accountId, game, force) {
       const opts = { npServiceName: game.service, headerOverrides: headers() };
       const shown = await loadMeta(game);
