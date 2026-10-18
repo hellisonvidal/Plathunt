@@ -54,7 +54,7 @@ segredos, o AAB é compilado só para conferir e não é publicado como artefato
    - **Classificação de conteúdo**: questionário (sem violência, sem compras; tem interação entre usuários só por curtidas e pedidos de boost).
    - **Público-alvo**: 13 anos ou mais.
    - **Segurança dos dados** (com os recursos online ligados): coleta **ID de usuário** (ID e avatar da PSN) e **outro conteúdo gerado pelo usuário** (curtidas e pedidos de boost), para *funcionalidade do app*; criptografado em trânsito; o usuário pode pedir a exclusão (ver a política). Senha da PSN: **não** é coletada (o login é na página da Sony). Troféus e amigos ficam só no aparelho.
-5. **Página da loja**: ícone 512×512 (`assets/app-icon.png`), imagem de destaque 1024×500, pelo menos 2 capturas de tela de celular (e de tablet de 7" e 10", recomendadas: o app se ajusta a elas), descrição curta (até 80 caracteres) e completa.
+5. **Página da loja**: ícone 512×512 (`assets/play-store-icon.png`), imagem de destaque 1024×500 (`assets/play-store-feature.png`), pelo menos 2 capturas de tela de celular (e de tablet de 7" e 10", recomendadas: o app se ajusta a elas), descrição curta (até 80 caracteres) e completa.
 
 ### Texto sugerido
 
@@ -68,8 +68,7 @@ segredos, o AAB é compilado só para conferir e não é publicado como artefato
 - **Nome embaixo do ícone:** `Plathunt` (vem de `capacitor.config.ts` e `android/app/src/main/res/values/strings.xml`).
 - O nome não usa "PlayStation", "PSN" nem "PS" (marcas da Sony). Na descrição, citar
   que o app funciona com os troféus da PSN é permitido, junto do aviso "não afiliado à Sony".
-- **Ícone:** o troféu atual traz os símbolos △ ○ ✕ □ dos botões, que também são
-  marca da Sony. Para reduzir o risco de recusa, troque por um ícone sem eles.
+- **Ícone:** troféu de platina dentro de um alvo de caça (mira), sem os símbolos dos botões da PlayStation (`assets/app-icon.svg`).
 
 ## Telas e aparelhos
 
