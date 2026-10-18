@@ -4,6 +4,7 @@ import { evaluateRelease, parseBuildTag, RELEASES_PAGE } from "../src/lib/update
 describe("parseBuildTag", () => {
   it("lê o número do build", () => {
     expect(parseBuildTag("build-42")).toBe(42);
+    expect(parseBuildTag("v1.1.1-build-3")).toBe(3);
     expect(parseBuildTag("v1.0")).toBeNull();
     expect(parseBuildTag(undefined)).toBeNull();
   });

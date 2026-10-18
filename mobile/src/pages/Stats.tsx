@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { GroupedBars, Legend, SERIES_COLORS, StatTile, type Series } from "../components/charts";
 import { CompletionTimes } from "../components/CompletionTimes";
-import { ConsoleArt } from "../components/Consoles";
 import { Mural, MURAL_LABELS, type MuralCategory, type MuralKind } from "../components/Mural";
 import { PageHeader } from "../components/PageHeader";
 import { RankingView, useRanking } from "./Ranking";
@@ -24,6 +23,7 @@ import {
   PLATFORM_ORDER,
 } from "../lib/stats";
 import { useData } from "../lib/useData";
+import { untilRefresh } from "../lib/cache";
 import type { Title } from "../psn/types";
 
 const TYPES = ["platinum", "gold", "silver", "bronze"] as const;
@@ -42,12 +42,12 @@ export function StatsPage() {
 
   const mine = useData(
     async (force) => {
-      const [me, titles, played, friends] = await Promise.all([
-        client.me(force),
-        client.titles("me", force),
-        client.playedGames("me", force),
-        client.friends(force),
-      ]);
+      // Fica salvo até o usuário puxar a tela para atualizar.
+      const [me, titles, played, friends] = await untilRefresh(
+        "stats:me",
+        () => Promise.all([client.me(force), client.titles("me", force), client.playedGames("me", force), client.friends(force)]),
+        force,
+      );
       return { me, titles, ...playMaps(matchPlayed(titles, played ?? [])), friends };
     },
     [client],
@@ -56,11 +56,16 @@ export function StatsPage() {
   const theirs = useData(
     async (force) => {
       if (!friendId) return null;
-      const [titles, played] = await Promise.all([
-        // Troféus privados: a PSN recusa a lista de jogos.
-        client.titles(friendId, force).catch(() => null),
-        client.playedGames(friendId, force),
-      ]);
+      const [titles, played] = await untilRefresh(
+        `stats:friend:${friendId}`,
+        () =>
+          Promise.all([
+            // Troféus privados: a PSN recusa a lista de jogos.
+            client.titles(friendId, force).catch(() => null),
+            client.playedGames(friendId, force),
+          ]),
+        force,
+      );
       return {
         friendId,
         titles,
@@ -585,8 +590,8 @@ const Chevron = ({ open }: { open: boolean }) => (
 );
 
 /**
- * Filtro de plataforma: um botão mostra a escolhida e, ao tocar, expande as
- * plataformas jogadas com quantos jogos cada jogador tem em cada uma.
+ * Filtro de plataforma compacto: uma linha com o nome de cada console jogado
+ * (sem logotipos) e quantos jogos cada jogador tem nele.
  */
 function PlatformPicker({
   platforms,
@@ -599,58 +604,34 @@ function PlatformPicker({
   onSelect: (p: string | null) => void;
   counts: { name: string; titles: Title[]; playedOn: PlayedOn }[];
 }) {
-  const [open, setOpen] = useState(false);
   const perPlayer = counts.map((c) => titlesByPlatform(c.titles, c.playedOn));
   const totalOf = (p: string | null) =>
     perPlayer.map((g) => (p ? (g.get(p)?.length ?? 0) : [...g.values()].reduce((a, l) => a + l.length, 0)));
-  const pick = (p: string | null) => {
-    onSelect(p);
-    setOpen(false);
-  };
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-line bg-surface">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-3 p-3 text-left active:bg-surface-2"
-      >
-        <ConsoleArt platform={selected} className="h-11 w-11" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-xs text-muted">
-            {t("Plataformas jogadas · {n}", { n: platforms.length })}
-          </span>
-          <span className="block font-semibold">{selected ?? t("Todas as plataformas")}</span>
-        </span>
-        <span className="text-xs text-muted">{open ? t("Fechar") : t("Expandir")}</span>
-        <Chevron open={open} />
-      </button>
-      {open && (
-        <div className="grid grid-cols-2 gap-2 border-t border-line p-3" role="radiogroup" aria-label={t("Plataforma")}>
-          {[null, ...platforms].map((p) => (
-            <button
-              key={p ?? "todas"}
-              role="radio"
-              aria-checked={selected === p}
-              onClick={() => pick(p)}
-              className={`flex flex-col items-center rounded-xl border-2 p-3 text-center ${
-                selected === p ? "border-ps-blue-2 bg-surface-2" : "border-line"
-              }`}
-            >
-              <ConsoleArt platform={p} className="h-16 w-16" />
-              <span className="mt-2 block font-semibold">{p ?? t("Todas")}</span>
-              <span className="mt-1 flex flex-wrap justify-center gap-x-3 gap-y-0.5 text-xs text-muted">
-                {totalOf(p).map((n, i) => (
-                  <span key={counts[i].name} className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />
-                    {n === 1 ? t("{n} jogo", { n }) : t("{n} jogos", { n })}
-                  </span>
-                ))}
+    <section className="rounded-2xl border border-line bg-surface px-3 py-2.5">
+      <p className="mb-2 text-xs text-muted">{t("Plataformas jogadas · {n}", { n: platforms.length })}</p>
+      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t("Plataforma")}>
+        {[null, ...platforms].map((p) => (
+          <button
+            key={p ?? "todas"}
+            role="radio"
+            aria-checked={selected === p}
+            onClick={() => onSelect(p)}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm ${
+              selected === p ? "border-ps-blue-2 bg-ps-blue-2/10 font-semibold text-ps-blue-2" : "border-line"
+            }`}
+          >
+            {p ?? t("Todas")}
+            {totalOf(p).map((n, i) => (
+              <span key={counts[i].name} className="flex items-center gap-0.5 text-xs font-normal text-muted">
+                {counts.length > 1 && <span className="h-1.5 w-1.5 rounded-full" style={{ background: SERIES_COLORS[i] }} />}
+                {n}
               </span>
-            </button>
-          ))}
-        </div>
-      )}
+            ))}
+          </button>
+        ))}
+      </div>
     </section>
   );
 }
