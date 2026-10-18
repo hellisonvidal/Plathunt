@@ -8,12 +8,13 @@ import { Mural, MURAL_LABELS, type MuralCategory } from "../components/Mural";
 import { PageHeader } from "../components/PageHeader";
 import { RankingView, useRanking } from "./Ranking";
 import { locale, t } from "../i18n";
-import { ErrorBox, Spinner, TrophyBadge } from "../components/ui";
+import { ErrorBox, GameIcon, Spinner, TrophyBadge } from "../components/ui";
 import {
   compareTitles,
   computeStats,
   filterByPlatform,
   formatDuration,
+  gamesByYear,
   matchPlayed,
   platformsOf,
   titlesByPlatform,
@@ -232,7 +233,38 @@ export function StatsPage() {
                     ))}
                     series={series((s) => TYPES.map((t) => s.trophies[t]))}
                   />
+                  <div className="flex items-center gap-3 border-t border-line pt-3">
+                    <span className="flex w-[5.5rem] shrink-0 items-center gap-1.5 text-sm font-semibold">
+                      <AllTrophies />
+                      {t("Total")}
+                    </span>
+                    <span className="flex flex-1 flex-wrap justify-end gap-x-4 gap-y-0.5">
+                      {all.map((s, i) => (
+                        <span key={names[i]} className="flex items-center gap-1.5 text-lg font-bold tabular-nums">
+                          {all.length > 1 && (
+                            <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />
+                          )}
+                          {s.totalTrophies.toLocaleString(locale())}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
                 </section>
+
+                <YearStats
+                  players={[
+                    { name: names[0], titles: filterByPlatform(withEarnedTrophies(data.titles), platform, data.playedOn), firstPlayed: data.firstPlayed },
+                    ...(friend && friendTitles && friendPlay
+                      ? [
+                          {
+                            name: friend.onlineId,
+                            titles: filterByPlatform(withEarnedTrophies(friendTitles), platform, friendPlay.playedOn),
+                            firstPlayed: friendPlay.firstPlayed,
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
 
                 <PlatformTitles
                   players={[
@@ -255,29 +287,17 @@ export function StatsPage() {
 
                 {all.map((s, i) =>
                   s.topPlayed.length ? (
-                    <section key={names[i]} className="space-y-3 rounded-2xl border border-line bg-surface p-4">
-                      <h2 className="font-semibold">{t("Mais jogados")}{all.length > 1 && ` · ${names[i]}`}</h2>
-                      <GroupedBars
-                        categories={s.topPlayed.map((t) => (
-                          <Link
-                            key={t.title.id}
-                            to={`/game/${i === 0 ? "me" : friendId}/${t.title.id}?service=${t.title.service}`}
-                            className="line-clamp-2 text-xs"
-                          >
-                            {t.title.name}
-                          </Link>
-                        ))}
-                        series={[{ name: names[i], values: s.topPlayed.map((t) => t.seconds) }]}
-                        format={formatDuration}
-                        colorOffset={i}
-                      />
-                      <p className="text-[0.6875rem] text-muted">
-                        {t("Tempo disponível para {n} de {total} jogos (PS3 e Vita não registram).", {
-                          n: s.gamesWithPlaytime,
-                          total: s.games,
-                        })}
-                      </p>
-                    </section>
+                    <MostPlayed
+                      key={names[i]}
+                      title={all.length > 1 ? `${t("Mais jogados")} · ${names[i]}` : t("Mais jogados")}
+                      list={s.topPlayed}
+                      accountId={i === 0 ? "me" : friendId}
+                      color={SERIES_COLORS[i]}
+                      note={t("Tempo disponível para {n} de {total} jogos (PS3 e Vita não registram).", {
+                        n: s.gamesWithPlaytime,
+                        total: s.games,
+                      })}
+                    />
                   ) : null,
                 )}
           </>
@@ -290,11 +310,151 @@ export function StatsPage() {
 }
 
 /** Separa o resultado de `matchPlayed` em tempo por jogo e plataforma jogada por jogo. */
-function playMaps(play: Map<string, PlayInfo>): { playtime: Map<string, number>; playedOn: PlayedOn } {
+function playMaps(play: Map<string, PlayInfo>): {
+  playtime: Map<string, number>;
+  playedOn: PlayedOn;
+  firstPlayed: Map<string, string | null>;
+} {
   return {
     playtime: new Map([...play].map(([id, p]) => [id, p.seconds])),
     playedOn: new Map([...play].map(([id, p]) => [id, p.platform])),
+    firstPlayed: new Map([...play].map(([id, p]) => [id, p.firstPlayed])),
   };
+}
+
+/** Os quatro troféus lado a lado: o ícone do total. */
+function AllTrophies() {
+  return (
+    <span className="flex -space-x-1.5" aria-hidden>
+      {TYPES.map((type) => (
+        <TrophyIconOnly key={type} type={type} />
+      ))}
+    </span>
+  );
+}
+
+const TROPHY_COLOR: Record<(typeof TYPES)[number], string> = {
+  platinum: "text-platinum",
+  gold: "text-gold",
+  silver: "text-silver",
+  bronze: "text-bronze",
+};
+
+function TrophyIconOnly({ type }: { type: (typeof TYPES)[number] }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`h-4 w-4 fill-current ${TROPHY_COLOR[type]}`}>
+      <path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3V3Zm0 4H6v1a2 2 0 0 0 1 1.7V7Zm10 0v2.7A2 2 0 0 0 18 8V7h-1Z" />
+    </svg>
+  );
+}
+
+const MOST_PLAYED_STEP = 5;
+
+/** Mais jogados: ícone do jogo, nome e barra de tempo; "Ver mais" mostra os próximos. */
+function MostPlayed({
+  title,
+  list,
+  accountId,
+  color,
+  note,
+}: {
+  title: string;
+  list: { title: Title; seconds: number }[];
+  accountId: string;
+  color: string;
+  note: string;
+}) {
+  const [count, setCount] = useState(MOST_PLAYED_STEP);
+  const max = list[0]?.seconds || 1;
+  return (
+    <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+      <h2 className="font-semibold">{title}</h2>
+      <ul className="space-y-2.5">
+        {list.slice(0, count).map((p, i) => (
+          <li key={p.title.id}>
+            <Link to={`/game/${accountId}/${p.title.id}?service=${p.title.service}`} className="flex items-center gap-3">
+              <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted">{i + 1}</span>
+              <GameIcon src={p.title.iconUrl} size={40} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">{p.title.name}</span>
+                <span className="mt-1 flex items-center gap-2">
+                  <span className="h-2 flex-1">
+                    <span
+                      className="block h-full rounded-r-[0.25rem]"
+                      style={{ width: `${(p.seconds / max) * 100}%`, minWidth: 3, background: color }}
+                    />
+                  </span>
+                  <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted">{formatDuration(p.seconds)}</span>
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {list.length > MOST_PLAYED_STEP && (
+        <button
+          onClick={() => setCount((c) => (c >= list.length ? MOST_PLAYED_STEP : c + 10))}
+          className="w-full text-sm font-semibold text-ps-blue-2"
+        >
+          {count >= list.length ? t("Mostrar menos") : t("Ver mais ({n})", { n: list.length - count })}
+        </button>
+      )}
+      <p className="text-[0.6875rem] text-muted">{note}</p>
+    </section>
+  );
+}
+
+/** Jogos por ano, desde o primeiro jogo da conta, com as platinas de cada ano. */
+function YearStats({
+  players,
+}: {
+  players: { name: string; titles: Title[]; firstPlayed: Map<string, string | null> }[];
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const perPlayer = players.map((p) => gamesByYear(p.titles, p.firstPlayed));
+  // Cada jogador já vem com todos os anos até hoje, então a união não tem buracos.
+  const full = [...new Set(perPlayer.flatMap((rows) => rows.map((r) => r.year)))].sort((a, b) => b - a);
+  if (!full.length) return null;
+  const first = full[full.length - 1];
+  const shown = showAll ? full : full.slice(0, 6);
+  const row = (i: number, y: number) => perPlayer[i].find((r) => r.year === y);
+  return (
+    <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+      <div>
+        <h2 className="font-semibold">{t("📅 Jogos por ano")}</h2>
+        <p className="text-[0.6875rem] text-muted">{t("Desde {year}, ano do primeiro jogo da conta.", { year: String(first) })}</p>
+      </div>
+      <GroupedBars
+        categories={shown.map((y) => (
+          <span key={y} className="font-semibold tabular-nums">
+            {y}
+          </span>
+        ))}
+        series={players.map((p, i) => ({ name: p.name, values: shown.map((y) => row(i, y)?.games ?? 0) }))}
+        format={(v) => (v === 1 ? t("{n} jogo", { n: v }) : t("{n} jogos", { n: v }))}
+      />
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+        {shown.map((y) => {
+          const plats = perPlayer.map((_, i) => row(i, y)?.platinums ?? 0);
+          return plats.some((n) => n > 0) ? (
+            <li key={y} className="flex items-center gap-1">
+              <span className="font-semibold tabular-nums">{y}:</span>
+              <TrophyIconOnly type="platinum" />
+              {plats.join(" / ")}
+            </li>
+          ) : null;
+        })}
+      </ul>
+      {full.length > 6 && (
+        <button onClick={() => setShowAll((s) => !s)} className="w-full text-sm font-semibold text-ps-blue-2">
+          {showAll ? t("Mostrar menos") : t("Ver todos os anos ({n})", { n: full.length })}
+        </button>
+      )}
+      <p className="text-[0.6875rem] text-muted">
+        {t("O ano é o da primeira vez que jogou (PS4 e PS5); para PS3 e Vita, o do último troféu.")}
+      </p>
+    </section>
+  );
 }
 
 const PLATFORM_RANK = (p: string) => PLATFORM_ORDER.indexOf(p) + 1 || 99;

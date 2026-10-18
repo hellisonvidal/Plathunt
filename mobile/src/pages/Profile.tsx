@@ -9,8 +9,19 @@ import { formatDuration, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import { PsPlusIcon } from "../components/icons";
 import { t } from "../i18n";
+import type { Title } from "../psn/types";
 
 type Sort = "recentes" | "antigos" | "progresso" | "tempo";
+type Filter = "todos" | "platinados" | "semPlatina" | "completos" | "incompletos";
+
+/** Filtros da lista de jogos. "Sem platina": jogos em que você ainda não tem a platina (ou que não têm). */
+const FILTERS: { key: Filter; label: string; test: (t: Title) => boolean }[] = [
+  { key: "todos", label: "Todos", test: () => true },
+  { key: "platinados", label: "🏆 Com platina", test: (t) => t.earned.platinum > 0 },
+  { key: "semPlatina", label: "Sem platina", test: (t) => t.earned.platinum === 0 },
+  { key: "completos", label: "💯 100%", test: (t) => t.progress >= 100 },
+  { key: "incompletos", label: "Em andamento", test: (t) => t.progress < 100 },
+];
 
 /** Perfil: o seu (aba 1) ou o de um amigo (/u/:accountId). */
 export function ProfilePage() {
@@ -19,6 +30,7 @@ export function ProfilePage() {
   const isMe = accountId === "me";
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("recentes");
+  const [filter, setFilter] = useState<Filter>("todos");
 
   const { data, error, loading, refresh } = useData(
     async (force) => {
@@ -36,8 +48,9 @@ export function ProfilePage() {
     [client, accountId],
   );
 
+  const filterTest = FILTERS.find((f) => f.key === filter)!.test;
   const titles = (data?.titles ?? [])
-    .filter((t) => t.name.toLowerCase().includes(query.trim().toLowerCase()))
+    .filter((t) => filterTest(t) && t.name.toLowerCase().includes(query.trim().toLowerCase()))
     .sort((a, b) => {
       if (sort === "progresso") return b.progress - a.progress;
       if (sort === "tempo") return (data!.playtime.get(b.id) ?? 0) - (data!.playtime.get(a.id) ?? 0);
@@ -119,6 +132,24 @@ export function ProfilePage() {
                     <option value="progresso">{t("Progresso")}</option>
                     <option value="tempo">{t("Tempo de jogo")}</option>
                   </select>
+                </div>
+                <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="radiogroup" aria-label={t("Filtrar jogos")}>
+                  {FILTERS.map((f) => {
+                    const n = data.titles!.filter(f.test).length;
+                    return (
+                      <button
+                        key={f.key}
+                        role="radio"
+                        aria-checked={filter === f.key}
+                        onClick={() => setFilter(f.key)}
+                        className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                          filter === f.key ? "border-ps-blue-2 bg-ps-blue" : "border-line bg-surface text-muted"
+                        }`}
+                      >
+                        {t(f.label)} · {n}
+                      </button>
+                    );
+                  })}
                 </div>
                 <TitleList titles={titles} accountId={accountId} playtime={data.playtime} />
                 {data.playtime.size === 0 && data.titles.length > 0 && (

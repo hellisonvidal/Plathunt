@@ -177,7 +177,7 @@ export function SettingsPage() {
         <Section title={t("Sobre")}>
           <p className="p-4 text-xs leading-relaxed text-muted">
             {t(
-              "PlayStation Trophy Mania {version}. Sem servidor: os dados vão direto do celular para a PSN e ficam só no aparelho. Não é afiliado à Sony Interactive Entertainment; PlayStation é marca da Sony.",
+              "PlayStation Trophy Mania {version}. Os dados da PSN vão direto do celular para a Sony e ficam no aparelho; só os recursos online, quando ligados, usam o servidor do app. Não é afiliado à Sony Interactive Entertainment; PlayStation é marca da Sony.",
               { version: appVersion() },
             )}
           </p>

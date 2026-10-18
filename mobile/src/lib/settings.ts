@@ -31,6 +31,8 @@ export interface Settings {
   cloudNoticeSeen: boolean;
   /** Desligou os recursos online (o app não reconecta sozinho). */
   cloudOff: boolean;
+  /** Já entrou com a PSN alguma vez (o aviso sobre os dados só aparece antes disso). */
+  signedInBefore: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -53,6 +55,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notifySocial: true,
   cloudNoticeSeen: false,
   cloudOff: false,
+  signedInBefore: false,
 };
 
 const KEY = "tm.settings" as const;

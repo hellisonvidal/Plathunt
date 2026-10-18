@@ -218,6 +218,7 @@ export function createPsnClient(): PsnClient {
                   playSeconds: parseDuration(t.playDuration),
                   platform: platformFromCategory(t.category),
                   lastPlayed: t.lastPlayedDateTime ?? null,
+                  firstPlayed: t.firstPlayedDateTime ?? null,
                 })),
               );
               if (!res.nextOffset || res.titles.length === 0) break;
