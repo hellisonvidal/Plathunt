@@ -23,7 +23,44 @@ export interface StoreProduct {
   discount: number;
   /** Faz parte da PS Plus (catálogo ou preço de assinante). */
   plus: boolean;
+  /** Tipo do produto (jogo completo, demo, avaliação, DLC...). Listas salvas antigas não têm: use `kindOf`. */
+  kind?: StoreKind;
 }
+
+/** Tipos de produto da loja, para o selo no cartão e o filtro "Tipo". */
+export type StoreKind = "jogo" | "pacote" | "dlc" | "demo" | "avaliacao" | "moeda" | "outro";
+
+export const STORE_KINDS: { value: StoreKind; label: string }[] = [
+  { value: "jogo", label: "Jogo completo" },
+  { value: "pacote", label: "Pacote" },
+  { value: "dlc", label: "DLC / complemento" },
+  { value: "demo", label: "Demo" },
+  { value: "avaliacao", label: "Avaliação" },
+  { value: "moeda", label: "Moeda virtual" },
+  { value: "outro", label: "Outros" },
+];
+
+/**
+ * Tipo do produto pela classificação da loja (storeDisplayClassification:
+ * FULL_GAME, GAME_BUNDLE, ADD-ON_PACK, DEMO, TRIAL, VIRTUAL_CURRENCY...) e,
+ * quando ela não vem, pelo nome ("Demo", "Trial", "Season Pass"...).
+ */
+export function productKind(classification: string | null | undefined, name: string): StoreKind {
+  const c = (classification ?? "").toUpperCase();
+  const n = name.toLowerCase();
+  if (/TRIAL/.test(c) || /\b(trial|game trial|avalia[çc][ãa]o|vers[ãa]o de teste|teste gratuito)\b/.test(n)) return "avaliacao";
+  if (/DEMO/.test(c) || /\bdemo\b/.test(n)) return "demo";
+  if (/CURRENCY/.test(c) || /\b(v-bucks|moedas|coins|points pack|cr[ée]ditos)\b/.test(n)) return "moeda";
+  if (/BUNDLE/.test(c)) return "pacote";
+  if (/FULL_GAME|PREMIUM_EDITION|^GAME$/.test(c)) return "jogo";
+  if (/ADD|SEASON|LEVEL|CHARACTER|COSTUME|MAP|VEHICLE|ITEM|EXPANSION|DLC|PACK/.test(c)) return "dlc";
+  if (/APP|THEME|AVATAR|SOUNDTRACK|VIDEO|MUSIC/.test(c)) return "outro";
+  if (/\b(season pass|passe de temporada|expans[ãa]o|expansion|dlc|add-on|complemento)\b/.test(n)) return "dlc";
+  return "jogo";
+}
+
+/** Tipo de um produto (as listas salvas antes desta versão não têm o campo). */
+export const kindOf = (p: StoreProduct): StoreKind => p.kind ?? productKind(null, p.name);
 
 /** Categorias da loja (ids da PlayStation Store). */
 export const OFFERS_ID = "ofertas";
@@ -120,6 +157,7 @@ export function discountPercent(base: number | null, price: number | null): numb
 interface RawGridProduct {
   id: string;
   name: string;
+  storeDisplayClassification?: string | null;
   platforms?: string[];
   media?: { role?: string; type?: string; url?: string }[];
   price?: {
@@ -159,6 +197,7 @@ export function toStoreProduct(raw: RawGridProduct): StoreProduct {
     isFree,
     discount: Number.isFinite(fromText) && fromText > 0 ? fromText : discountPercent(basePrice, price),
     plus: !!raw.price?.isTiedToSubscription || branding.some((b) => /PS_?PLUS/i.test(b)),
+    kind: productKind(raw.storeDisplayClassification, raw.name),
   };
 }
 
@@ -185,6 +224,8 @@ export interface StoreFilters {
   hideFree: boolean;
   price: PriceRange;
   sort: StoreSort;
+  /** Tipo de produto ("todos" = sem filtro). */
+  kind: "todos" | StoreKind;
 }
 
 /** Limites das faixas de preço em cada moeda (em unidades, não centavos). */
@@ -240,6 +281,7 @@ export function filterProducts(products: StoreProduct[], f: StoreFilters): Store
       (!f.onlyDiscount || p.discount > 0) &&
       !(f.hidePlus && p.plus) &&
       !(f.hideFree && (p.isFree || p.price === 0)) &&
+      (!f.kind || f.kind === "todos" || kindOf(p) === f.kind) &&
       inRange(p, f.price),
   );
   const price = (p: StoreProduct) => p.price ?? Number.MAX_SAFE_INTEGER;

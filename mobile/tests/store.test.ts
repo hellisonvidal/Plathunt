@@ -142,3 +142,18 @@ describe("esconder PS Plus", () => {
     expect(filterProducts(list, f).map((p) => p.id)).toEqual(["b"]);
   });
 });
+
+describe("tipo de produto", () => {
+  it("lê a classificação da loja e, sem ela, o nome", async () => {
+    const { productKind } = await import("../src/lib/store");
+    expect(productKind("FULL_GAME", "Bloodborne")).toBe("jogo");
+    expect(productKind("GAME_BUNDLE", "Pacote X")).toBe("pacote");
+    expect(productKind("ADD-ON_PACK", "Burning Shores")).toBe("dlc");
+    expect(productKind("SEASON_PASS", "Passe")).toBe("dlc");
+    expect(productKind("VIRTUAL_CURRENCY", "1000 V-Bucks")).toBe("moeda");
+    expect(productKind(null, "Gran Turismo 7 – Demo")).toBe("demo");
+    expect(productKind(null, "Ghost of Tsushima – Trial")).toBe("avaliacao");
+    expect(productKind(null, "Horizon: Burning Shores (DLC)")).toBe("dlc");
+    expect(productKind(null, "Astro Bot")).toBe("jogo");
+  });
+});

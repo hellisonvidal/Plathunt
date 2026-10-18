@@ -9,12 +9,14 @@ import {
   filterProducts,
   formatPrice,
   isNewLow,
+  kindOf,
   priceRangeKey,
   priceRanges,
   priceHistory,
   recordPrices,
   PLUS_ID,
   STORE_CATEGORIES,
+  STORE_KINDS,
   STORE_SORTS,
   storeProductUrl,
   type StoreFilters,
@@ -36,6 +38,7 @@ const DEFAULT_FILTERS: StoreFilters = {
   hideFree: false,
   price: "todas",
   sort: "relevancia",
+  kind: "todos",
 };
 /** Intervalo mínimo entre atualizações da lista enquanto a loja carrega (evita a tela piscar). */
 const STREAM_THROTTLE_MS = 700;
@@ -187,7 +190,8 @@ function FilterBar({
     (filters.onlyDiscount ? 1 : 0) +
     (filters.hidePlus ? 1 : 0) +
     (filters.hideFree ? 1 : 0) +
-    (filters.price !== "todas" ? 1 : 0);
+    (filters.price !== "todas" ? 1 : 0) +
+    (filters.kind !== "todos" ? 1 : 0);
 
   return (
     <div className="space-y-2">
@@ -237,6 +241,12 @@ function FilterBar({
             ]}
             value={filters.platform}
             onChange={(platform) => set({ platform: platform as StoreFilters["platform"] })}
+          />
+          <Chips
+            label={t("Tipo")}
+            options={[["todos", t("Todos")] as const, ...STORE_KINDS.map((k) => [k.value, t(k.label)] as const)]}
+            value={filters.kind}
+            onChange={(kind) => set({ kind: kind as StoreFilters["kind"] })}
           />
           <Chips
             label={t("Preço")}
@@ -516,7 +526,17 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
       </div>
       <div className="p-2.5">
         <p className="line-clamp-2 text-xs font-semibold leading-snug">{p.name}</p>
-        <p className="mt-0.5 text-[0.625rem] text-muted">{p.platforms.join(" · ")}</p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-1 text-[0.625rem] text-muted">
+          {/* Tipo do produto: jogo completo, demo, avaliação, DLC... */}
+          <span
+            className={`rounded px-1 py-px font-semibold ${
+              kindOf(p) === "jogo" ? "bg-surface-2 text-muted" : "bg-ps-blue-2/10 text-ps-blue-2"
+            }`}
+          >
+            {t(STORE_KINDS.find((k) => k.value === kindOf(p))!.label)}
+          </span>
+          {p.platforms.join(" · ")}
+        </p>
         <PriceInfo product={p} region={region} />
       </div>
     </a>
