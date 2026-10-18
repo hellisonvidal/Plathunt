@@ -170,6 +170,8 @@ const DEMO: [string, string, string[], number, number, boolean?][] = [
   ["Astro's Playroom", "UP9000-PPSA01325_00-ASTROSPLAYROOM00", ["PS5"], 0, 0, true],
   ["Gran Turismo 7 – Demo", "UP9000-PPSA01316_00-GT7DEMO000000000", ["PS5"], 0, 0, true],
   ["Ghost of Tsushima – Trial", "UP9000-PPSA01717_00-GHOSTTRIAL000000", ["PS5"], 0, 0, true],
+  ["God of War Ragnarök Edição Digital Deluxe", "UP9000-PPSA08338_00-GOWRDELUXE000000", ["PS5", "PS4"], 39990, 23994],
+  ["Marvel's Spider-Man 2 + Miles Morales Bundle", "UP9000-PPSA03016_00-SPIDERMANBUNDLE0", ["PS5"], 44990, 26994],
   ["Horizon Forbidden West: Burning Shores (DLC)", "UP9000-PPSA01521_00-BURNINGSHORES000", ["PS5"], 9990, 6993],
 ];
 

@@ -25,6 +25,8 @@ export interface StoreProduct {
   plus: boolean;
   /** Tipo do produto (jogo completo, demo, avaliação, DLC...). Listas salvas antigas não têm: use `kindOf`. */
   kind?: StoreKind;
+  /** Classificação da loja e o rótulo traduzido (ex.: "PREMIUM_EDITION · Edição premium"). */
+  classification?: string | null;
 }
 
 /** Tipos de produto da loja, para o selo no cartão e o filtro "Tipo". */
@@ -41,36 +43,94 @@ export const STORE_KINDS: { value: StoreKind; label: string }[] = [
   { value: "outro", label: "Outros" },
 ];
 
-/** Nomes de edições especiais (Deluxe, Ultimate, Gold, Definitiva...). */
-const PREMIUM_NAME =
-  /\b(deluxe|ultimate|premium|gold edition|digital deluxe|definitive|complete edition|game of the year|goty|collector'?s|special edition|vault edition|super deluxe|edi[çc][ãa]o (deluxe|definitiva|completa|especial|de luxo|ouro|suprema|premium|digital deluxe))\b/;
+/** Nome comparável para reconhecer o tipo: minúsculas, sem ™/® e com espaços simples. */
+const kindName = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[™®©]/g, "")
+    .replace(/[–—:()[\]]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-/** Nomes de pacotes de jogos (Bundle, Pacote, Coleção, Trilogia, "Jogo A + Jogo B"...). */
-const BUNDLE_NAME =
-  /\b(bundle|pacote|combo|double pack|pack duplo|collection|cole[çc][ãa]o|trilogy|trilogia|anthology|antologia|duologia|duology)\b|\s\+\s/;
+const EDITION_WORDS =
+  "deluxe|digital deluxe|super deluxe|ultimate|premium|gold|definitive|complete|collector'?s|special|vault|legendary|platinum|champions|anniversary|game of the year|goty|cross-gen|ultra|royal|year \\d+";
 
 /**
- * Tipo do produto pela classificação da loja (storeDisplayClassification:
- * FULL_GAME, GAME_BUNDLE, ADD-ON_PACK, DEMO, TRIAL, VIRTUAL_CURRENCY...) e,
- * quando ela não vem, pelo nome ("Demo", "Trial", "Season Pass"...).
+ * Edições especiais de um jogo (Deluxe, Ultimate, Gold, Definitiva, Jogo do
+ * Ano, "Jogo + Passe de Temporada"...). A palavra precisa vir como edição
+ * ("Deluxe Edition", "Edição Deluxe" ou no fim do nome), para não confundir
+ * jogos como "Marvel Ultimate Alliance" ou "Ultimate Chicken Horse".
+ */
+const PREMIUM_NAME = new RegExp(
+  [
+    `\\b(${EDITION_WORDS})\\s+(edition|edi[çc][ãa]o)\\b`,
+    "\\bedi[çc][ãa]o\\s+(digital\\s+)?(deluxe|definitiva|completa|especial|de luxo|ouro|suprema|premium|ultimate|gold|lend[áa]ria|do colecionador|de colecionador|jogo do ano|platina|aniversário|campe[õo]es)\\b",
+    "\\b(goty|game of the year|jogo do ano)\\b",
+    "\\b(deluxe|ultimate|premium|gold|definitive|complete)$",
+    "\\s\\+\\s.*\\b(season pass|passe de temporada|passe do ano|year pass|expans[ãa]o|expansion|dlc|add-ons?|complementos?|conte[úu]do adicional)\\b",
+  ].join("|"),
+);
+
+/**
+ * Pacotes de jogos (Bundle, Pacote, Coleção, Trilogia, "2 em 1", "Jogo A + Jogo B"...):
+ * vários jogos vendidos juntos. Um "+" com passe de temporada ou DLC é edição premium.
+ */
+const BUNDLE_NAME =
+  /\b(bundle|pacote|combo|double pack|triple pack|dual pack|pack duplo|pacote duplo|pacote triplo|collection|cole[çc][ãa]o|trilogy|trilogia|anthology|antologia|duologia|duology|quadrilogy|saga completa|\d\s?(em|in)\s?1|party pack)\b|\s\+\s/;
+
+/** Avaliações de jogos (PS Plus Premium e versões de teste). */
+const TRIAL_NAME =
+  /\b(trial|game trial|free trial|trial version|avalia[çc][ãa]o|avalia[çc][ãa]o (do|de) jogo|vers[ãa]o de (teste|avalia[çc][ãa]o)|teste gratuito|teste do jogo)\b/;
+const DEMO_NAME = /\b(demo|demonstra[çc][ãa]o|vers[ãa]o demo|prologue demo)\b/;
+const DLC_NAME =
+  /\b(season pass|passe de temporada|expans[ãa]o|expansion|dlc|add-on|complemento|pacote de (trajes|personagens|itens|mapas|fases|conte[úu]do)|soundtrack|trilha sonora|costume|traje)\b/;
+const CURRENCY_NAME = /\b(v-bucks|moedas|coins|points pack|cr[ée]ditos|shark cash|cash card|cart[ãa]o de dinheiro|vc|cod points|apex coins)\b/;
+
+/**
+ * Tipo do produto. A classificação da própria loja vem primeiro
+ * (storeDisplayClassification: FULL_GAME, PREMIUM_EDITION, GAME_BUNDLE,
+ * BUNDLE, ADD-ON_PACK, DEMO, TRIAL, VIRTUAL_CURRENCY..., e o rótulo traduzido
+ * "Edição premium", "Pacote de jogos", "Avaliação de jogo"...). Quando ela
+ * diz só "jogo completo" ou não vem, o nome decide: avaliação, demo, pacote
+ * (vários jogos), edição premium (o jogo com extras) ou jogo completo.
  */
 export function productKind(classification: string | null | undefined, name: string): StoreKind {
   const c = (classification ?? "").toUpperCase();
-  const n = name.toLowerCase();
-  if (/TRIAL/.test(c) || /\b(trial|game trial|avalia[çc][ãa]o|vers[ãa]o de teste|teste gratuito)\b/.test(n)) return "avaliacao";
-  if (/DEMO/.test(c) || /\bdemo\b/.test(n)) return "demo";
-  if (/CURRENCY/.test(c) || /\b(v-bucks|moedas|coins|points pack|cr[ée]ditos)\b/.test(n)) return "moeda";
-  if (/PREMIUM/.test(c) || ((!c || /FULL_GAME|^GAME$/.test(c)) && PREMIUM_NAME.test(n))) return "premium";
-  if (/BUNDLE/.test(c) || ((!c || /FULL_GAME|^GAME$/.test(c)) && BUNDLE_NAME.test(n))) return "pacote";
-  if (/FULL_GAME|^GAME$/.test(c)) return "jogo";
-  if (/ADD|SEASON|LEVEL|CHARACTER|COSTUME|MAP|VEHICLE|ITEM|EXPANSION|DLC|PACK/.test(c)) return "dlc";
-  if (/APP|THEME|AVATAR|SOUNDTRACK|VIDEO|MUSIC/.test(c)) return "outro";
-  if (/\b(season pass|passe de temporada|expans[ãa]o|expansion|dlc|add-on|complemento)\b/.test(n)) return "dlc";
+  const n = kindName(name);
+  if (/TRIAL|AVALIA|TESTE/.test(c)) return "avaliacao";
+  if (/DEMO/.test(c)) return "demo";
+  if (/CURRENCY|MOEDA/.test(c)) return "moeda";
+  if (/PREMIUM|EDI[ÇC][ÃA]O/.test(c)) return "premium";
+  if (/BUNDLE|PACOTE DE JOGO/.test(c)) return /ADD|COMPLEMENTO/.test(c) ? "dlc" : "pacote";
+  if (/ADD|SEASON|LEVEL|CHARACTER|COSTUME|MAP|VEHICLE|ITEM|EXPANSION|DLC|PACK|COMPLEMENTO|PASSE|EXPANS/.test(c)) return "dlc";
+  if (/APP|THEME|AVATAR|SOUNDTRACK|VIDEO|MUSIC|TEMA|APLICATIVO/.test(c)) return "outro";
+  const unknown = !/FULL_GAME|^GAME$|JOGO COMPLETO|FULL GAME/.test(c);
+  if (TRIAL_NAME.test(n)) return "avaliacao";
+  if (DEMO_NAME.test(n)) return "demo";
+  if (unknown && CURRENCY_NAME.test(n)) return "moeda";
+  if (PREMIUM_NAME.test(n)) return "premium";
+  if (unknown && DLC_NAME.test(n)) return "dlc";
+  if (BUNDLE_NAME.test(n)) return "pacote";
   return "jogo";
 }
 
-/** Tipo de um produto (as listas salvas antes desta versão não têm o campo). */
-export const kindOf = (p: StoreProduct): StoreKind => p.kind ?? productKind(null, p.name);
+/** Tipo salvo pelas versões antigas → classificação equivalente (o nome é relido com as regras atuais). */
+const LEGACY_CLASS: Partial<Record<StoreKind, string>> = {
+  dlc: "ADD-ON",
+  demo: "DEMO",
+  avaliacao: "TRIAL",
+  moeda: "VIRTUAL_CURRENCY",
+  outro: "APP",
+};
+
+/**
+ * Tipo de um produto, sempre com as regras atuais: usa a classificação da
+ * loja guardada junto do jogo. Listas salvas antes dela não têm o campo.
+ */
+export const kindOf = (p: StoreProduct): StoreKind =>
+  p.classification !== undefined
+    ? productKind(p.classification, p.name)
+    : productKind(p.kind ? (LEGACY_CLASS[p.kind] ?? null) : null, p.name);
 
 /** Categorias da loja (ids da PlayStation Store). */
 export const OFFERS_ID = "ofertas";
@@ -168,6 +228,7 @@ interface RawGridProduct {
   id: string;
   name: string;
   storeDisplayClassification?: string | null;
+  localizedStoreDisplayClassification?: string | null;
   platforms?: string[];
   media?: { role?: string; type?: string; url?: string }[];
   price?: {
@@ -180,6 +241,9 @@ interface RawGridProduct {
     upsellServiceBranding?: string[] | null;
   } | null;
 }
+
+const classificationOf = (raw: RawGridProduct) =>
+  [raw.storeDisplayClassification, raw.localizedStoreDisplayClassification].filter(Boolean).join(" · ") || null;
 
 /** Converte um produto da resposta `categoryGridRetrieve` da loja. */
 export function toStoreProduct(raw: RawGridProduct): StoreProduct {
@@ -207,7 +271,8 @@ export function toStoreProduct(raw: RawGridProduct): StoreProduct {
     isFree,
     discount: Number.isFinite(fromText) && fromText > 0 ? fromText : discountPercent(basePrice, price),
     plus: !!raw.price?.isTiedToSubscription || branding.some((b) => /PS_?PLUS/i.test(b)),
-    kind: productKind(raw.storeDisplayClassification, raw.name),
+    classification: classificationOf(raw),
+    kind: productKind(classificationOf(raw), raw.name),
   };
 }
 
