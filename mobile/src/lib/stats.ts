@@ -182,6 +182,12 @@ export interface GameStats {
   topPlayed: { title: Title; seconds: number }[];
 }
 
+/**
+ * "100%" no app: só jogos com DLC completos. Num jogo sem DLC, o 100% é o
+ * mesmo momento da platina, então ele conta como platina, não como 100%.
+ */
+export const isComplete = (t: Pick<Title, "hasGroups" | "progress">) => t.hasGroups && t.progress >= 100;
+
 export function computeStats(titles: Title[], playtime: Map<string, number>, playedOn?: PlayedOn): GameStats {
   const trophies = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
   let progressSum = 0;
@@ -196,7 +202,7 @@ export function computeStats(titles: Title[], playtime: Map<string, number>, pla
     trophies.gold += t.earned.gold;
     trophies.platinum += t.earned.platinum;
     progressSum += t.progress;
-    if (t.progress >= 100) completed++;
+    if (isComplete(t)) completed++;
     const secs = playtime.get(t.id);
     if (secs) {
       playSeconds += secs;

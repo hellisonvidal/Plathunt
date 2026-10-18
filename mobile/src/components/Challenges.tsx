@@ -68,6 +68,19 @@ export function ChallengesView() {
   );
 }
 
+/** Lembrete um dia antes do fim do prazo do desafio. */
+export function scheduleDeadlineReminder(created: Challenge) {
+  if (!created.deadline) return;
+  const at = new Date(Date.parse(created.deadline) - 86_400_000);
+  void notify(
+    "challenges",
+    `challenge-deadline:${created.id}`,
+    t("⏳ Último dia do desafio"),
+    t("{trophy} · {game}", { trophy: created.trophy.name, game: created.game.name }),
+    at,
+  );
+}
+
 function ChallengeForm({ onClose }: { onClose: () => void }) {
   const { client } = useApp();
   const [game, setGame] = useState<BoostCandidate | null>(null);
@@ -126,17 +139,7 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
       },
       deadline,
     );
-    // Lembrete um dia antes do fim do prazo.
-    if (created.deadline) {
-      const at = new Date(Date.parse(created.deadline) - 86_400_000);
-      void notify(
-        "challenges",
-        `challenge-deadline:${created.id}`,
-        t("⏳ Último dia do desafio"),
-        t("{trophy} · {game}", { trophy: created.trophy.name, game: created.game.name }),
-        at,
-      );
-    }
+    scheduleDeadlineReminder(created);
     onClose();
   };
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useBackInterceptor } from "../lib/backButton";
 import { Link } from "react-router-dom";
-import { filterByPlatform, formatDuration, startYear, withEarnedTrophies, type PlayedOn } from "../lib/stats";
+import { filterByPlatform, formatDuration, isComplete, startYear, withEarnedTrophies, type PlayedOn } from "../lib/stats";
 import { t } from "../i18n";
 import type { Title } from "../psn/types";
 import { SERIES_COLORS } from "./charts";
@@ -57,7 +57,7 @@ export function muralTiles(
         .map((g) => ({ title: g, metric: t("Platina") }));
     case "completos":
       return titles
-        .filter((t) => t.progress >= 100)
+        .filter(isComplete)
         .sort(recent)
         .map((t) => ({ title: t, metric: "100%" }));
     case "conclusao":

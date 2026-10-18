@@ -422,13 +422,13 @@ function YearStats({
   /** Toque no ano: abre o mural com os jogos daquele ano. */
   onSelectYear: (year: number) => void;
 }) {
-  const [showAll, setShowAll] = useState(false);
   const perPlayer = players.map((p) => gamesByYear(p.titles, p.firstPlayed));
   // Cada jogador já vem com todos os anos até hoje, então a união não tem buracos.
   const full = [...new Set(perPlayer.flatMap((rows) => rows.map((r) => r.year)))].sort((a, b) => b - a);
   if (!full.length) return null;
   const first = full[full.length - 1];
-  const shown = showAll ? full : full.slice(0, 6);
+  // Todos os anos, do mais recente ao primeiro da conta.
+  const shown = full;
   const row = (i: number, y: number) => perPlayer[i].find((r) => r.year === y);
   return (
     <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
@@ -465,11 +465,6 @@ function YearStats({
           ) : null;
         })}
       </ul>
-      {full.length > 6 && (
-        <button onClick={() => setShowAll((s) => !s)} className="w-full text-sm font-semibold text-ps-blue-2">
-          {showAll ? t("Mostrar menos") : t("Ver todos os anos ({n})", { n: full.length })}
-        </button>
-      )}
       <p className="text-[0.6875rem] text-muted">
         {t("O ano é o da primeira vez que jogou (PS4 e PS5); para PS3 e Vita, o do último troféu.")}
       </p>

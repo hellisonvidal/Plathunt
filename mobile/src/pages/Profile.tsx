@@ -5,7 +5,7 @@ import { CompletionSummary } from "../components/Completion";
 import { PageHeader } from "../components/PageHeader";
 import { TitleList } from "../components/TitleList";
 import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge } from "../components/ui";
-import { formatDuration, matchPlaytime } from "../lib/stats";
+import { formatDuration, isComplete, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import { PsPlusIcon } from "../components/icons";
 import { t } from "../i18n";
@@ -19,7 +19,8 @@ const FILTERS: { key: Filter; label: string; test: (t: Title) => boolean }[] = [
   { key: "todos", label: "Todos", test: () => true },
   { key: "platinados", label: "Com platina", test: (t) => t.earned.platinum > 0 },
   { key: "semPlatina", label: "Sem platina", test: (t) => t.earned.platinum === 0 },
-  { key: "completos", label: "💯 100%", test: (t) => t.progress >= 100 },
+  // 100% só de jogos com DLC (sem DLC, o 100% é a própria platina).
+  { key: "completos", label: "💯 100%", test: isComplete },
   { key: "incompletos", label: "Em andamento", test: (t) => t.progress < 100 },
 ];
 

@@ -183,10 +183,12 @@ describe("withEarnedTrophies", () => {
 describe("computeStats", () => {
   it("soma troféus, platinas, conclusão e tempo", () => {
     const ts = [
-      title("A", "a", "PS5", 100, c(1, 2, 3, 4)),
+      { ...title("A", "a", "PS5", 100, c(1, 2, 3, 4)), hasGroups: true },
       title("B", "b", "PS4", 50, c(0, 1, 1, 1)),
     ];
     const s = computeStats(ts, new Map([["A", 7200]]));
+    // Sem DLC, 100% é a própria platina: não conta como "100%".
+    expect(computeStats([title("C", "c", "PS5", 100, c(1, 1, 1, 1))], new Map()).completed).toBe(0);
     expect(s).toMatchObject({ games: 2, completed: 1, platinums: 1, avgProgress: 75, totalTrophies: 13, playSeconds: 7200, gamesWithPlaytime: 1 });
     expect(s.byPlatform).toEqual([
       { platform: "PS5", games: 1 },

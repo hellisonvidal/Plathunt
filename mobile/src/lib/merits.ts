@@ -1,7 +1,7 @@
 import { t } from "../i18n";
 import type { Counts, Profile, Title } from "../psn/types";
 import type { ChallengeStats } from "./challenges";
-import { primaryPlatform, withEarnedTrophies, type PlayedOn } from "./stats";
+import { isComplete, primaryPlatform, withEarnedTrophies, type PlayedOn } from "./stats";
 
 /**
  * Méritos: conquistas do próprio app, liberadas quando o jogador atinge
@@ -170,7 +170,7 @@ export function meritStats(ctx: MeritContext): MeritStats {
     const s = platforms.get(p) ?? { games: 0, platinums: 0, completed: 0, trophies: 0, hours: 0 };
     s.games += 1;
     s.platinums += t.earned.platinum;
-    s.completed += t.progress >= 100 ? 1 : 0;
+    s.completed += isComplete(t) ? 1 : 0;
     s.trophies += sum(t.earned);
     s.hours += hoursOf(t);
     platforms.set(p, s);
@@ -186,7 +186,7 @@ export function meritStats(ctx: MeritContext): MeritStats {
     level: ctx.profile.level,
     levelProgress: ctx.profile.levelProgress,
     games: played.length,
-    completed: played.filter((t) => t.progress >= 100).length,
+    completed: played.filter(isComplete).length,
     avgProgress: played.length ? Math.round(played.reduce((a, t) => a + t.progress, 0) / played.length) : 0,
     gamesAtLeast: (pct) => played.filter((t) => t.progress >= pct).length,
     nearlyDone: played.filter((t) => t.progress >= 90 && t.progress < 100).length,
@@ -200,7 +200,7 @@ export function meritStats(ctx: MeritContext): MeritStats {
     activeWithin: (days) => updated.filter((at) => ctx.now - at <= days * DAY).length,
     gamesByYear,
     platinumYears: new Set(played.filter((t) => t.earned.platinum > 0).map(yearOf)),
-    completedYears: new Set(played.filter((t) => t.progress >= 100).map(yearOf)),
+    completedYears: new Set(played.filter(isComplete).map(yearOf)),
     oldestYears: updated.length ? Math.floor((ctx.now - Math.min(...updated)) / (365.25 * DAY)) : 0,
     maxGoldInGame: Math.max(0, ...played.map((t) => t.earned.gold)),
     maxTrophiesInGame: Math.max(0, ...played.map((t) => sum(t.earned))),
