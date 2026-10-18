@@ -41,3 +41,13 @@ describe("idiomas", () => {
     expect(t("{n} jogos", { n: 1234 })).toBe("1.234 jogos");
   });
 });
+
+describe("novidades", () => {
+  it("os textos das novidades têm tradução em todos os idiomas", async () => {
+    const { CHANGELOG } = await import("../src/lib/changelog");
+    for (const lang of others) {
+      const dict = dictionary(lang);
+      expect(CHANGELOG.flatMap((c) => c.items).filter((k) => !(k in dict))).toEqual([]);
+    }
+  });
+});

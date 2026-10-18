@@ -164,6 +164,8 @@ async function checkFriends(client: PsnClient, since: string | null, now: number
       `plat:${item.key}`,
       t("🏆 {name} platinou!", { name: item.owner.onlineId }),
       item.game.name,
+      undefined,
+      `/game/${item.owner.accountId}/${item.game.id}?service=${item.game.service}`,
     );
   }
   return stamp;
@@ -175,7 +177,14 @@ async function checkSocial(since: string | null, now: number): Promise<string | 
   const stamp = new Date(now).toISOString();
   const requests = await syncCloudInbox().catch(() => []);
   for (const r of requests.slice(0, 3)) {
-    await notify("social", `boost-req:${r.id}`, t("📥 Pedido de boost de {from}", { from: r.from }), r.game.name);
+    await notify(
+      "social",
+      `boost-req:${r.id}`,
+      t("📥 Pedido de boost de {from}", { from: r.from }),
+      r.game.name,
+      undefined,
+      "/activity?view=boost-inbox",
+    );
   }
   if (!since) return stamp;
   const likes = await likesOnMine(since).catch(() => []);

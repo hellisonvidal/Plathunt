@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { BoostView } from "../components/Boost";
@@ -23,6 +23,7 @@ const FILTERS = {
   bronze: { label: "Bronze", types: ["bronze"] },
 } as const;
 type FilterKey = keyof typeof FILTERS;
+type View = "feed" | "merits" | "boost" | "challenges";
 
 export function ActivityPage() {
   const { client } = useApp();
@@ -34,9 +35,16 @@ export function ActivityPage() {
   // ?view=boost-inbox: aberto por um link de pedido de boost.
   const [params] = useSearchParams();
   const fromLink = params.get("view") === "boost-inbox";
-  const [view, setView] = useState<"feed" | "merits" | "boost" | "challenges">(
-    fromLink ? "boost" : params.get("view") === "challenges" ? "challenges" : "feed",
-  );
+  // ?view=… vem de links e notificações: abre a aba certa (e troca se a tela já estiver aberta).
+  const viewFromLink = (): View => {
+    const v = params.get("view");
+    return v === "boost-inbox" || v === "boost" ? "boost" : v === "merits" || v === "challenges" ? v : "feed";
+  };
+  const [view, setView] = useState<View>(viewFromLink);
+  useEffect(() => {
+    if (params.get("view")) setView(viewFromLink());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
   // O catálogo do Boost e dos Desafios começa a carregar em segundo plano.
   usePrefetchGameCatalog();
 

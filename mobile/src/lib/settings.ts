@@ -20,7 +20,7 @@ export interface Settings {
   /** País da PlayStation Store (moeda e preços da aba Loja). */
   storeRegion: StoreRegion;
   /** De quanto em quanto tempo a loja salva no celular é atualizada. */
-  storeRefresh: StoreRefresh;
+  storeUpdate: StoreRefresh;
   /** Notificações do app (chave geral) e cada tipo. */
   notifications: boolean;
   notifyMerits: boolean;
@@ -33,6 +33,10 @@ export interface Settings {
   cloudNoticeSeen: boolean;
   /** Desligou os recursos online (o app não reconecta sozinho). */
   cloudOff: boolean;
+  /** Ao sair, mantém a conta da Sony salva no celular (o próximo login é com um toque). */
+  keepSonyLogin: boolean;
+  /** Última novidade (changelog) que o usuário já viu. */
+  changelogSeen: number;
   /** Já entrou com a PSN alguma vez (o aviso sobre os dados só aparece antes disso). */
   signedInBefore: boolean;
 }
@@ -46,7 +50,8 @@ export const DEFAULT_SETTINGS: Settings = {
   startTab: "/",
   // Na primeira abertura, o país do aparelho.
   storeRegion: deviceStoreRegion(),
-  storeRefresh: "6h",
+  // Padrão: a loja salva só é atualizada quando o usuário puxa a tela da loja.
+  storeUpdate: "manual",
   // Claro ou escuro, como o sistema do aparelho.
   theme: "auto",
   notifications: true,
@@ -59,6 +64,8 @@ export const DEFAULT_SETTINGS: Settings = {
   cloudNoticeSeen: false,
   cloudOff: false,
   signedInBefore: false,
+  keepSonyLogin: true,
+  changelogSeen: 0,
 };
 
 const KEY = "tm.settings" as const;
@@ -78,7 +85,7 @@ export function getSettings(): Settings {
     const merged = { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) } as Settings;
     if (!LANGUAGES.some((l) => l.value === merged.language)) merged.language = DEFAULT_SETTINGS.language;
     if (!STORE_REGIONS.some((r) => r.value === merged.storeRegion)) merged.storeRegion = DEFAULT_SETTINGS.storeRegion;
-    if (!STORE_REFRESH.some((r) => r.value === merged.storeRefresh)) merged.storeRefresh = DEFAULT_SETTINGS.storeRefresh;
+    if (!STORE_REFRESH.some((r) => r.value === merged.storeUpdate)) merged.storeUpdate = DEFAULT_SETTINGS.storeUpdate;
     return merged;
   } catch {
     return DEFAULT_SETTINGS;
