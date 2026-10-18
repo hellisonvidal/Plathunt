@@ -6,7 +6,7 @@ import { App as CapApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { importBoost } from "./lib/boostInbox";
 import { runBackgroundChecks } from "./lib/checks";
-import { getSettings } from "./lib/settings";
+import { getSettings, updateSettings } from "./lib/settings";
 import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
 import { createDemoClient } from "./psn/demo";
@@ -74,6 +74,7 @@ export function App() {
         notice={notice}
         onSignedIn={(m) => {
           persistSet(MODE_KEY, m);
+          if (m === "psn" && !getSettings().signedInBefore) updateSettings({ signedInBefore: true });
           setNotice(null);
           setMode(m);
         }}

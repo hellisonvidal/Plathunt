@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { t } from "../i18n";
 import { ExitToast, useDoubleBackToExit } from "../lib/backButton";
 import { extractNpsso } from "../lib/npsso";
+import { getSettings } from "../lib/settings";
 import { signInWithCode, signInWithNpsso } from "../psn/auth";
 import { isNativeApp, PsnLogin } from "../psn/native";
 
@@ -16,6 +17,11 @@ export function LoginPage({
   onSignedIn: (mode: "psn" | "demo") => void;
 }) {
   const native = isNativeApp();
+  const [firstLogin] = useState(() => {
+    const s = getSettings();
+    // Quem já viu o aviso dos recursos online entrou antes desta opção existir.
+    return !s.signedInBefore && !s.cloudNoticeSeen;
+  });
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -160,9 +166,12 @@ export function LoginPage({
       </div>
 
       <p className="pt-8 text-center text-xs leading-relaxed text-muted">
-        {t(
-          "🔒 Sem servidor: seus dados vão direto do celular para a PSN e ficam só no aparelho. O PlayStation Trophy Mania não é afiliado à Sony Interactive Entertainment.",
-        )}
+        {/* Como os dados circulam: só antes do primeiro login com a PSN. */}
+        {firstLogin &&
+          `${t(
+            "🔒 Seus dados da PSN vão direto do celular para a Sony e ficam no aparelho. Curtidas e pedidos de boost usam o servidor do app, e você escolhe se quer usá-los depois de entrar.",
+          )} `}
+        {t("O PlayStation Trophy Mania não é afiliado à Sony Interactive Entertainment.")}
       </p>
       <ExitToast show={exitWarning} />
     </div>

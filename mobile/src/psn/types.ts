@@ -30,6 +30,8 @@ export interface PlayedGame {
   /** "PS5", "PS4" ou null (da categoria da PSN: ps5_native_game, ps4_game…). */
   platform: string | null;
   lastPlayed: string | null;
+  /** Primeira vez que jogou (PSN), para as estatísticas por ano. */
+  firstPlayed?: string | null;
 }
 
 /** Grupo de troféus: "default" é o jogo base; "001", "002"… são DLCs. */

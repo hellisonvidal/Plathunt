@@ -123,6 +123,7 @@ function playedOf(profileKey: string): PlayedGame[] {
     playSeconds: hours * 3600,
     platform: GAMES[g].platform === "PS5" || GAMES[g].platform === "PS4" ? GAMES[g].platform : null,
     lastPlayed: hoursAgo(h),
+    firstPlayed: hoursAgo(h + hours * 150),
   }));
 }
 

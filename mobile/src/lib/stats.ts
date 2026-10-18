@@ -56,6 +56,8 @@ export interface PlayInfo {
   seconds: number;
   /** Plataforma em que o jogo foi jogado (a do registro com mais tempo), se a PSN informar. */
   platform: string | null;
+  /** Primeira vez que jogou (a mais antiga entre os registros do jogo), se a PSN informar. */
+  firstPlayed: string | null;
 }
 
 /** Como `matchPlaytime`, mas também diz em qual plataforma cada jogo foi jogado. */
@@ -78,6 +80,8 @@ export function matchPlayed(titles: Title[], played: PlayedGame[]): Map<string, 
   };
 
   const out = new Map<string, PlayInfo & { best: number }>();
+  const earliest = (a: string | null, b: string | null | undefined) =>
+    !b || !Number.isFinite(Date.parse(b)) ? a : !a || Date.parse(b) < Date.parse(a) ? b : a;
   for (const p of played) {
     if (p.playSeconds <= 0) continue;
     const key = normalizeName(p.name);
@@ -87,15 +91,16 @@ export function matchPlayed(titles: Title[], played: PlayedGame[]): Map<string, 
     const score = (t: Title) =>
       (p.platform && parsePlatforms(t.platform).includes(p.platform) ? 1_000_000 : 0) + earnedTotal(t);
     const best = candidates.reduce((a, b) => (score(b) > score(a) ? b : a));
-    const prev = out.get(best.id) ?? { seconds: 0, platform: null, best: 0 };
+    const prev = out.get(best.id) ?? { seconds: 0, platform: null, firstPlayed: null, best: 0 };
     const leads = p.playSeconds > prev.best;
     out.set(best.id, {
       seconds: prev.seconds + p.playSeconds,
       platform: leads ? (p.platform ?? prev.platform) : prev.platform,
+      firstPlayed: earliest(prev.firstPlayed, p.firstPlayed),
       best: Math.max(prev.best, p.playSeconds),
     });
   }
-  return new Map([...out].map(([id, { seconds, platform }]) => [id, { seconds, platform }]));
+  return new Map([...out].map(([id, { seconds, platform, firstPlayed }]) => [id, { seconds, platform, firstPlayed }]));
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -216,9 +221,40 @@ export function computeStats(titles: Title[], playtime: Map<string, number>, pla
     topPlayed: titles
       .filter((t) => playtime.get(t.id))
       .map((t) => ({ title: t, seconds: playtime.get(t.id)! }))
-      .sort((a, b) => b.seconds - a.seconds)
-      .slice(0, 5),
+      .sort((a, b) => b.seconds - a.seconds),
   };
+}
+
+export interface YearRow {
+  year: number;
+  /** Jogos começados no ano. */
+  games: number;
+  /** Platinas desses jogos. */
+  platinums: number;
+}
+
+/**
+ * Jogos por ano, do ano do primeiro jogo até hoje (anos sem jogos aparecem
+ * com zero). O ano é o da primeira vez que jogou, pela PSN (PS4/PS5); sem
+ * essa data (PS3, Vita), usa o ano do último troféu.
+ */
+export function gamesByYear(titles: Title[], firstPlayed: Map<string, string | null>, now = new Date()): YearRow[] {
+  const byYear = new Map<number, YearRow>();
+  for (const t of titles) {
+    const when = Date.parse(firstPlayed.get(t.id) ?? t.lastUpdated);
+    if (!Number.isFinite(when)) continue;
+    const year = new Date(when).getFullYear();
+    const row = byYear.get(year) ?? { year, games: 0, platinums: 0 };
+    row.games++;
+    row.platinums += t.earned.platinum > 0 ? 1 : 0;
+    byYear.set(year, row);
+  }
+  if (!byYear.size) return [];
+  const first = Math.min(...byYear.keys());
+  const last = Math.max(now.getFullYear(), ...byYear.keys());
+  const out: YearRow[] = [];
+  for (let y = first; y <= last; y++) out.push(byYear.get(y) ?? { year: y, games: 0, platinums: 0 });
+  return out;
 }
 
 export interface GroupSection {

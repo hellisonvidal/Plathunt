@@ -6,6 +6,7 @@ import {
   primaryPlatform,
   platformFromCategory,
   computeStats,
+  gamesByYear,
   filterByPlatform,
   withEarnedTrophies,
   formatDuration,
@@ -155,10 +156,10 @@ describe("matchPlayed", () => {
   it("guarda a plataforma do registro com mais tempo", () => {
     const g = title("G", "Gravity Rush", "PS4,PSVITA", 50, c(0, 1, 2, 3));
     const played = [
-      { titleId: "1", name: "Gravity Rush", imageUrl: null, playSeconds: 3600, lastPlayed: null, platform: "PS4" },
-      { titleId: "2", name: "Gravity Rush", imageUrl: null, playSeconds: 600, lastPlayed: null, platform: "PS5" },
+      { titleId: "1", name: "Gravity Rush", imageUrl: null, playSeconds: 3600, lastPlayed: null, platform: "PS4", firstPlayed: "2019-05-01T00:00:00Z" },
+      { titleId: "2", name: "Gravity Rush", imageUrl: null, playSeconds: 600, lastPlayed: null, platform: "PS5", firstPlayed: "2017-02-01T00:00:00Z" },
     ];
-    expect(matchPlayed([g], played).get("G")).toEqual({ seconds: 4200, platform: "PS4" });
+    expect(matchPlayed([g], played).get("G")).toEqual({ seconds: 4200, platform: "PS4", firstPlayed: "2017-02-01T00:00:00Z" });
   });
 });
 
@@ -246,5 +247,24 @@ describe("tempo até a platina / 100%", async () => {
     expect(formatSpan(5 * h)).toBe("5 h");
     expect(formatSpan(95 * 24 * h)).toBe("3 meses e 5 dias");
     expect(formatSpan(430 * 24 * h)).toBe("1 ano e 2 meses");
+  });
+});
+
+describe("gamesByYear", () => {
+  it("conta os jogos pelo ano em que começou, com os anos vazios até hoje", () => {
+    const a = { ...title("A", "a", "PS5", 100, c(1, 2, 3, 4)), lastUpdated: "2024-03-01T00:00:00Z" };
+    const b = { ...title("B", "b", "PS3", 40, c(0, 1, 1, 1)), lastUpdated: "2021-06-01T00:00:00Z" };
+    const rows = gamesByYear([a, b], new Map([["A", "2022-12-31T12:00:00Z"]]), new Date("2025-01-10T00:00:00Z"));
+    expect(rows).toEqual([
+      { year: 2021, games: 1, platinums: 0 },
+      { year: 2022, games: 1, platinums: 1 },
+      { year: 2023, games: 0, platinums: 0 },
+      { year: 2024, games: 0, platinums: 0 },
+      { year: 2025, games: 0, platinums: 0 },
+    ]);
+  });
+
+  it("sem jogos, não tem anos", () => {
+    expect(gamesByYear([], new Map())).toEqual([]);
   });
 });

@@ -38,6 +38,8 @@ export function CompletionTimes({ titles }: { titles: Title[] }) {
   const key = done.map((t) => t.id).join(",");
   const [rows, setRows] = useState<Map<string, Row | null>>(new Map());
   const [sort, setSort] = useState<"recentes" | "rapidos" | "lentos">("recentes");
+  // Platina e 100% em listas separadas: num jogo sem DLC os dois tempos são iguais.
+  const [kind, setKind] = useState<"platinum" | "full">("platinum");
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
@@ -56,18 +58,21 @@ export function CompletionTimes({ titles }: { titles: Title[] }) {
   }, [client, key]);
 
   if (!done.length) return null;
-  const list = [...rows.values()].filter((r): r is Row => !!r && !!(r.platinum || r.full));
-  const time = (r: Row) => (r.platinum ?? r.full)!.ms;
+  const loaded = [...rows.values()].filter((r): r is Row => !!r);
+  const counts = { platinum: loaded.filter((r) => r.platinum).length, full: loaded.filter((r) => r.full).length };
+  const list = loaded
+    .filter((r) => r[kind])
+    .map((r) => ({ title: r.title, span: r[kind]!, other: kind === "platinum" ? r.full : r.platinum }));
   const sorted = [...list].sort((a, b) =>
     sort === "rapidos"
-      ? time(a) - time(b)
+      ? a.span.ms - b.span.ms
       : sort === "lentos"
-        ? time(b) - time(a)
-        : Date.parse((b.full ?? b.platinum)!.end) - Date.parse((a.full ?? a.platinum)!.end),
+        ? b.span.ms - a.span.ms
+        : Date.parse(b.span.end) - Date.parse(a.span.end),
   );
-  const plats = list.map((r) => r.platinum).filter((s): s is CompletionSpan => !!s);
-  const avg = plats.length ? plats.reduce((n, s) => n + s.ms, 0) / plats.length : 0;
-  const fastest = plats.length ? Math.min(...plats.map((s) => s.ms)) : 0;
+  const spans = list.map((r) => r.span);
+  const avg = spans.length ? spans.reduce((n, s) => n + s.ms, 0) / spans.length : 0;
+  const fastest = spans.length ? Math.min(...spans.map((s) => s.ms)) : 0;
   const loading = rows.size < done.length;
   const shown = showAll ? sorted : sorted.slice(0, 10);
 
@@ -86,19 +91,46 @@ export function CompletionTimes({ titles }: { titles: Title[] }) {
           <option value="lentos">{t("Mais demorados")}</option>
         </select>
       </div>
-      <p className="text-[0.6875rem] text-muted">{t("Do primeiro troféu conquistado até a platina ou o último troféu.")}</p>
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1 text-sm" role="tablist">
+        {(
+          [
+            ["platinum", t("🏆 Platinas ({n})", { n: counts.platinum })],
+            ["full", t("💯 100% ({n})", { n: counts.full })],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={kind === key}
+            onClick={() => setKind(key)}
+            className={`rounded-lg py-1.5 font-semibold ${kind === key ? "bg-ps-blue" : "text-muted"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="text-[0.6875rem] text-muted">
+        {kind === "platinum"
+          ? t("Do primeiro troféu conquistado até a platina.")
+          : t("Do primeiro troféu conquistado até o último, contando as DLCs.")}
+      </p>
 
-      {plats.length > 0 && (
+      {spans.length > 0 && (
         <div className="grid grid-cols-2 gap-2 text-center">
           <div className="rounded-xl bg-surface-2 p-2">
-            <p className="text-[0.6875rem] text-muted">{t("Média por platina")}</p>
+            <p className="text-[0.6875rem] text-muted">{kind === "platinum" ? t("Média por platina") : t("Média por 100%")}</p>
             <p className="font-bold">{formatSpan(avg)}</p>
           </div>
           <div className="rounded-xl bg-surface-2 p-2">
-            <p className="text-[0.6875rem] text-muted">{t("Platina mais rápida")}</p>
+            <p className="text-[0.6875rem] text-muted">{kind === "platinum" ? t("Platina mais rápida") : t("100% mais rápido")}</p>
             <p className="font-bold">{formatSpan(fastest)}</p>
           </div>
         </div>
+      )}
+      {!loading && !spans.length && (
+        <p className="text-xs text-muted">
+          {kind === "platinum" ? t("Nenhuma platina por aqui ainda.") : t("Nenhum jogo 100% por aqui ainda.")}
+        </p>
       )}
 
       {loading && (
@@ -115,22 +147,19 @@ export function CompletionTimes({ titles }: { titles: Title[] }) {
           <li key={r.title.id}>
             <Link to={`/game/me/${r.title.id}?service=${r.title.service}`} className="block py-2.5">
               <p className="truncate text-sm font-semibold">{r.title.name}</p>
-              {r.platinum && (
-                <p className="mt-0.5 flex items-center gap-1.5 text-xs">
-                  <span className="w-4 text-center">🏆</span>
-                  <WithTime text={t("Platina em {time}")} time={formatSpan(r.platinum.ms)} />
-                  <span className="ml-auto text-[0.6875rem] text-muted">
-                    {date(r.platinum.start)} → {date(r.platinum.end)}
-                  </span>
-                </p>
-              )}
-              {r.full && (
-                <p className="mt-0.5 flex items-center gap-1.5 text-xs">
-                  <span className="w-4 text-center">💯</span>
-                  <WithTime text={t("100% em {time}")} time={formatSpan(r.full.ms)} />
-                  <span className="ml-auto text-[0.6875rem] text-muted">
-                    {date(r.full.start)} → {date(r.full.end)}
-                  </span>
+              <p className="mt-0.5 flex items-center gap-1.5 text-xs">
+                <span className="w-4 text-center">{kind === "platinum" ? "🏆" : "💯"}</span>
+                <WithTime
+                  text={kind === "platinum" ? t("Platina em {time}") : t("100% em {time}")}
+                  time={formatSpan(r.span.ms)}
+                />
+                <span className="ml-auto text-[0.6875rem] text-muted">
+                  {date(r.span.start)} → {date(r.span.end)}
+                </span>
+              </p>
+              {r.other && r.other.end === r.span.end && (
+                <p className="mt-0.5 pl-5 text-[0.6875rem] text-muted">
+                  {t("Platina e 100% ao mesmo tempo.")}
                 </p>
               )}
             </Link>
