@@ -26,6 +26,10 @@ describe("muralTiles", () => {
     expect(ids("jogos")).toEqual(["C", "B", "A"]);
     expect(ids("platinas")).toEqual(["A"]);
     expect(ids("completos")).toEqual(["A"]);
+    // B não tem DLC: com 100% ele entra em "100% sem DLC", não em "100% com DLC".
+    const noDlc = { ...player, titles: player.titles.map((x) => (x.id === "B" ? { ...x, progress: 100 } : x)) };
+    expect(muralTiles("completosSemDlc", noDlc, null).map((x) => x.title.id)).toEqual(["B"]);
+    expect(muralTiles("completos", noDlc, null).map((x) => x.title.id)).toEqual(["A"]);
     expect(ids("conclusao")).toEqual(["A", "B", "C"]);
     expect(ids("trofeus")).toEqual(["B", "A", "C"]);
     expect(ids("naoConcluidos")).toEqual(["B", "C"]);
