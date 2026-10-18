@@ -7,6 +7,7 @@ import {
   platformFromCategory,
   computeStats,
   gamesByYear,
+  startYear,
   filterByPlatform,
   withEarnedTrophies,
   formatDuration,
@@ -266,5 +267,14 @@ describe("gamesByYear", () => {
 
   it("sem jogos, não tem anos", () => {
     expect(gamesByYear([], new Map())).toEqual([]);
+  });
+});
+
+describe("startYear", () => {
+  it("usa a primeira vez jogada e, sem ela, o último troféu", () => {
+    const a = { ...title("A", "a", "PS5", 10, c(0, 0, 0, 1)), lastUpdated: "2024-03-01T00:00:00Z" };
+    expect(startYear(a, new Map([["A", "2021-07-01T00:00:00Z"]]))).toBe(2021);
+    expect(startYear(a, new Map())).toBe(2024);
+    expect(startYear({ ...a, lastUpdated: "" })).toBeNull();
   });
 });

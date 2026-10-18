@@ -35,3 +35,11 @@ describe("muralTiles", () => {
     expect(ids("jogos", "PS5")).toEqual(["A"]);
   });
 });
+
+describe("mural de um ano", () => {
+  it("mostra os jogos que começaram naquele ano", () => {
+    const withFirst = { ...player, firstPlayed: new Map([["B", "2023-05-01T00:00:00Z"]]) };
+    expect(muralTiles({ year: 2026 }, withFirst, null).map((t) => t.title.id)).toEqual(["A"]);
+    expect(muralTiles({ year: 2023 }, withFirst, null).map((t) => [t.title.id, t.metric])).toEqual([["B", "40%"]]);
+  });
+});

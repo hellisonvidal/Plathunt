@@ -17,7 +17,7 @@ type Filter = "todos" | "platinados" | "semPlatina" | "completos" | "incompletos
 /** Filtros da lista de jogos. "Sem platina": jogos em que você ainda não tem a platina (ou que não têm). */
 const FILTERS: { key: Filter; label: string; test: (t: Title) => boolean }[] = [
   { key: "todos", label: "Todos", test: () => true },
-  { key: "platinados", label: "🏆 Com platina", test: (t) => t.earned.platinum > 0 },
+  { key: "platinados", label: "Com platina", test: (t) => t.earned.platinum > 0 },
   { key: "semPlatina", label: "Sem platina", test: (t) => t.earned.platinum === 0 },
   { key: "completos", label: "💯 100%", test: (t) => t.progress >= 100 },
   { key: "incompletos", label: "Em andamento", test: (t) => t.progress < 100 },
@@ -142,10 +142,11 @@ export function ProfilePage() {
                         role="radio"
                         aria-checked={filter === f.key}
                         onClick={() => setFilter(f.key)}
-                        className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                        className={`flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold ${
                           filter === f.key ? "border-ps-blue-2 bg-ps-blue" : "border-line bg-surface text-muted"
                         }`}
                       >
+                        {f.key === "platinados" && <PlatinumIcon />}
                         {t(f.label)} · {n}
                       </button>
                     );
@@ -175,5 +176,14 @@ function PsPlusInfo({ isPlus }: { isPlus: boolean }) {
       <PsPlusIcon size={16} />
       PlayStation Plus
     </p>
+  );
+}
+
+/** Troféu de platina (o mesmo desenho dos contadores de troféus). */
+function PlatinumIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current text-platinum" aria-hidden>
+      <path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3V3Zm0 4H6v1a2 2 0 0 0 1 1.7V7Zm10 0v2.7A2 2 0 0 0 18 8V7h-1Z" />
+    </svg>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useBackInterceptor } from "../lib/backButton";
 import { Link } from "react-router-dom";
-import { filterByPlatform, formatDuration, withEarnedTrophies, type PlayedOn } from "../lib/stats";
+import { filterByPlatform, formatDuration, startYear, withEarnedTrophies, type PlayedOn } from "../lib/stats";
 import { t } from "../i18n";
 import type { Title } from "../psn/types";
 import { SERIES_COLORS } from "./charts";
@@ -9,6 +9,8 @@ import { RemoteImage } from "./ui";
 
 /** Categorias das Estatísticas que abrem um mural de jogos. */
 export type MuralCategory = "jogos" | "platinas" | "completos" | "conclusao" | "trofeus" | "tempo";
+/** O que o mural mostra: uma categoria dos quadros ou os jogos de um ano (Jogos por ano). */
+export type MuralKind = MuralCategory | { year: number };
 
 export const MURAL_LABELS: Record<MuralCategory, string> = {
   jogos: "Jogos",
@@ -25,6 +27,8 @@ export interface MuralPlayer {
   titles: Title[];
   playtime: Map<string, number>;
   playedOn: PlayedOn;
+  /** Primeira vez que jogou cada jogo, para o mural de um ano. */
+  firstPlayed?: Map<string, string | null>;
 }
 
 const total = (t: Title) => t.earned.platinum + t.earned.gold + t.earned.silver + t.earned.bronze;
@@ -32,12 +36,17 @@ const recent = (a: Title, b: Title) => new Date(b.lastUpdated).getTime() - new D
 
 /** Jogos de uma categoria, já ordenados, com o número que aparece no cartão. */
 export function muralTiles(
-  category: MuralCategory,
+  category: MuralKind,
   player: MuralPlayer,
   platform: string | null,
 ): { title: Title; metric: string }[] {
   const titles = filterByPlatform(withEarnedTrophies(player.titles), platform, player.playedOn);
   const pct = (t: Title) => `${t.progress}%`;
+  if (typeof category === "object")
+    return titles
+      .filter((g) => startYear(g, player.firstPlayed) === category.year)
+      .sort(recent)
+      .map((g) => ({ title: g, metric: g.earned.platinum > 0 ? t("Platina") : pct(g) }));
   switch (category) {
     case "jogos":
       return [...titles].sort(recent).map((t) => ({ title: t, metric: pct(t) }));
@@ -79,7 +88,7 @@ export function Mural({
   platform,
   onClose,
 }: {
-  category: MuralCategory;
+  category: MuralKind;
   players: MuralPlayer[];
   platform: string | null;
   onClose: () => void;
@@ -100,6 +109,10 @@ export function Mural({
   const player = players[index];
   const tiles = muralTiles(category, player, platform);
   const shown = showAll ? tiles : tiles.slice(0, PREVIEW);
+  const heading =
+    typeof category === "object"
+      ? t("Jogos de {year}", { year: String(category.year) })
+      : t("Mural · {label}", { label: t(MURAL_LABELS[category]) });
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center" data-no-pull>
@@ -107,13 +120,13 @@ export function Mural({
       <section
         role="dialog"
         aria-modal="true"
-        aria-label={t("Mural · {label}", { label: t(MURAL_LABELS[category]) })}
+        aria-label={heading}
         className="safe-bottom relative flex max-h-[85dvh] w-full max-w-2xl animate-[sheet-up_200ms_ease-out] flex-col rounded-t-3xl border border-line bg-surface shadow-2xl"
       >
         <div className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-line" aria-hidden />
         <div className="flex shrink-0 items-center gap-2 px-4 pb-2 pt-3">
           <div className="min-w-0 flex-1">
-            <h2 className="font-semibold">{t("Mural · {label}", { label: t(MURAL_LABELS[category]) })}</h2>
+            <h2 className="font-semibold">{heading}</h2>
             <p className="text-xs text-muted">
               {tiles.length === 1 ? t("{n} jogo", { n: tiles.length }) : t("{n} jogos", { n: tiles.length })}
               {platform && ` · ${platform}`}
@@ -177,7 +190,9 @@ export function Mural({
                       <span className="line-clamp-2 text-[0.6875rem] font-semibold leading-tight">{title.name}</span>
                       <span
                         className={`mt-0.5 block text-[0.6875rem] tabular-nums ${
-                          category === "platinas" ? "text-platinum" : "text-muted"
+                          category === "platinas" || (typeof category === "object" && title.earned.platinum > 0)
+                            ? "text-platinum"
+                            : "text-muted"
                         }`}
                       >
                         {metric}

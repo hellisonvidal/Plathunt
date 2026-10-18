@@ -4,7 +4,7 @@ import { useApp } from "../app";
 import { GroupedBars, Legend, SERIES_COLORS, StatTile, type Series } from "../components/charts";
 import { CompletionTimes } from "../components/CompletionTimes";
 import { ConsoleArt } from "../components/Consoles";
-import { Mural, MURAL_LABELS, type MuralCategory } from "../components/Mural";
+import { Mural, MURAL_LABELS, type MuralCategory, type MuralKind } from "../components/Mural";
 import { PageHeader } from "../components/PageHeader";
 import { RankingView, useRanking } from "./Ranking";
 import { locale, t } from "../i18n";
@@ -38,7 +38,7 @@ export function StatsPage() {
   const [platform, setPlatform] = useState<string | null>(null);
   const [friendId, setFriendId] = useState<string>("");
   // Categoria tocada nos quadros: abre o mural de jogos em um pop-up.
-  const [mural, setMural] = useState<MuralCategory | null>(null);
+  const [mural, setMural] = useState<MuralKind | null>(null);
 
   const mine = useData(
     async (force) => {
@@ -204,12 +204,19 @@ export function StatsPage() {
 
                 {mural && (
                   <Mural
-                    key={`${mural}:${friendId}`}
+                    key={`${typeof mural === "object" ? mural.year : mural}:${friendId}`}
                     category={mural}
                     onClose={() => setMural(null)}
                     platform={platform}
                     players={[
-                      { name: names[0], accountId: "me", titles: data.titles, playtime: data.playtime, playedOn: data.playedOn },
+                      {
+                        name: names[0],
+                        accountId: "me",
+                        titles: data.titles,
+                        playtime: data.playtime,
+                        playedOn: data.playedOn,
+                        firstPlayed: data.firstPlayed,
+                      },
                       ...(friend && friendTitles && friendPlay
                         ? [
                             {
@@ -218,6 +225,7 @@ export function StatsPage() {
                               titles: friendTitles,
                               playtime: friendPlay.playtime,
                               playedOn: friendPlay.playedOn,
+                              firstPlayed: friendPlay.firstPlayed,
                             },
                           ]
                         : []),
@@ -252,6 +260,7 @@ export function StatsPage() {
                 </section>
 
                 <YearStats
+                  onSelectYear={(year) => setMural({ year })}
                   players={[
                     { name: names[0], titles: filterByPlatform(withEarnedTrophies(data.titles), platform, data.playedOn), firstPlayed: data.firstPlayed },
                     ...(friend && friendTitles && friendPlay
@@ -407,8 +416,11 @@ function MostPlayed({
 /** Jogos por ano, desde o primeiro jogo da conta, com as platinas de cada ano. */
 function YearStats({
   players,
+  onSelectYear,
 }: {
   players: { name: string; titles: Title[]; firstPlayed: Map<string, string | null> }[];
+  /** Toque no ano: abre o mural com os jogos daquele ano. */
+  onSelectYear: (year: number) => void;
 }) {
   const [showAll, setShowAll] = useState(false);
   const perPlayer = players.map((p) => gamesByYear(p.titles, p.firstPlayed));
@@ -422,13 +434,21 @@ function YearStats({
     <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
       <div>
         <h2 className="font-semibold">{t("📅 Jogos por ano")}</h2>
-        <p className="text-[0.6875rem] text-muted">{t("Desde {year}, ano do primeiro jogo da conta.", { year: String(first) })}</p>
+        <p className="text-[0.6875rem] text-muted">
+          {t("Desde {year}, ano do primeiro jogo da conta. Toque no ano para ver os jogos.", { year: String(first) })}
+        </p>
       </div>
       <GroupedBars
         categories={shown.map((y) => (
-          <span key={y} className="font-semibold tabular-nums">
+          <button
+            key={y}
+            onClick={() => onSelectYear(y)}
+            aria-label={t("Ver os jogos de {year}", { year: String(y) })}
+            className="flex items-center gap-1 rounded-lg font-semibold tabular-nums text-ps-blue-2 underline decoration-dotted underline-offset-4"
+          >
             {y}
-          </span>
+            <span aria-hidden className="text-xs text-muted no-underline">▸</span>
+          </button>
         ))}
         series={players.map((p, i) => ({ name: p.name, values: shown.map((y) => row(i, y)?.games ?? 0) }))}
         format={(v) => (v === 1 ? t("{n} jogo", { n: v }) : t("{n} jogos", { n: v }))}
