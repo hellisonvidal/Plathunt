@@ -27,7 +27,7 @@ export function TrophyBadge({ type, count }: { type: string; count?: number }) {
 /** Os quatro troféus juntos (platina, ouro, prata e bronze): ícone de "todos os troféus". */
 export function TrophyStack() {
   return (
-    <span className="flex -space-x-1.5" aria-hidden>
+    <span className="flex -space-x-[0.4em]" aria-hidden>
       {(["platinum", "gold", "silver", "bronze"] as const).map((type) => (
         <svg key={type} viewBox="0 0 24 24" className={`h-4 w-4 fill-current ${TROPHY_STYLES[type].color}`}>
           <path d={TROPHY_PATH} />
