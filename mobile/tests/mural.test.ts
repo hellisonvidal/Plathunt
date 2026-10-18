@@ -22,24 +22,32 @@ const ids = (cat: Parameters<typeof muralTiles>[0], platform: string | null = nu
   muralTiles(cat, player, platform).map((t) => t.title.id);
 
 describe("muralTiles", () => {
-  it("monta cada categoria só com jogos com troféus, na ordem certa", () => {
-    expect(ids("jogos")).toEqual(["B", "A"]);
+  it("monta cada categoria com todos os jogos (inclusive os sem troféu), na ordem certa", () => {
+    expect(ids("jogos")).toEqual(["C", "B", "A"]);
     expect(ids("platinas")).toEqual(["A"]);
     expect(ids("completos")).toEqual(["A"]);
-    expect(ids("conclusao")).toEqual(["A", "B"]);
-    expect(ids("trofeus")).toEqual(["B", "A"]);
+    expect(ids("conclusao")).toEqual(["A", "B", "C"]);
+    expect(ids("trofeus")).toEqual(["B", "A", "C"]);
+    expect(ids("naoConcluidos")).toEqual(["B", "C"]);
     expect(ids("tempo")).toEqual(["B"]);
     expect(muralTiles("tempo", player, null)[0].metric).toBe("2 h");
   });
   it("respeita o filtro de plataforma", () => {
-    expect(ids("jogos", "PS5")).toEqual(["A"]);
+    expect(ids("jogos", "PS5")).toEqual(["C", "A"]);
+  });
+  it("troféus não conquistados: jogos com mais troféus faltando primeiro", () => {
+    const withMissing = {
+      ...player,
+      titles: player.titles.map((t) => (t.id === "B" ? { ...t, defined: c(1, 4, 8, 40) } : t)),
+    };
+    expect(muralTiles("faltam", withMissing, null).map((t) => [t.title.id, t.metric])).toEqual([["B", "20 faltando"]]);
   });
 });
 
 describe("mural de um ano", () => {
   it("mostra os jogos que começaram naquele ano", () => {
     const withFirst = { ...player, firstPlayed: new Map([["B", "2023-05-01T00:00:00Z"]]) };
-    expect(muralTiles({ year: 2026 }, withFirst, null).map((t) => t.title.id)).toEqual(["A"]);
+    expect(muralTiles({ year: 2026 }, withFirst, null).map((t) => t.title.id)).toEqual(["C", "A"]);
     expect(muralTiles({ year: 2023 }, withFirst, null).map((t) => [t.title.id, t.metric])).toEqual([["B", "40%"]]);
   });
 });

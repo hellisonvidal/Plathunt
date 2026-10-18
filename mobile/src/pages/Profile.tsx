@@ -96,6 +96,16 @@ export function ProfilePage() {
                     </div>
                     <span className="text-xs text-muted">{data.profile.levelProgress ?? 0}%</span>
                   </div>
+                  {/* Total de troféus logo abaixo do nível. */}
+                  <p className="mt-2 text-sm">
+                    {t("{n} troféus no total", {
+                      n:
+                        data.profile.earned.platinum +
+                        data.profile.earned.gold +
+                        data.profile.earned.silver +
+                        data.profile.earned.bronze,
+                    })}
+                  </p>
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
                     <TrophyBadge type="platinum" count={data.profile.earned.platinum} />
                     <TrophyBadge type="gold" count={data.profile.earned.gold} />

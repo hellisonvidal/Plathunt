@@ -8,7 +8,8 @@ import { persistRemove, persistSet } from "./persist";
  * Os ids "ps:*" são os botões do controle PlayStation.
  */
 export const STANDARD_REACTIONS = ["👍", "❤️", "🔥", "👏", "😮", "😂", "🎉", "💪"] as const;
-export const PLAYSTATION_REACTIONS = ["ps:triangle", "ps:circle", "ps:cross", "ps:square", "🎮", "🏆"] as const;
+/** "ps:platinum" é o troféu de platina desenhado pelo app (não existe emoji de platina). */
+export const PLAYSTATION_REACTIONS = ["ps:triangle", "ps:circle", "ps:cross", "ps:square", "ps:platinum", "🎮", "🏆"] as const;
 const ALL = new Set<string>([...STANDARD_REACTIONS, ...PLAYSTATION_REACTIONS]);
 
 const KEY = "tm.reactions" as const;

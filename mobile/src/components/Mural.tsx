@@ -1,14 +1,22 @@
 import { useEffect, useState } from "react";
 import { useBackInterceptor } from "../lib/backButton";
 import { Link } from "react-router-dom";
-import { filterByPlatform, formatDuration, isComplete, isUnfinished, startYear, withEarnedTrophies, type PlayedOn } from "../lib/stats";
+import { filterByPlatform, formatDuration, isComplete, isUnfinished, startYear, type PlayedOn } from "../lib/stats";
 import { t } from "../i18n";
 import type { Title } from "../psn/types";
 import { SERIES_COLORS } from "./charts";
 import { RemoteImage } from "./ui";
 
 /** Categorias das Estatísticas que abrem um mural de jogos. */
-export type MuralCategory = "jogos" | "platinas" | "completos" | "naoConcluidos" | "conclusao" | "trofeus" | "tempo";
+export type MuralCategory =
+  | "jogos"
+  | "platinas"
+  | "completos"
+  | "naoConcluidos"
+  | "conclusao"
+  | "trofeus"
+  | "faltam"
+  | "tempo";
 /** O que o mural mostra: uma categoria dos quadros ou os jogos de um ano (Jogos por ano). */
 export type MuralKind = MuralCategory | { year: number };
 
@@ -19,6 +27,7 @@ export const MURAL_LABELS: Record<MuralCategory, string> = {
   naoConcluidos: "Não concluídos",
   conclusao: "Conclusão média",
   trofeus: "Troféus",
+  faltam: "Troféus não conquistados",
   tempo: "Tempo de jogo",
 };
 
@@ -33,6 +42,11 @@ export interface MuralPlayer {
 }
 
 const total = (t: Title) => t.earned.platinum + t.earned.gold + t.earned.silver + t.earned.bronze;
+const missingOf = (t: Title) =>
+  Math.max(0, t.defined.platinum - t.earned.platinum) +
+  Math.max(0, t.defined.gold - t.earned.gold) +
+  Math.max(0, t.defined.silver - t.earned.silver) +
+  Math.max(0, t.defined.bronze - t.earned.bronze);
 const recent = (a: Title, b: Title) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
 
 /** Jogos de uma categoria, já ordenados, com o número que aparece no cartão. */
@@ -41,7 +55,8 @@ export function muralTiles(
   player: MuralPlayer,
   platform: string | null,
 ): { title: Title; metric: string }[] {
-  const titles = filterByPlatform(withEarnedTrophies(player.titles), platform, player.playedOn);
+  // Todos os jogos da lista, inclusive os ainda sem troféu (como no perfil e nas estatísticas).
+  const titles = filterByPlatform(player.titles, platform, player.playedOn);
   const pct = (t: Title) => `${t.progress}%`;
   if (typeof category === "object")
     return titles
@@ -72,6 +87,11 @@ export function muralTiles(
       return [...titles]
         .sort((a, b) => total(b) - total(a))
         .map((g) => ({ title: g, metric: t("{n} troféus", { n: total(g) }) }));
+    case "faltam":
+      return titles
+        .filter((g) => missingOf(g) > 0)
+        .sort((a, b) => missingOf(b) - missingOf(a) || recent(a, b))
+        .map((g) => ({ title: g, metric: t("{n} faltando", { n: missingOf(g) }) }));
     case "tempo":
       return titles
         .filter((t) => (player.playtime.get(t.id) ?? 0) > 0)

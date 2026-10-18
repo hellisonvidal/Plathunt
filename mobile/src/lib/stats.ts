@@ -173,6 +173,9 @@ export interface GameStats {
   completed: number;
   /** Jogos sem platina e com troféus faltando. */
   unfinished: number;
+  /** Troféus ainda não conquistados (por tipo), somando todos os jogos. */
+  missing: Counts;
+  totalMissing: number;
   platinums: number;
   avgProgress: number;
   trophies: Counts;
@@ -195,6 +198,7 @@ export const isUnfinished = (t: Pick<Title, "earned" | "progress">) => t.earned.
 
 export function computeStats(titles: Title[], playtime: Map<string, number>, playedOn?: PlayedOn): GameStats {
   const trophies = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
+  const missing = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
   let progressSum = 0;
   let completed = 0;
   let playSeconds = 0;
@@ -206,6 +210,7 @@ export function computeStats(titles: Title[], playtime: Map<string, number>, pla
     trophies.silver += t.earned.silver;
     trophies.gold += t.earned.gold;
     trophies.platinum += t.earned.platinum;
+    for (const k of ["bronze", "silver", "gold", "platinum"] as const) missing[k] += Math.max(0, t.defined[k] - t.earned[k]);
     progressSum += t.progress;
     if (isComplete(t)) completed++;
     const secs = playtime.get(t.id);
@@ -221,6 +226,8 @@ export function computeStats(titles: Title[], playtime: Map<string, number>, pla
     games: titles.length,
     completed,
     unfinished: titles.filter(isUnfinished).length,
+    missing,
+    totalMissing: missing.bronze + missing.silver + missing.gold + missing.platinum,
     platinums: trophies.platinum,
     avgProgress: titles.length ? Math.round(progressSum / titles.length) : 0,
     trophies,
