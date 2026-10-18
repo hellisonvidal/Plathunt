@@ -9,14 +9,30 @@ const TROPHY_STYLES: Record<string, { label: string; color: string }> = {
   bronze: { label: "Bronze", color: "text-bronze" },
 };
 
+const TROPHY_PATH =
+  "M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3V3Zm0 4H6v1a2 2 0 0 0 1 1.7V7Zm10 0v2.7A2 2 0 0 0 18 8V7h-1Z";
+
 export function TrophyBadge({ type, count }: { type: string; count?: number }) {
   const s = TROPHY_STYLES[type] ?? TROPHY_STYLES.bronze;
   return (
     <span className={`inline-flex items-center gap-1 text-sm font-medium ${s.color}`} title={t(s.label)}>
       <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden>
-        <path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3V3Zm0 4H6v1a2 2 0 0 0 1 1.7V7Zm10 0v2.7A2 2 0 0 0 18 8V7h-1Z" />
+        <path d={TROPHY_PATH} />
       </svg>
       {count !== undefined ? count : t(s.label)}
+    </span>
+  );
+}
+
+/** Os quatro troféus juntos (platina, ouro, prata e bronze): ícone de "todos os troféus". */
+export function TrophyStack() {
+  return (
+    <span className="flex -space-x-1.5" aria-hidden>
+      {(["platinum", "gold", "silver", "bronze"] as const).map((type) => (
+        <svg key={type} viewBox="0 0 24 24" className={`h-4 w-4 fill-current ${TROPHY_STYLES[type].color}`}>
+          <path d={TROPHY_PATH} />
+        </svg>
+      ))}
     </span>
   );
 }

@@ -8,7 +8,7 @@ import { Mural, MURAL_LABELS, type MuralCategory, type MuralKind } from "../comp
 import { PageHeader } from "../components/PageHeader";
 import { RankingView, useRanking } from "./Ranking";
 import { locale, t } from "../i18n";
-import { ErrorBox, GameIcon, Spinner, TrophyBadge } from "../components/ui";
+import { ErrorBox, GameIcon, Spinner, TrophyBadge, TrophyStack } from "../components/ui";
 import {
   compareTitles,
   computeStats,
@@ -245,7 +245,7 @@ export function StatsPage() {
                   />
                   <div className="flex items-center gap-3 border-t border-line pt-3">
                     <span className="flex w-[5.5rem] shrink-0 items-center gap-1.5 text-sm font-semibold">
-                      <AllTrophies />
+                      <TrophyStack />
                       {t("Total")}
                     </span>
                     <span className="flex flex-1 flex-wrap justify-end gap-x-4 gap-y-0.5">
@@ -349,17 +349,6 @@ function playMaps(play: Map<string, PlayInfo>): {
     playedOn: new Map([...play].map(([id, p]) => [id, p.platform])),
     firstPlayed: new Map([...play].map(([id, p]) => [id, p.firstPlayed])),
   };
-}
-
-/** Os quatro troféus lado a lado: o ícone do total. */
-function AllTrophies() {
-  return (
-    <span className="flex -space-x-1.5" aria-hidden>
-      {TYPES.map((type) => (
-        <TrophyIconOnly key={type} type={type} />
-      ))}
-    </span>
-  );
 }
 
 const TROPHY_COLOR: Record<(typeof TYPES)[number], string> = {
