@@ -155,7 +155,9 @@ export async function syncCloudInbox(now = new Date()): Promise<ReceivedBoost[]>
     added.push({
       id: `cloud:${r.id}`,
       cloudId: r.id,
-      from: String(p.from ?? ""),
+      // O nome vem do perfil confirmado pela PSN, não do texto do pedido (que
+      // quem envia poderia trocar para se passar por um amigo).
+      from: r.from_online_id ?? String(p.from ?? ""),
       game: { id: String(p.game.id ?? ""), name: String(p.game.name), platform: String(p.game.platform ?? ""), iconUrl: null },
       trophies: Array.isArray(p.trophies) ? p.trophies.map(String) : [],
       players: Number(p.players) || 1,

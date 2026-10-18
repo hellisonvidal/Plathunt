@@ -2,6 +2,8 @@
 
 > **App não oficial.** O Plathunt não é afiliado, patrocinado nem aprovado pela Sony Interactive Entertainment. PlayStation, PSN e os símbolos dos botões são marcas da Sony.
 
+Segurança das contas: veja [docs/seguranca.md](docs/seguranca.md).
+
 Gerenciador de troféus da PlayStation: acompanhe seus troféus e veja as conquistas dos seus amigos da PSN.
 
 O repositório tem duas versões:

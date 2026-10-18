@@ -54,4 +54,11 @@ describe("pedidos de boost online", () => {
     expect(await syncCloudInbox()).toHaveLength(0);
     expect(getInbox()).toHaveLength(0);
   });
+
+  it("o nome de quem pediu vem do perfil confirmado, não do texto do pedido", async () => {
+    const req = { id: "c2", status: "novo", created_at: "2026-10-18T10:00:00Z", from_online_id: "Golpista_99", payload: { from: "MeuAmigo", game: { name: "Helldivers 2" } } };
+    received.mockReturnValue([req]);
+    const [added] = await syncCloudInbox();
+    expect(added.from).toBe("Golpista_99");
+  });
 });

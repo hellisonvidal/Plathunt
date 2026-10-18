@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -95,7 +96,14 @@ public class PsnLoginActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return handleRedirect(request.getUrl().toString());
+                if (handleRedirect(request.getUrl().toString())) return true;
+                // A tela de login só navega nas páginas da Sony; qualquer outro
+                // endereço abre no navegador, fora da tela onde se digita a senha.
+                if (request.isForMainFrame() && !isSonyPage(request.getUrl())) {
+                    openOutside(request.getUrl());
+                    return true;
+                }
+                return false;
             }
 
             @Override
@@ -117,6 +125,29 @@ public class PsnLoginActivity extends AppCompatActivity {
         webView.loadUrl(PsnLoginPlugin.AUTHORIZE_URL);
         handler.post(poll);
         handler.postDelayed(reveal, REVEAL_TIMEOUT_MS);
+    }
+
+    /** Domínios da Sony usados no login (inclui "Esqueci a senha" e verificação em duas etapas). */
+    private static final String[] SONY_DOMAINS = {
+        "sony.com", "playstation.com", "playstation.net", "sonyentertainmentnetwork.com"
+    };
+
+    static boolean isSonyPage(Uri uri) {
+        String host = uri.getHost();
+        if (!"https".equals(uri.getScheme()) || host == null) return false;
+        host = host.toLowerCase(java.util.Locale.ROOT);
+        for (String domain : SONY_DOMAINS) {
+            if (host.equals(domain) || host.endsWith("." + domain)) return true;
+        }
+        return false;
+    }
+
+    private void openOutside(Uri uri) {
+        if (!"https".equals(uri.getScheme())) return;
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE));
+        } catch (RuntimeException ignored) {
+        }
     }
 
     /** Captura o redirect final da Sony com o código OAuth. */
