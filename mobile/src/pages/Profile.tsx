@@ -96,7 +96,8 @@ export function ProfilePage() {
                     </div>
                     <span className="text-xs text-muted">{data.profile.levelProgress ?? 0}%</span>
                   </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {/* Tipos e total sempre na mesma linha: o texto diminui um pouco em telas estreitas. */}
+                  <div className="mt-3 flex flex-nowrap items-center justify-between gap-[0.4em] whitespace-nowrap text-[min(0.875rem,3.4vw)] [&>span]:gap-[0.25em] [&>span]:text-[length:inherit] [&_svg]:h-[1.05em] [&_svg]:w-[1.05em]">
                     <TrophyBadge type="platinum" count={data.profile.earned.platinum} />
                     <TrophyBadge type="gold" count={data.profile.earned.gold} />
                     <TrophyBadge type="silver" count={data.profile.earned.silver} />
