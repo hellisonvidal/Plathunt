@@ -14,7 +14,7 @@ import { LANGUAGES, locale, t } from "../i18n";
 import { applyTheme, THEMES } from "../lib/theme";
 import { checkForUpdate, RELEASES_PAGE, type UpdateResult } from "../lib/updates";
 import { useData } from "../lib/useData";
-import { AppUpdater, isNativeApp } from "../psn/native";
+import { AppUpdater, isNativeApp, isPlayStoreBuild, openInBrowser, PLAY_STORE_URL } from "../psn/native";
 
 const FEED_DAYS: Settings["feedDays"][] = [7, 30, 90];
 const START_TABS: { value: Settings["startTab"]; label: string }[] = [
@@ -220,13 +220,23 @@ export function SettingsPage() {
               <p className="text-sm">{t("Versão instalada")}</p>
               <p className="text-xs text-muted">{appVersion()}</p>
             </div>
-            <button
-              onClick={check}
-              disabled={checking}
-              className="rounded-full bg-ps-blue px-4 py-2 text-sm font-semibold disabled:opacity-60"
-            >
-              {checking ? t("Verificando…") : t("Verificar atualizações")}
-            </button>
+            {isPlayStoreBuild() ? (
+              // Instalado pela Play Store: as atualizações vêm pela loja.
+              <button
+                onClick={() => void openInBrowser(PLAY_STORE_URL)}
+                className="rounded-full bg-ps-blue px-4 py-2 text-sm font-semibold"
+              >
+                {t("Abrir na Play Store")}
+              </button>
+            ) : (
+              <button
+                onClick={check}
+                disabled={checking}
+                className="rounded-full bg-ps-blue px-4 py-2 text-sm font-semibold disabled:opacity-60"
+              >
+                {checking ? t("Verificando…") : t("Verificar atualizações")}
+              </button>
+            )}
           </div>
           {update && <UpdateStatus result={update} />}
           <Row label={t("📝 Novidades desta versão")} onClick={() => setShowNews(true)} />

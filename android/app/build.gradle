@@ -11,12 +11,24 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode buildNumber
-        versionName "1.1.0"
+        versionName "1.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // Duas versões do mesmo app:
+    // - github: o APK das Releases, que se atualiza por dentro do app.
+    // - play: o pacote (AAB) da Play Store, que se atualiza pela loja.
+    flavorDimensions = ["distribuicao"]
+    productFlavors {
+        github {
+            dimension "distribuicao"
+        }
+        play {
+            dimension "distribuicao"
         }
     }
     // Chave fixa de debug versionada no repositório: todo APK sai com a mesma
@@ -29,12 +41,24 @@ android {
             keyAlias "androiddebugkey"
             keyPassword "android"
         }
+        // Chave de envio da Play Store: vem dos segredos do GitHub Actions
+        // (ANDROID_KEYSTORE_*), nunca do repositório. Sem eles, o pacote de
+        // release sai sem assinatura.
+        if (System.getenv("ANDROID_KEYSTORE_FILE")) {
+            release {
+                storeFile file(System.getenv("ANDROID_KEYSTORE_FILE"))
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD") ?: System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
+            if (signingConfigs.findByName("release")) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

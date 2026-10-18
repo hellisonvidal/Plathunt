@@ -29,8 +29,11 @@ function load(): StoredSession | null {
   }
 }
 
+/** A PSN respondeu, mas sem tokens (login revogado ou vencido). */
+class MissingTokens extends Error {}
+
 function save(tokens: AuthTokensResponse): StoredSession {
-  if (!tokens.accessToken || !tokens.refreshToken) throw new Error("A PSN não devolveu os tokens.");
+  if (!tokens.accessToken || !tokens.refreshToken) throw new MissingTokens("A PSN não devolveu os tokens.");
   const now = Date.now();
   const session = {
     accessToken: tokens.accessToken,
@@ -68,8 +71,10 @@ export async function getAccessToken(): Promise<string> {
 
   refreshing ??= exchangeRefreshTokenForAuthTokens(session.refreshToken)
     .then(save)
-    .catch(() => {
-      throw new SessionExpired();
+    // Só sai da conta quando a PSN recusa o login. Sem internet (ou com a PSN
+    // fora do ar) o erro segue normal: a sessão e os dados salvos continuam.
+    .catch((e) => {
+      throw e instanceof MissingTokens ? new SessionExpired() : e;
     })
     .finally(() => (refreshing = null));
   return (await refreshing).accessToken;

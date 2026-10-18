@@ -10,6 +10,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 2,
+    items: [
+      "🛒 Loja: filtros com várias opções ao mesmo tempo e tipos mais precisos (edição premium, pacote, avaliação), com os preços alinhados nos cartões.",
+      "📱 Tela ajustada a cada aparelho: celulares pequenos e grandes, tablets, dobráveis e celular deitado, respeitando o recorte da câmera.",
+      "📊 Perfil e Estatísticas mostram a situação de cada jogo: 100% com DLC, sem DLC, PSN, platina sem 100% e não concluídos.",
+      "🐞 Varredura de erros e correções de estabilidade.",
+    ],
+  },
+  {
     id: 1,
     items: [
       "🔔 As notificações abrem direto na tela certa: méritos, desafios, boost, pedidos recebidos ou o jogo do amigo.",

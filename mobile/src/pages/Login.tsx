@@ -9,6 +9,11 @@ import { isNativeApp, PsnLogin } from "../psn/native";
 /** O login silencioso é tentado uma vez por abertura do app (não depois de "Sair"). */
 let silentTried = false;
 
+/** Depois de "Sair", a tela de login não entra sozinha de novo com o login da Sony salvo. */
+export function skipSilentLogin() {
+  silentTried = true;
+}
+
 export function LoginPage({
   notice,
   onSignedIn,
@@ -109,7 +114,8 @@ export function LoginPage({
 
           <button
             onClick={() => onSignedIn("demo")}
-            disabled={busy}
+            // Enquanto confere o login salvo, a demonstração esperaria e depois trocaria para a PSN.
+            disabled={busy || checking}
             className="w-full rounded-xl border border-line py-3 text-sm text-muted active:bg-surface"
           >
             {t("Ver demonstração")}
