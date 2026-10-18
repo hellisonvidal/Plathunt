@@ -87,27 +87,27 @@ export function GamePage() {
       }
     : null;
 
-  // Nos jogos de um amigo: desafio rápido num troféu que falta para os dois
-  // (quem já tem o troféu não conta no desafio). Sem o jogo, nada falta para você.
-  const [challenge, setChallenge] = useState<Challenge["trophy"] | null>(null);
+  // Nos jogos de um amigo: botão de desafio em cada troféu. Quem já tem o
+  // troféu não conta no desafio (a tela do desafio avisa).
+  const [challenge, setChallenge] = useState<{ trophy: Challenge["trophy"]; friendHas: boolean; iHave: boolean } | null>(
+    null,
+  );
   const friend = accountId !== "me" ? (data?.owner ?? null) : null;
   const mine = useData(
     async () => (accountId === "me" ? null : await client.gameTrophies("me", { id: gameId, service }).catch(() => [])),
     [client, accountId, gameId, service],
   );
   const iHave = new Set((mine.data ?? []).filter((r) => r.earned).map((r) => r.id));
-  const canChallenge = (row: TrophyRow) => !row.earned && !iHave.has(row.id);
   const onChallenge =
     friend && data?.title && mine.data
       ? (row: TrophyRow) =>
-          setChallenge({ id: row.id, name: row.name, detail: row.detail, type: row.type, iconUrl: row.iconUrl, rate: row.rate })
+          setChallenge({
+            trophy: { id: row.id, name: row.name, detail: row.detail, type: row.type, iconUrl: row.iconUrl, rate: row.rate },
+            friendHas: row.earned,
+            iHave: iHave.has(row.id),
+          })
       : undefined;
-  const challengeable = onChallenge ? (data?.trophies ?? []).filter(canChallenge).length : 0;
-  const platinumRace =
-    !!data?.title &&
-    data.title.defined.platinum > 0 &&
-    data.title.earned.platinum === 0 &&
-    !(mine.data ?? []).some((r) => r.type === "platinum" && r.earned);
+  const platinumRace = !!data?.title && data.title.defined.platinum > 0;
 
   const all = data?.trophies ?? [];
   const earnedCount = all.filter((t) => t.earned).length;
@@ -157,17 +157,19 @@ export function GamePage() {
                   🏁
                 </span>
                 <p className="min-w-0 flex-1 text-xs text-muted">
-                  {challengeable > 0
-                    ? t("Desafie {name}: toque em ⚔️ Desafiar num troféu que falta para vocês dois (quem já tem não conta).", {
-                        name: friend.onlineId,
-                      })
-                    : t("Neste jogo não sobrou troféu que falte para vocês dois. Escolha outro jogo de {name} para desafiar.", {
-                        name: friend.onlineId,
-                      })}
+                  {t("Desafie {name}: toque em ⚔️ Desafiar em qualquer troféu da lista, ou faça a corrida da platina.", {
+                    name: friend.onlineId,
+                  })}
                 </p>
                 {platinumRace && (
                   <button
-                    onClick={() => setChallenge(platinumGoal())}
+                    onClick={() =>
+                      setChallenge({
+                        trophy: platinumGoal(),
+                        friendHas: data.title!.earned.platinum > 0,
+                        iHave: (mine.data ?? []).some((r) => r.type === "platinum" && r.earned),
+                      })
+                    }
                     className="shrink-0 rounded-full bg-ps-blue px-3 py-1.5 text-xs font-semibold"
                   >
                     {t("🏆 Platina")}
@@ -177,7 +179,14 @@ export function GamePage() {
             )}
 
             {friend && data.title && challenge && (
-              <QuickChallenge game={data.title} trophy={challenge} friend={friend} onClose={() => setChallenge(null)} />
+              <QuickChallenge
+                game={data.title}
+                trophy={challenge.trophy}
+                friendHas={challenge.friendHas}
+                iHave={challenge.iHave}
+                friend={friend}
+                onClose={() => setChallenge(null)}
+              />
             )}
 
             {/* Guias completos lado a lado, com o ícone de cada site. */}
@@ -222,7 +231,6 @@ export function GamePage() {
                 gameName={data.title?.name ?? ""}
                 guide={guide}
                 onChallenge={onChallenge}
-                canChallenge={canChallenge}
                 rows={visible.filter((t) => section.trophies.includes(t))}
                 filter={filter}
                 expanded={sections.length === 1 || open.has(section.group.id)}
@@ -242,7 +250,6 @@ function GroupList({
   gameName,
   guide,
   onChallenge,
-  canChallenge,
   rows,
   filter,
   expanded,
@@ -253,7 +260,6 @@ function GroupList({
   guide: GuideNames | null;
   /** Nos jogos de um amigo: abre o desafio rápido no troféu. */
   onChallenge?: (row: TrophyRow) => void;
-  canChallenge: (row: TrophyRow) => boolean;
   rows: TrophyRow[];
   filter: Filter;
   expanded: boolean;
@@ -330,7 +336,7 @@ function GroupList({
                   trophy={t}
                   gameName={gameName}
                   guide={guide}
-                  onChallenge={onChallenge && canChallenge(t) ? () => onChallenge(t) : undefined}
+                  onChallenge={onChallenge ? () => onChallenge(t) : undefined}
                 />
               ))}
             </ul>

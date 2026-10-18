@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useBackInterceptor } from "../lib/backButton";
 import { Link } from "react-router-dom";
-import { filterByPlatform, formatDuration, isComplete, startYear, withEarnedTrophies, type PlayedOn } from "../lib/stats";
+import { filterByPlatform, formatDuration, isComplete, isUnfinished, startYear, withEarnedTrophies, type PlayedOn } from "../lib/stats";
 import { t } from "../i18n";
 import type { Title } from "../psn/types";
 import { SERIES_COLORS } from "./charts";
 import { RemoteImage } from "./ui";
 
 /** Categorias das Estatísticas que abrem um mural de jogos. */
-export type MuralCategory = "jogos" | "platinas" | "completos" | "conclusao" | "trofeus" | "tempo";
+export type MuralCategory = "jogos" | "platinas" | "completos" | "naoConcluidos" | "conclusao" | "trofeus" | "tempo";
 /** O que o mural mostra: uma categoria dos quadros ou os jogos de um ano (Jogos por ano). */
 export type MuralKind = MuralCategory | { year: number };
 
@@ -16,6 +16,7 @@ export const MURAL_LABELS: Record<MuralCategory, string> = {
   jogos: "Jogos",
   platinas: "Platinas",
   completos: "Jogos 100%",
+  naoConcluidos: "Não concluídos",
   conclusao: "Conclusão média",
   trofeus: "Troféus",
   tempo: "Tempo de jogo",
@@ -60,6 +61,11 @@ export function muralTiles(
         .filter(isComplete)
         .sort(recent)
         .map((t) => ({ title: t, metric: "100%" }));
+    case "naoConcluidos":
+      return titles
+        .filter(isUnfinished)
+        .sort((a, b) => b.progress - a.progress || recent(a, b))
+        .map((t) => ({ title: t, metric: pct(t) }));
     case "conclusao":
       return [...titles].sort((a, b) => b.progress - a.progress || recent(a, b)).map((t) => ({ title: t, metric: pct(t) }));
     case "trofeus":

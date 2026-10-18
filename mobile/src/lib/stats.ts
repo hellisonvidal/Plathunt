@@ -171,6 +171,8 @@ export function titlesByPlatform(titles: Title[], playedOn?: PlayedOn): Map<stri
 export interface GameStats {
   games: number;
   completed: number;
+  /** Jogos sem platina e com troféus faltando. */
+  unfinished: number;
   platinums: number;
   avgProgress: number;
   trophies: Counts;
@@ -187,6 +189,9 @@ export interface GameStats {
  * mesmo momento da platina, então ele conta como platina, não como 100%.
  */
 export const isComplete = (t: Pick<Title, "hasGroups" | "progress">) => t.hasGroups && t.progress >= 100;
+
+/** Jogo ainda não concluído: sem platina e com troféus faltando. */
+export const isUnfinished = (t: Pick<Title, "earned" | "progress">) => t.earned.platinum === 0 && t.progress < 100;
 
 export function computeStats(titles: Title[], playtime: Map<string, number>, playedOn?: PlayedOn): GameStats {
   const trophies = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
@@ -215,6 +220,7 @@ export function computeStats(titles: Title[], playtime: Map<string, number>, pla
   return {
     games: titles.length,
     completed,
+    unfinished: titles.filter(isUnfinished).length,
     platinums: trophies.platinum,
     avgProgress: titles.length ? Math.round(progressSum / titles.length) : 0,
     trophies,

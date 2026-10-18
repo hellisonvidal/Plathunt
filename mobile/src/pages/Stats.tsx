@@ -180,12 +180,14 @@ export function StatsPage() {
 
                 <Legend series={series(() => [])} />
 
-                <div className="grid grid-cols-2 gap-3">
+                {/* Com número ímpar de quadros, o último ocupa a linha toda. */}
+                <div className="grid grid-cols-2 gap-3 [&>*:last-child:nth-child(odd)]:col-span-2">
                   {(
                     [
                       ["jogos", all.map((s) => s.games.toLocaleString(locale()))],
                       ["platinas", all.map((s) => s.platinums.toLocaleString(locale()))],
                       ["completos", all.map((s) => s.completed.toLocaleString(locale()))],
+                      ["naoConcluidos", all.map((s) => s.unfinished.toLocaleString(locale()))],
                       ["conclusao", all.map((s) => `${s.avgProgress}%`)],
                       ["trofeus", all.map((s) => s.totalTrophies.toLocaleString(locale()))],
                       ["tempo", all.map((s) => formatDuration(s.playSeconds))],
