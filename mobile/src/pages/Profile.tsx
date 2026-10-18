@@ -5,14 +5,14 @@ import { CompletionSummary } from "../components/Completion";
 import { PageHeader } from "../components/PageHeader";
 import { TitleList } from "../components/TitleList";
 import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge, TrophyStack } from "../components/ui";
-import { formatDuration, isComplete, isCompleteNoDlc, matchPlaytime } from "../lib/stats";
+import { formatDuration, isComplete, isCompleteNoDlc, isCompletePsn, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import { PsPlusIcon } from "../components/icons";
 import { locale, t } from "../i18n";
 import type { Title } from "../psn/types";
 
 type Sort = "recentes" | "antigos" | "progresso" | "tempo";
-type Filter = "todos" | "platinados" | "semPlatina" | "completos" | "completosSemDlc" | "incompletos";
+type Filter = "todos" | "platinados" | "semPlatina" | "completos" | "completosSemDlc" | "completosPsn" | "incompletos";
 
 /** Filtros da lista de jogos. "Sem platina": jogos em que você ainda não tem a platina (ou que não têm). */
 const FILTERS: { key: Filter; label: string; test: (t: Title) => boolean }[] = [
@@ -22,6 +22,8 @@ const FILTERS: { key: Filter; label: string; test: (t: Title) => boolean }[] = [
   // 100% só de jogos com DLC (sem DLC, o 100% é a própria platina).
   { key: "completos", label: "💯 100% com DLC", test: isComplete },
   { key: "completosSemDlc", label: "💯 100% sem DLC", test: isCompleteNoDlc },
+  // 100% em jogos sem troféu de platina.
+  { key: "completosPsn", label: "💯 100% PSN", test: isCompletePsn },
   { key: "incompletos", label: "Em andamento", test: (t) => t.progress < 100 },
 ];
 
@@ -123,9 +125,10 @@ export function ProfilePage() {
                   </p>
                   {data.titles && (
                     <p className="mt-1 text-xs text-muted">
-                      {t("💯 100%: {a} com DLC · {b} sem DLC", {
+                      {t("💯 100%: {a} com DLC · {b} sem DLC · {c} PSN", {
                         a: data.titles.filter(isComplete).length,
                         b: data.titles.filter(isCompleteNoDlc).length,
+                        c: data.titles.filter(isCompletePsn).length,
                       })}
                     </p>
                   )}

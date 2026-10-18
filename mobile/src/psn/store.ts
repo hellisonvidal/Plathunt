@@ -168,6 +168,9 @@ const DEMO: [string, string, string[], number, number, boolean?][] = [
   ["Sackboy: Uma Grande Aventura", "UP9000-PPSA01562_00-SACKBOY000000000", ["PS5", "PS4"], 19990, 5997],
   ["Fall Guys", "UP4950-PPSA02097_00-FALLGUYS00000000", ["PS5", "PS4"], 0, 0, true],
   ["Astro's Playroom", "UP9000-PPSA01325_00-ASTROSPLAYROOM00", ["PS5"], 0, 0, true],
+  ["Gran Turismo 7 – Demo", "UP9000-PPSA01316_00-GT7DEMO000000000", ["PS5"], 0, 0, true],
+  ["Ghost of Tsushima – Trial", "UP9000-PPSA01717_00-GHOSTTRIAL000000", ["PS5"], 0, 0, true],
+  ["Horizon Forbidden West: Burning Shores (DLC)", "UP9000-PPSA01521_00-BURNINGSHORES000", ["PS5"], 9990, 6993],
 ];
 
 export async function demoStoreCategory(categoryId: string): Promise<StoreProduct[]> {

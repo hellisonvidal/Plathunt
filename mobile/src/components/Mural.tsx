@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useBackInterceptor } from "../lib/backButton";
 import { Link } from "react-router-dom";
-import { filterByPlatform, formatDuration, isComplete, isCompleteNoDlc, isUnfinished, startYear, type PlayedOn } from "../lib/stats";
+import { filterByPlatform, formatDuration, isComplete, isCompleteNoDlc, isCompletePsn, isUnfinished, startYear, type PlayedOn } from "../lib/stats";
 import { t } from "../i18n";
 import type { Title } from "../psn/types";
 import { SERIES_COLORS } from "./charts";
@@ -13,6 +13,7 @@ export type MuralCategory =
   | "platinas"
   | "completos"
   | "completosSemDlc"
+  | "completosPsn"
   | "naoConcluidos"
   | "conclusao"
   | "trofeus"
@@ -26,6 +27,7 @@ export const MURAL_LABELS: Record<MuralCategory, string> = {
   platinas: "Platinas",
   completos: "100% com DLC",
   completosSemDlc: "100% sem DLC",
+  completosPsn: "100% PSN",
   naoConcluidos: "Não concluídos",
   conclusao: "Conclusão média",
   trofeus: "Troféus",
@@ -81,6 +83,11 @@ export function muralTiles(
     case "completosSemDlc":
       return titles
         .filter(isCompleteNoDlc)
+        .sort(recent)
+        .map((t) => ({ title: t, metric: "100%" }));
+    case "completosPsn":
+      return titles
+        .filter(isCompletePsn)
         .sort(recent)
         .map((t) => ({ title: t, metric: "100%" }));
     case "naoConcluidos":
