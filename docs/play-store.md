@@ -54,13 +54,32 @@ segredos, o AAB é compilado só para conferir e não é publicado como artefato
    - **Classificação de conteúdo**: questionário (sem violência, sem compras; tem interação entre usuários só por curtidas e pedidos de boost).
    - **Público-alvo**: 13 anos ou mais.
    - **Segurança dos dados** (com os recursos online ligados): coleta **ID de usuário** (ID e avatar da PSN) e **outro conteúdo gerado pelo usuário** (curtidas e pedidos de boost), para *funcionalidade do app*; criptografado em trânsito; o usuário pode pedir a exclusão (ver a política). Senha da PSN: **não** é coletada (o login é na página da Sony). Troféus e amigos ficam só no aparelho.
-5. **Página da loja**: ícone 512×512 (`assets/play-store-icon.png`), imagem de destaque 1024×500 (`assets/play-store-feature.png`), pelo menos 2 capturas de tela de celular (e de tablet de 7" e 10", recomendadas: o app se ajusta a elas), descrição curta (até 80 caracteres) e completa.
+5. **Página da loja**: ícone 512×512 (`assets/play-store/icone-512.png`), imagem de destaque 1024×500 (`assets/play-store/destaque-1024x500.png`), capturas de tela (abaixo), descrição curta e completa.
+
+### Capturas de tela
+
+Prontas em `assets/play-store/capturas/`, 8 por tipo de aparelho (o máximo da Play Store), tiradas no modo demonstração com o tema Escuro:
+
+| Pasta | Tamanho | Onde enviar |
+| --- | --- | --- |
+| `celular/` | 1080×1920 | Capturas de tela do telefone |
+| `tablet-7/` | 1200×2134 | Tablet de 7 polegadas |
+| `tablet-10/` | 1600×2844 | Tablet de 10 polegadas |
+
+- `com-legenda/`: com um título por tela e a faixa "App não oficial · não afiliado à Sony Interactive Entertainment" no rodapé (recomendado).
+- `sem-legenda/`: a tela pura, se preferir.
+
+Ordem: perfil, troféus de um jogo, estatísticas, ranking, amigos, atividades, méritos e loja.
+As capas de jogos e avatares aparecem como ícones genéricos (dados de demonstração),
+o que também evita mostrar artes da Sony na página da loja.
 
 ### Texto sugerido
 
-**Descrição curta:** Seus troféus da PSN, platinas, estatísticas, amigos, méritos e ofertas da loja.
+**Descrição curta** (70 de 80 caracteres): App não oficial: seus troféus da PSN, platinas, estatísticas e amigos.
 
-**Descrição completa:** Acompanhe seus troféus da PSN no celular: platinas e jogos 100%, estatísticas por plataforma e por ano, tempo até a platina, comparação com amigos, atividades com curtidas, convocações de boost, desafios, 2.000 méritos e ofertas da loja de jogos com o menor preço já visto. Os dados vão direto do celular para a Sony. App não oficial, sem afiliação com a Sony Interactive Entertainment.
+**Descrição completa:** ⚠️ App não oficial: o Plathunt não é afiliado, patrocinado nem aprovado pela Sony Interactive Entertainment. PlayStation e PSN são marcas da Sony, citadas só para indicar com o que o app funciona.
+
+Acompanhe seus troféus da PSN no celular: platinas e jogos 100%, estatísticas por plataforma e por ano, tempo até a platina, comparação com amigos, atividades com curtidas, convocações de boost, desafios, 2.000 méritos e ofertas da loja de jogos com o menor preço já visto. Os dados vão direto do celular para a Sony; o app não pede nem guarda a sua senha.
 
 ## Nome e marca
 

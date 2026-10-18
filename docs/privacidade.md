@@ -1,5 +1,7 @@
 # Política de privacidade — Plathunt
 
+> **App não oficial.** O Plathunt não é afiliado, patrocinado nem aprovado pela Sony Interactive Entertainment. PlayStation e PSN são marcas da Sony.
+
 *Última atualização: 17 de outubro de 2026*
 
 O Plathunt é um app independente, sem ligação com a Sony Interactive Entertainment. PlayStation é marca da Sony.

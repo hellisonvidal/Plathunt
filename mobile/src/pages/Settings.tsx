@@ -208,8 +208,13 @@ export function SettingsPage() {
         <Section title={t("Sobre")}>
           <p className="p-4 text-xs leading-relaxed text-muted">
             {t(
-              "Plathunt {version}. Os dados da PSN vão direto do celular para a Sony e ficam no aparelho; só os recursos online, quando ligados, usam o servidor do app. Não é afiliado à Sony Interactive Entertainment; PlayStation é marca da Sony.",
+              "Plathunt {version}. Os dados da PSN vão direto do celular para a Sony e ficam no aparelho; só os recursos online, quando ligados, usam o servidor do app.",
               { version: appVersion() },
+            )}
+          </p>
+          <p className="border-t border-line p-4 text-xs font-semibold leading-relaxed text-muted">
+            {t(
+              "App não oficial. O Plathunt não é afiliado, patrocinado nem aprovado pela Sony Interactive Entertainment. PlayStation, PSN e os símbolos dos botões são marcas da Sony.",
             )}
           </p>
         </Section>
