@@ -193,24 +193,20 @@ export function StatsPage() {
 
                 <Legend series={series(() => [])} />
 
-                {/* Total de jogos e de horas lado a lado. */}
+                {/* Quadros tocáveis (abrem o mural); o tempo de jogo fica por último. */}
                 <div className="grid grid-cols-2 gap-3">
                   {tiles([
                     ["jogos", all.map((s) => s.games.toLocaleString(locale()))],
-                    ["tempo", all.map((s) => formatDuration(s.playSeconds))],
-                  ])}
-                </div>
-
-                <GamesBreakdown stats={all} names={names} selected={mural} onSelect={setMural} />
-
-                <div className="grid grid-cols-2 gap-3">
-                  {tiles([
                     ["platinas", all.map((s) => s.platinums.toLocaleString(locale()))],
                     ["conclusao", all.map((s) => `${s.avgProgress}%`)],
                     ["trofeus", all.map((s) => s.totalTrophies.toLocaleString(locale()))],
                     ["faltam", all.map((s) => s.totalMissing.toLocaleString(locale()))],
+                    ["tempo", all.map((s) => formatDuration(s.playSeconds))],
                   ])}
                 </div>
+
+                {/* Situação dos jogos logo abaixo dos quadros. */}
+                <GamesBreakdown stats={all} names={names} selected={mural} onSelect={setMural} />
 
                 {mural && (
                   <Mural
