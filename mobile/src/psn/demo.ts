@@ -8,16 +8,16 @@ const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString
 const counts = (platinum: number, gold: number, silver: number, bronze: number): Counts => ({ platinum, gold, silver, bronze });
 
 const PROFILES: Record<string, Profile> = {
-  me: { accountId: "demo-me", onlineId: "Kratos_BR", avatarUrl: "http://psn-rsc.prod.dl.playstation.net/psn-rsc/avatar/DEMO/kratos_l.png", aboutMe: "Caçador de platinas", isPlus: true, level: 412, levelProgress: 63, earned: counts(23, 180, 520, 1900) },
-  aloy: { accountId: "demo-aloy", onlineId: "Aloy_Hunter", avatarUrl: "http://psn-rsc.prod.dl.playstation.net/psn-rsc/avatar/DEMO/aloy_l.png", aboutMe: null, isPlus: true, level: 538, levelProgress: 12, earned: counts(41, 260, 700, 2500) },
-  ellie: { accountId: "demo-ellie", onlineId: "Ellie_TLOU", avatarUrl: "http://psn-rsc.prod.dl.playstation.net/psn-rsc/avatar/DEMO/ellie_l.png", aboutMe: null, isPlus: false, level: 233, levelProgress: 88, earned: counts(9, 70, 210, 800) },
+  me: { accountId: "demo-me", onlineId: "PlatHunter_BR", avatarUrl: "http://psn-rsc.prod.dl.playstation.net/psn-rsc/avatar/DEMO/player1_l.png", aboutMe: "Caçador de platinas", isPlus: true, level: 412, levelProgress: 63, earned: counts(23, 180, 520, 1900) },
+  aloy: { accountId: "demo-aloy", onlineId: "TrophyQueen", avatarUrl: "http://psn-rsc.prod.dl.playstation.net/psn-rsc/avatar/DEMO/player2_l.png", aboutMe: null, isPlus: true, level: 538, levelProgress: 12, earned: counts(41, 260, 700, 2500) },
+  ellie: { accountId: "demo-ellie", onlineId: "NightOwl_77", avatarUrl: "http://psn-rsc.prod.dl.playstation.net/psn-rsc/avatar/DEMO/player3_l.png", aboutMe: null, isPlus: false, level: 233, levelProgress: 88, earned: counts(9, 70, 210, 800) },
 };
 
 // Mais amigos de exemplo, para a lista completa (alguns com troféus privados).
 const EXTRA_NAMES = [
-  "Nathan_Drake", "Jin_Sakai", "Peter_P", "Joel_M", "Ratchet_L", "Sackboy", "Astro_Fan", "Nariko_HS",
-  "Cole_MacGrath", "Sly_Cooper", "Kat_Gravity", "Deacon_StJ", "Selene_R", "Sam_Porter", "Hunter_BB", "Abby_A",
-  "Miles_M", "Kiryu_K", "Leon_SK", "Jill_V", "Dante_DMC", "Cloud_S",
+  "Nitro_Rex", "PixelWolf", "Lobo_Gamer", "Cacador_99", "SilverFox", "Rush_BR", "Mestre_Bronze", "GoldRush",
+  "Neon_Kat", "Shadow_Fox", "Zeca_Play", "Turbo_Lu", "Vega_Star", "Mapa_Max", "Bolt_88", "Sniper_Ana",
+  "Kiko_Run", "Tank_Leo", "Raio_Jo", "Duda_GG", "Max_Combo", "Nuvem_S",
 ];
 EXTRA_NAMES.forEach((onlineId, i) => {
   const level = 50 + ((i * 37) % 600);
@@ -174,7 +174,7 @@ export function createDemoClient(): PsnClient {
     me: () => delay(PROFILES.me),
     profile: (accountId) => delay(PROFILES[keyOf(accountId)]),
     realName: (onlineId) =>
-      delay(({ Kratos_BR: "Kratos de Esparta", Aloy_Hunter: "Aloy Sobeck", Ellie_TLOU: "Ellie Williams" } as Record<string, string>)[onlineId] ?? null),
+      delay(({ PlatHunter_BR: "Rafael Lima", TrophyQueen: "Ana Souza", NightOwl_77: "Bia Costa" } as Record<string, string>)[onlineId] ?? null),
     titles: (accountId) => delay(titlesOf(keyOf(accountId))),
     recentTitles: (accountId) => delay(titlesOf(keyOf(accountId))),
     playedGames: (accountId) => delay(playedOf(keyOf(accountId))),

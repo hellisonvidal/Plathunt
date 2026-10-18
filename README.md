@@ -1,5 +1,9 @@
 # Plathunt
 
+> **App não oficial.** O Plathunt não é afiliado, patrocinado nem aprovado pela Sony Interactive Entertainment. PlayStation, PSN e os símbolos dos botões são marcas da Sony.
+
+Segurança das contas: veja [docs/seguranca.md](docs/seguranca.md).
+
 Gerenciador de troféus da PlayStation: acompanhe seus troféus e veja as conquistas dos seus amigos da PSN.
 
 O repositório tem duas versões:
@@ -130,7 +134,7 @@ npm run android:build              # compila mobile/ e copia para android/
 npx cap open android               # abre no Android Studio → Run
 ```
 
-O ícone é um troféu de platina em 2D dentro de um alvo de caça (mira azul com detalhes em vermelho), sem os símbolos dos botões da PlayStation, com fundo transparente, desenhado em vetor em `assets/app-icon.svg` (com uma versão `assets/app-icon.png` de 1024 px). Os PNGs gerados a partir dele ficam em `android/app/src/main/res/`: ícone comum e redondo, ícone adaptativo (troféu na camada da frente e camada de fundo transparente) e as telas de abertura. Para a Play Store há `assets/play-store-icon.png` (512 px, fundo escuro) e `assets/play-store-feature.png` (imagem de destaque 1024×500).
+O ícone é um troféu de platina em 2D dentro de um alvo de caça (mira azul com detalhes em vermelho), sem os símbolos dos botões da PlayStation, com fundo transparente, desenhado em vetor em `assets/app-icon.svg` (com uma versão `assets/app-icon.png` de 1024 px). Os PNGs gerados a partir dele ficam em `android/app/src/main/res/`: ícone comum e redondo, ícone adaptativo (troféu na camada da frente e camada de fundo transparente) e as telas de abertura. Para a Play Store há `assets/play-store/icone-512.png` (512 px, fundo escuro) e `assets/play-store/destaque-1024x500.png` (imagem de destaque 1024×500).
 
 > ⚠️ A API da PSN usada aqui não é oficial. A Sony pode mudar ou bloquear esse fluxo, e o uso pode conflitar com os termos de serviço da PSN. O app não é afiliado à Sony.
 

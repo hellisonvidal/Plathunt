@@ -31,9 +31,11 @@ android {
             dimension "distribuicao"
         }
     }
-    // Chave fixa de debug versionada no repositório: todo APK sai com a mesma
-    // assinatura, então uma versão nova instala por cima da antiga sem
-    // desinstalar. Não é secreta; para a Play Store, use uma chave de release.
+    // Chave de debug versionada no repositório: é PÚBLICA, então só serve para
+    // builds de teste. Os APKs publicados (GitHub) e o AAB (Play Store) saem em
+    // release, assinados com a chave secreta (ANDROID_KEYSTORE_*): com a chave
+    // pública, qualquer pessoa conseguiria criar uma falsa "atualização" que o
+    // Android instalaria por cima do app, com acesso ao login da PSN.
     signingConfigs {
         debug {
             storeFile file("debug.keystore")
@@ -41,9 +43,9 @@ android {
             keyAlias "androiddebugkey"
             keyPassword "android"
         }
-        // Chave de envio da Play Store: vem dos segredos do GitHub Actions
-        // (ANDROID_KEYSTORE_*), nunca do repositório. Sem eles, o pacote de
-        // release sai sem assinatura.
+        // Chave secreta do app (a mesma de envio da Play Store): vem dos
+        // segredos do GitHub Actions (ANDROID_KEYSTORE_*), nunca do repositório.
+        // Sem eles, os builds de release saem sem assinatura.
         if (System.getenv("ANDROID_KEYSTORE_FILE")) {
             release {
                 storeFile file(System.getenv("ANDROID_KEYSTORE_FILE"))

@@ -169,6 +169,8 @@ export interface CloudBoostRequest {
   payload: Record<string, unknown>;
   status: "novo" | "aceito" | "recusado";
   created_at: string;
+  /** Nome na PSN de quem enviou, confirmado pelo servidor (não o que veio no pedido). */
+  from_online_id?: string | null;
 }
 
 /** Envia o pedido para amigos que usam o app. */
@@ -185,8 +187,14 @@ export async function sendBoostRequests(toAccountIds: string[], payload: Record<
 export async function myBoostRequests(): Promise<{ received: CloudBoostRequest[]; sent: CloudBoostRequest[] }> {
   const me = await cloudIdentity();
   if (!me) return { received: [], sent: [] };
-  const { data } = await cloud().from("boost_requests").select("*").order("created_at", { ascending: false }).limit(100);
-  const list = (data ?? []) as CloudBoostRequest[];
+  const { data } = await cloud()
+    .from("boost_requests")
+    .select("*, sender:profiles!boost_requests_from_account_id_fkey(online_id)")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  const list = ((data ?? []) as (CloudBoostRequest & { sender?: { online_id: string } | null })[]).map(
+    ({ sender, ...r }) => ({ ...r, from_online_id: sender?.online_id ?? null }),
+  );
   return {
     received: list.filter((r) => r.to_account_id === me.accountId),
     sent: list.filter((r) => r.from_account_id === me.accountId),

@@ -53,17 +53,23 @@ jobs:
       - name: Sincronizar projeto Android
         run: npx cap sync android
 
-      # Chave de envio da Play Store (segredos do repositório, ver docs/play-store.md).
-      # Sem os segredos, o pacote da Play Store é compilado (para conferir) mas sai sem assinatura.
-      - name: Preparar chave da Play Store
+      # Chave secreta do app (segredos do repositório, ver docs/play-store.md).
+      # Com ela, o APK do GitHub e o AAB da Play Store saem em release, assinados.
+      # Sem ela, o APK sai assinado com a chave de testes, que é pública (inseguro:
+      # qualquer um poderia publicar uma falsa atualização), e o AAB sem assinatura.
+      - name: Preparar chave do app
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.keystore"
             echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/upload.keystore" >> "$GITHUB_ENV"
+            echo "APK_TASK=assembleGithubRelease" >> "$GITHUB_ENV"
+            echo "APK_PATH=android/app/build/outputs/apk/github/release/app-github-release.apk" >> "$GITHUB_ENV"
           else
-            echo "::notice::Sem ANDROID_KEYSTORE_BASE64: o AAB da Play Store sai sem assinatura."
+            echo "::warning::Sem ANDROID_KEYSTORE_BASE64: o APK sai com a chave de testes (pública) e o AAB sem assinatura. Cadastre a chave (docs/play-store.md)."
+            echo "APK_TASK=assembleGithubDebug" >> "$GITHUB_ENV"
+            echo "APK_PATH=android/app/build/outputs/apk/github/debug/app-github-debug.apk" >> "$GITHUB_ENV"
           fi
 
       - name: Compilar APK (GitHub) e AAB (Play Store)
@@ -72,16 +78,16 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew assembleGithubDebug bundlePlayRelease --no-daemon
+        run: ./gradlew "$APK_TASK" bundlePlayRelease --no-daemon
 
-      - name: Apagar chave da Play Store
+      - name: Apagar chave do app
         if: always()
         run: rm -f "$RUNNER_TEMP/upload.keystore"
 
       - uses: actions/upload-artifact@v4
         with:
           name: trophy-mania-android
-          path: android/app/build/outputs/apk/github/debug/app-github-debug.apk
+          path: ${{ env.APK_PATH }}
           if-no-files-found: error
 
       # Pacote para enviar na Play Console (Produção, Teste interno...).
@@ -98,7 +104,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           NOTES: ${{ github.event.head_commit.message }}
         run: |
-          cp android/app/build/outputs/apk/github/debug/app-github-debug.apk Plathunt.apk
+          cp "$APK_PATH" Plathunt.apk
+          if [ "$APK_TASK" = "assembleGithubRelease" ]; then
+            NOTES="${NOTES:-Nova versão}
+
+          🔐 Assinado com a chave própria do Plathunt. Se a instalação falhar por conflito de assinatura, desinstale uma vez a versão anterior (assinada com a chave de testes) e instale esta."
+          fi
           gh release create "build-$BUILD_NUMBER" Plathunt.apk \
             --title "Plathunt 1.2 (build $BUILD_NUMBER)" \
             --notes "${NOTES:-Nova versão}" \

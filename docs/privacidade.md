@@ -1,6 +1,8 @@
 # Política de privacidade — Plathunt
 
-*Última atualização: 17 de outubro de 2026*
+> **App não oficial.** O Plathunt não é afiliado, patrocinado nem aprovado pela Sony Interactive Entertainment. PlayStation e PSN são marcas da Sony.
+
+*Última atualização: 18 de outubro de 2026*
 
 O Plathunt é um app independente, sem ligação com a Sony Interactive Entertainment. PlayStation é marca da Sony.
 
@@ -28,6 +30,13 @@ Os recursos online vêm ligados. Na primeira vez que você entra com a PSN, um a
 **Onde e por quanto tempo:** os dados ficam em um banco de dados Supabase hospedado em São Paulo (Brasil) e permanecem lá enquanto os recursos online estiverem em uso.
 
 **Como apagar:** desligar os recursos online desconecta o celular. Para apagar todos os seus dados do servidor, abra uma solicitação em <https://github.com/hellisonvidal/Trophy-Mania/issues>, que eles serão removidos.
+
+## Segurança
+
+- **Sua senha da PSN nunca passa pelo app:** o login é feito na própria página da Sony; o app recebe só os tokens da sessão.
+- **Os tokens ficam só neste celular:** não entram no backup na nuvem nem na transferência para outro aparelho.
+- **App assinado com chave própria:** o Android só aceita atualizações assinadas com a mesma chave secreta, então ninguém consegue instalar uma versão falsa por cima do app para ler o seu login.
+- **Servidor com regras por usuário:** cada pessoa só cria curtidas e pedidos em nome próprio, e os nomes exibidos vêm da PSN (ninguém troca o próprio nome para se passar por outro jogador).
 
 ## Notificações
 
