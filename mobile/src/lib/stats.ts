@@ -175,6 +175,8 @@ export interface GameStats {
   completedNoDlc: number;
   /** Jogos 100% sem troféu de platina ("100% PSN"). */
   completedPsn: number;
+  /** Jogos platinados ainda sem 100% (DLC pendente). */
+  platinumOnly: number;
   /** Jogos sem platina e com troféus faltando. */
   unfinished: number;
   /** Troféus ainda não conquistados (por tipo), somando todos os jogos. */
@@ -204,6 +206,9 @@ export const isCompleteNoDlc = (t: Pick<Title, "hasGroups" | "progress" | "defin
 /** "100% PSN": jogo 100% que não tem troféu de platina (jogos menores, muitos de PS3 e Vita). */
 export const isCompletePsn = (t: Pick<Title, "hasGroups" | "progress" | "defined">) =>
   !t.hasGroups && t.progress >= 100 && t.defined.platinum === 0;
+
+/** Platinado, mas ainda sem 100% (faltam troféus de DLC). */
+export const isPlatinumOnly = (t: Pick<Title, "earned" | "progress">) => t.earned.platinum > 0 && t.progress < 100;
 
 /** Jogo ainda não concluído: sem platina e com troféus faltando. */
 export const isUnfinished = (t: Pick<Title, "earned" | "progress">) => t.earned.platinum === 0 && t.progress < 100;
@@ -239,6 +244,7 @@ export function computeStats(titles: Title[], playtime: Map<string, number>, pla
     completed,
     completedNoDlc: titles.filter(isCompleteNoDlc).length,
     completedPsn: titles.filter(isCompletePsn).length,
+    platinumOnly: titles.filter(isPlatinumOnly).length,
     unfinished: titles.filter(isUnfinished).length,
     missing,
     totalMissing: missing.bronze + missing.silver + missing.gold + missing.platinum,

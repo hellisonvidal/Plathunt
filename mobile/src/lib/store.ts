@@ -28,10 +28,11 @@ export interface StoreProduct {
 }
 
 /** Tipos de produto da loja, para o selo no cartão e o filtro "Tipo". */
-export type StoreKind = "jogo" | "pacote" | "dlc" | "demo" | "avaliacao" | "moeda" | "outro";
+export type StoreKind = "jogo" | "premium" | "pacote" | "dlc" | "demo" | "avaliacao" | "moeda" | "outro";
 
 export const STORE_KINDS: { value: StoreKind; label: string }[] = [
   { value: "jogo", label: "Jogo completo" },
+  { value: "premium", label: "Edição premium" },
   { value: "pacote", label: "Pacote" },
   { value: "dlc", label: "DLC / complemento" },
   { value: "demo", label: "Demo" },
@@ -39,6 +40,10 @@ export const STORE_KINDS: { value: StoreKind; label: string }[] = [
   { value: "moeda", label: "Moeda virtual" },
   { value: "outro", label: "Outros" },
 ];
+
+/** Nomes de edições especiais (Deluxe, Ultimate, Gold, Definitiva...). */
+const PREMIUM_NAME =
+  /\b(deluxe|ultimate|premium|gold edition|digital deluxe|definitive|complete edition|game of the year|goty|collector'?s|special edition|vault edition|super deluxe|edi[çc][ãa]o (deluxe|definitiva|completa|especial|de luxo|ouro|suprema|premium|digital deluxe))\b/;
 
 /**
  * Tipo do produto pela classificação da loja (storeDisplayClassification:
@@ -51,8 +56,9 @@ export function productKind(classification: string | null | undefined, name: str
   if (/TRIAL/.test(c) || /\b(trial|game trial|avalia[çc][ãa]o|vers[ãa]o de teste|teste gratuito)\b/.test(n)) return "avaliacao";
   if (/DEMO/.test(c) || /\bdemo\b/.test(n)) return "demo";
   if (/CURRENCY/.test(c) || /\b(v-bucks|moedas|coins|points pack|cr[ée]ditos)\b/.test(n)) return "moeda";
+  if (/PREMIUM/.test(c) || ((!c || /FULL_GAME|^GAME$/.test(c)) && PREMIUM_NAME.test(n))) return "premium";
   if (/BUNDLE/.test(c)) return "pacote";
-  if (/FULL_GAME|PREMIUM_EDITION|^GAME$/.test(c)) return "jogo";
+  if (/FULL_GAME|^GAME$/.test(c)) return "jogo";
   if (/ADD|SEASON|LEVEL|CHARACTER|COSTUME|MAP|VEHICLE|ITEM|EXPANSION|DLC|PACK/.test(c)) return "dlc";
   if (/APP|THEME|AVATAR|SOUNDTRACK|VIDEO|MUSIC/.test(c)) return "outro";
   if (/\b(season pass|passe de temporada|expans[ãa]o|expansion|dlc|add-on|complemento)\b/.test(n)) return "dlc";

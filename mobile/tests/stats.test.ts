@@ -280,3 +280,20 @@ describe("startYear", () => {
     expect(startYear({ ...a, lastUpdated: "" })).toBeNull();
   });
 });
+
+describe("situação dos jogos", () => {
+  it("cada jogo entra em uma só situação e a soma dá o total", () => {
+    const ts = [
+      { ...title("A", "a", "PS5", 100, c(1, 2, 3, 4)), hasGroups: true }, // 100% com DLC
+      { ...title("B", "b", "PS4", 100, c(1, 1, 1, 1)), defined: c(1, 1, 1, 1) }, // 100% sem DLC
+      { ...title("C", "c", "PS3", 100, c(0, 1, 2, 3)), defined: c(0, 1, 2, 3) }, // 100% PSN
+      { ...title("D", "d", "PS5", 80, c(1, 5, 5, 5)), hasGroups: true }, // platina sem 100%
+      title("E", "e", "PS4", 40, c(0, 1, 1, 1)), // não concluído
+      title("F", "f", "PS4", 0, c(0, 0, 0, 0)), // não concluído (sem troféu)
+    ];
+    const s = computeStats(ts, new Map());
+    expect([s.completed, s.completedNoDlc, s.completedPsn, s.platinumOnly, s.unfinished]).toEqual([1, 1, 1, 1, 2]);
+    expect(s.completed + s.completedNoDlc + s.completedPsn + s.platinumOnly + s.unfinished).toBe(s.games);
+    expect(s.platinums).toBe(3);
+  });
+});

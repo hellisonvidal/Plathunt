@@ -5,7 +5,15 @@ import { CompletionSummary } from "../components/Completion";
 import { PageHeader } from "../components/PageHeader";
 import { TitleList } from "../components/TitleList";
 import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge, TrophyStack } from "../components/ui";
-import { formatDuration, isComplete, isCompleteNoDlc, isCompletePsn, matchPlaytime } from "../lib/stats";
+import {
+  formatDuration,
+  isComplete,
+  isCompleteNoDlc,
+  isCompletePsn,
+  isPlatinumOnly,
+  isUnfinished,
+  matchPlaytime,
+} from "../lib/stats";
 import { useData } from "../lib/useData";
 import { PsPlusIcon } from "../components/icons";
 import { locale, t } from "../i18n";
@@ -124,13 +132,23 @@ export function ProfilePage() {
                     {totalPlay > 0 && t(" · ⏱ {time} jogados", { time: formatDuration(totalPlay) })}
                   </p>
                   {data.titles && (
-                    <p className="mt-1 text-xs text-muted">
-                      {t("💯 100%: {a} com DLC · {b} sem DLC · {c} PSN", {
-                        a: data.titles.filter(isComplete).length,
-                        b: data.titles.filter(isCompleteNoDlc).length,
-                        c: data.titles.filter(isCompletePsn).length,
-                      })}
-                    </p>
+                    // Situação dos jogos: cada jogo conta uma vez, e a soma dá o total de jogos.
+                    <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                      {(
+                        [
+                          ["100% com DLC", isComplete],
+                          ["100% sem DLC", isCompleteNoDlc],
+                          ["100% PSN", isCompletePsn],
+                          ["Platina sem 100%", isPlatinumOnly],
+                          ["Não concluídos", isUnfinished],
+                        ] as const
+                      ).map(([label, test]) => (
+                        <li key={label} className="flex items-center justify-between gap-2">
+                          <span className="truncate text-muted">{t(label)}</span>
+                          <span className="font-semibold tabular-nums">{data.titles!.filter(test).length}</span>
+                        </li>
+                      ))}
+                    </ul>
                   )}
                   {data.titles && <CompletionSummary titles={data.titles} />}
                 </>
