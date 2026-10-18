@@ -168,3 +168,29 @@ describe("edição premium", () => {
     expect(productKind(null, "Jogo X Standard Edition")).toBe("jogo");
   });
 });
+
+describe("pacotes e contagem dos filtros", () => {
+  it("reconhece pacotes de jogos pelo nome", async () => {
+    const { productKind } = await import("../src/lib/store");
+    expect(productKind(null, "Crash Bandicoot N. Sane Trilogy")).toBe("pacote");
+    expect(productKind("FULL_GAME", "Marvel's Spider-Man 2 + Miles Morales Bundle")).toBe("pacote");
+    expect(productKind(null, "Uncharted: Coleção Legado dos Ladrões")).toBe("pacote");
+    expect(productKind(null, "God of War Ragnarök")).toBe("jogo");
+  });
+
+  it("conta quantos jogos cada opção mostra", async () => {
+    const { filterCounts } = await import("../src/lib/store");
+    const list = [
+      product("1", "Jogo A", "R$ 100,00", "R$ 50,00"),
+      product("2", "Jogo B Bundle", "R$ 200,00", "R$ 200,00", ["PS4"]),
+      product("3", "Jogo C – Demo", "R$ 0,00", "R$ 0,00"),
+    ];
+    const f = { query: "", platform: "todas", onlyDiscount: false, hidePlus: false, hideFree: false, price: "todas", sort: "relevancia", kind: "todos" } as const;
+    const c = filterCounts(list, f, "pt-BR");
+    expect(c.kind).toMatchObject({ todos: 3, jogo: 1, pacote: 1, demo: 1 });
+    expect(c.kind.dlc ?? 0).toBe(0);
+    expect(c.platform).toMatchObject({ todas: 3, PS5: 2, PS4: 1 });
+    // Com o filtro de plataforma PS4, só o pacote conta nos tipos.
+    expect(filterCounts(list, { ...f, platform: "PS4" }, "pt-BR").kind).toMatchObject({ todos: 1, pacote: 1 });
+  });
+});

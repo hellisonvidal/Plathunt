@@ -6,6 +6,7 @@ import { ErrorBox, RemoteImage } from "../components/ui";
 import { locale, t } from "../i18n";
 import { useSettings } from "../lib/settings";
 import {
+  filterCounts,
   filterProducts,
   formatPrice,
   isNewLow,
@@ -125,7 +126,7 @@ export function StorePage() {
             ))}
           </nav>
 
-        <FilterBar filters={filters} onChange={setFilters} region={region} />
+        <FilterBar filters={filters} onChange={setFilters} region={region} products={deferredProducts} />
         {catalog.error ? <ErrorBox error={catalog.error} onRetry={catalog.refresh} /> : null}
 
         {/* Linha de status com altura fixa: o progresso não empurra a lista. */}
@@ -178,12 +179,20 @@ function FilterBar({
   filters,
   onChange,
   region,
+  products,
 }: {
   filters: StoreFilters;
   onChange: (f: StoreFilters) => void;
   region: StoreRegion;
+  /** Jogos carregados, para contar quantos cada opção mostra. */
+  products: StoreProduct[] | null;
 }) {
   const [open, setOpen] = useState(false);
+  // Contagem de cada opção (só com o painel aberto): opções vazias somem.
+  const counts = useMemo(
+    () => (open && products ? filterCounts(products, filters, region) : null),
+    [open, products, filters, region],
+  );
   const set = (patch: Partial<StoreFilters>) => onChange({ ...filters, ...patch });
   const active =
     (filters.platform !== "todas" ? 1 : 0) +
@@ -233,6 +242,7 @@ function FilterBar({
       {open && (
         <div className="space-y-3 rounded-xl border border-line bg-surface p-3 text-sm">
           <Chips
+            counts={counts?.platform}
             label={t("Plataforma")}
             options={[
               ["todas", t("Todas")],
@@ -243,12 +253,14 @@ function FilterBar({
             onChange={(platform) => set({ platform: platform as StoreFilters["platform"] })}
           />
           <Chips
+            counts={counts?.kind}
             label={t("Tipo")}
             options={[["todos", t("Todos")] as const, ...STORE_KINDS.map((k) => [k.value, t(k.label)] as const)]}
             value={filters.kind}
             onChange={(kind) => set({ kind: kind as StoreFilters["kind"] })}
           />
           <Chips
+            counts={counts?.price}
             label={t("Preço")}
             options={priceRanges(region).map((r) => [r.key, r.label] as const)}
             value={priceRangeKey(filters.price)}
@@ -363,17 +375,21 @@ function Chips({
   options,
   value,
   onChange,
+  counts,
 }: {
   label: string;
   options: (readonly [string, string])[];
   value: string;
   onChange: (v: string) => void;
+  /** Quantos jogos cada opção mostra: a contagem aparece e as opções vazias somem (menos a escolhida e a primeira, "todas"). */
+  counts?: Record<string, number>;
 }) {
+  const shown = counts ? options.filter(([v], i) => i === 0 || v === value || (counts[v] ?? 0) > 0) : options;
   return (
     <div>
       <p className="mb-1.5 text-xs text-muted">{label}</p>
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={label}>
-        {options.map(([v, l]) => (
+        {shown.map(([v, l]) => (
           <button
             key={v}
             role="radio"
@@ -382,6 +398,7 @@ function Chips({
             className={`rounded-full px-3 py-1 ${value === v ? "bg-ps-blue font-semibold" : "border border-line text-muted"}`}
           >
             {l}
+            {counts && <span className="ml-1 tabular-nums opacity-70">{(counts[v] ?? 0).toLocaleString(locale())}</span>}
           </button>
         ))}
       </div>

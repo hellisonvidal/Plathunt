@@ -45,6 +45,10 @@ export const STORE_KINDS: { value: StoreKind; label: string }[] = [
 const PREMIUM_NAME =
   /\b(deluxe|ultimate|premium|gold edition|digital deluxe|definitive|complete edition|game of the year|goty|collector'?s|special edition|vault edition|super deluxe|edi[çc][ãa]o (deluxe|definitiva|completa|especial|de luxo|ouro|suprema|premium|digital deluxe))\b/;
 
+/** Nomes de pacotes de jogos (Bundle, Pacote, Coleção, Trilogia, "Jogo A + Jogo B"...). */
+const BUNDLE_NAME =
+  /\b(bundle|pacote|combo|double pack|pack duplo|collection|cole[çc][ãa]o|trilogy|trilogia|anthology|antologia|duologia|duology)\b|\s\+\s/;
+
 /**
  * Tipo do produto pela classificação da loja (storeDisplayClassification:
  * FULL_GAME, GAME_BUNDLE, ADD-ON_PACK, DEMO, TRIAL, VIRTUAL_CURRENCY...) e,
@@ -57,7 +61,7 @@ export function productKind(classification: string | null | undefined, name: str
   if (/DEMO/.test(c) || /\bdemo\b/.test(n)) return "demo";
   if (/CURRENCY/.test(c) || /\b(v-bucks|moedas|coins|points pack|cr[ée]ditos)\b/.test(n)) return "moeda";
   if (/PREMIUM/.test(c) || ((!c || /FULL_GAME|^GAME$/.test(c)) && PREMIUM_NAME.test(n))) return "premium";
-  if (/BUNDLE/.test(c)) return "pacote";
+  if (/BUNDLE/.test(c) || ((!c || /FULL_GAME|^GAME$/.test(c)) && BUNDLE_NAME.test(n))) return "pacote";
   if (/FULL_GAME|^GAME$/.test(c)) return "jogo";
   if (/ADD|SEASON|LEVEL|CHARACTER|COSTUME|MAP|VEHICLE|ITEM|EXPANSION|DLC|PACK/.test(c)) return "dlc";
   if (/APP|THEME|AVATAR|SOUNDTRACK|VIDEO|MUSIC/.test(c)) return "outro";
@@ -270,26 +274,54 @@ export function priceRanges(region: StoreRegion): { key: string; label: string; 
 export const priceRangeKey = (r: PriceRange) =>
   typeof r === "string" ? r : r.max === null ? `${(r.min ?? 1) - 1}+` : `${(r.min ?? 1) - 1}-${r.max}`;
 
-function inRange(p: StoreProduct, r: PriceRange): boolean {
+export function inRange(p: StoreProduct, r: PriceRange): boolean {
   if (r === "todas") return true;
   if (r === "gratis") return p.isFree || p.price === 0;
   if (p.price === null || p.isFree || p.price === 0) return false;
   return (r.min === null || p.price >= r.min) && (r.max === null || p.price <= r.max);
 }
 
+/** O produto passa nos filtros (menos o filtro `skip`, para contar as opções dele). */
+function matches(p: StoreProduct, f: StoreFilters, skip?: "platform" | "kind" | "price"): boolean {
+  const q = f.query.trim().toLowerCase();
+  return (
+    (!q || p.name.toLowerCase().includes(q)) &&
+    (skip === "platform" || f.platform === "todas" || p.platforms.includes(f.platform)) &&
+    (!f.onlyDiscount || p.discount > 0) &&
+    !(f.hidePlus && p.plus) &&
+    !(f.hideFree && (p.isFree || p.price === 0)) &&
+    (skip === "kind" || !f.kind || f.kind === "todos" || kindOf(p) === f.kind) &&
+    (skip === "price" || inRange(p, f.price))
+  );
+}
+
+/**
+ * Quantos produtos cada opção dos filtros mostraria (com os demais filtros
+ * como estão), para mostrar a contagem e esconder as opções vazias.
+ */
+export function filterCounts(products: StoreProduct[], f: StoreFilters, region: StoreRegion) {
+  const platform: Record<string, number> = { todas: 0, PS5: 0, PS4: 0 };
+  const kind: Record<string, number> = { todos: 0 };
+  const price: Record<string, number> = {};
+  const ranges = priceRanges(region);
+  for (const p of products) {
+    if (matches(p, f, "platform")) {
+      platform.todas++;
+      for (const x of p.platforms) if (x in platform) platform[x]++;
+    }
+    if (matches(p, f, "kind")) {
+      kind.todos++;
+      const k = kindOf(p);
+      kind[k] = (kind[k] ?? 0) + 1;
+    }
+    if (matches(p, f, "price")) for (const r of ranges) if (inRange(p, r.range)) price[r.key] = (price[r.key] ?? 0) + 1;
+  }
+  return { platform, kind, price };
+}
+
 /** Aplica busca, filtros e ordenação (a ordem da loja é a de "mais vendidos"). */
 export function filterProducts(products: StoreProduct[], f: StoreFilters): StoreProduct[] {
-  const q = f.query.trim().toLowerCase();
-  const list = products.filter(
-    (p) =>
-      (!q || p.name.toLowerCase().includes(q)) &&
-      (f.platform === "todas" || p.platforms.includes(f.platform)) &&
-      (!f.onlyDiscount || p.discount > 0) &&
-      !(f.hidePlus && p.plus) &&
-      !(f.hideFree && (p.isFree || p.price === 0)) &&
-      (!f.kind || f.kind === "todos" || kindOf(p) === f.kind) &&
-      inRange(p, f.price),
-  );
+  const list = products.filter((p) => matches(p, f));
   const price = (p: StoreProduct) => p.price ?? Number.MAX_SAFE_INTEGER;
   switch (f.sort) {
     case "desconto":
