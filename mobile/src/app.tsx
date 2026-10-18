@@ -15,12 +15,13 @@ import { createPsnClient } from "./psn/client";
 import { createDemoClient } from "./psn/demo";
 import type { PsnClient } from "./psn/types";
 import { CloudNotice } from "./components/CloudNotice";
+import { disconnectCloud } from "./lib/cloud";
 import { WhatsNewOnUpdate } from "./components/WhatsNew";
 import { ControllerIcon, FriendsIcon, ProfileIcon, StatsIcon, StoreIcon } from "./components/icons";
 import { ActivityPage } from "./pages/Activity";
 import { FriendsPage } from "./pages/Friends";
 import { GamePage } from "./pages/Game";
-import { LoginPage } from "./pages/Login";
+import { LoginPage, skipSilentLogin } from "./pages/Login";
 import { ProfilePage } from "./pages/Profile";
 import { SettingsPage, ThemesPage } from "./pages/Settings";
 import { StorePage } from "./pages/Store";
@@ -68,6 +69,12 @@ export function App() {
         // Sem motivo = o usuário tocou em "Sair": esquece também a conta da Sony,
         // a não ser que ele tenha pedido para lembrar (Configurações → Conta).
         clearSession(!reason && !getSettings().keepSonyLogin);
+        if (!reason) {
+          // Saiu por vontade própria: não entra de novo sozinho, e a identidade
+          // dos recursos online não passa para a próxima conta.
+          skipSilentLogin();
+          void disconnectCloud();
+        }
         persistRemove(MODE_KEY);
         setNotice(reason ?? null);
         setMode(null);
@@ -146,6 +153,8 @@ function BackButton() {
  * Links de pedido de boost (trophymania://boost?d=…): guardam o pedido em
  * "Pedidos recebidos" e abrem essa tela.
  */
+let launchUrlHandled = false;
+
 function BoostLinks() {
   const navigate = useNavigate();
   const { client } = useApp();
@@ -158,9 +167,13 @@ function BoostLinks() {
     };
     let remove: (() => void) | undefined;
     if (Capacitor.isNativePlatform()) {
-      void CapApp.getLaunchUrl()
-        .then((launch) => open(launch?.url))
-        .catch(() => {});
+      // O link que abriu o app vale uma vez só (trocar o idioma ou de conta remonta o app).
+      if (!launchUrlHandled) {
+        launchUrlHandled = true;
+        void CapApp.getLaunchUrl()
+          .then((launch) => open(launch?.url))
+          .catch(() => {});
+      }
       void CapApp.addListener("appUrlOpen", ({ url }) => void open(url)).then((h) => (remove = () => void h.remove()));
     }
     return () => remove?.();
@@ -234,7 +247,7 @@ const TABS = [
 
 function TabBar() {
   return (
-    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/95 backdrop-blur">
+    <nav className="safe-bottom safe-x fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/95 backdrop-blur">
       <div className="mx-auto flex max-w-2xl">
         {TABS.map((tab) => (
           <NavLink

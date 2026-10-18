@@ -476,7 +476,7 @@ function ProductGrid({
   }
   return (
     <>
-      <ul className="grid grid-cols-2 gap-3">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {products.slice(0, shown).map((p) => (
           <li key={p.id}>
             <ProductCard product={p} region={region} />
@@ -495,7 +495,7 @@ function ProductGrid({
 /** Cartões "fantasma" no formato dos jogos enquanto a loja carrega. */
 function SkeletonGrid({ count = 6 }: { count?: number }) {
   return (
-    <ul className="grid grid-cols-2 gap-3" aria-hidden>
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3" aria-hidden>
       {Array.from({ length: count }, (_, i) => (
         <li key={i} className="overflow-hidden rounded-2xl border border-line bg-surface">
           <div className="aspect-square w-full animate-pulse bg-surface-2" />

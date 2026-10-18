@@ -93,7 +93,7 @@ A engrenagem no topo das abas abre as Configurações:
 - **Loja**: país da PlayStation Store (Brasil, Portugal, Estados Unidos, México, Argentina ou Espanha), que define a moeda e os preços, e de quanto em quanto tempo a loja salva no celular é atualizada (padrão: **só ao puxar a tela da loja**; ou a cada 30 minutos, 6 horas ou uma vez por dia).
 - **Geral**: aba em que o app abre.
 - **Dados**: atualizar tudo da PSN agora e apagar as curtidas.
-- **Atualizações**: versão instalada e "Verificar atualizações", que compara com a última Release do GitHub. "Baixar e instalar" baixa o APK dentro do app, com barra de progresso (`AppUpdaterPlugin.java`, só aceita endereços do GitHub), e abre o instalador do Android. Na primeira vez, o Android pede para permitir que o app instale atualizações.
+- **Atualizações**: versão instalada e "Verificar atualizações", que compara com a última Release do GitHub. "Baixar e instalar" baixa o APK dentro do app, com barra de progresso (`AppUpdaterPlugin.java`, só aceita endereços do GitHub), e abre o instalador do Android. Na primeira vez, o Android pede para permitir que o app instale atualizações. Na versão da **Play Store** (AAB gerado junto, sem a atualização por dentro do app), o botão vira "Abrir na Play Store"; o passo a passo de publicação está em [docs/play-store.md](docs/play-store.md).
 
 ### Abas
 

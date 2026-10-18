@@ -20,7 +20,8 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(PsnLoginPlugin.class);
-        registerPlugin(AppUpdaterPlugin.class);
+        // Atualização por dentro do app: só na versão do GitHub (src/github).
+        for (Class<? extends com.getcapacitor.Plugin> plugin : FlavorPlugins.list()) registerPlugin(plugin);
         registerPlugin(ExternalBrowserPlugin.class);
         super.onCreate(savedInstanceState);
         applyTextZoom();
@@ -61,7 +62,7 @@ public class MainActivity extends BridgeActivity {
      * barra de navegação. Alguns WebViews não informam essas áreas pelo CSS
      * (env(safe-area-inset-*)), e os menus ficavam por cima do conteúdo e das
      * barras. Aqui o app mede quanto das barras cobre o WebView e passa para
-     * a página em --tm-inset-top / --tm-inset-bottom (styles.css).
+     * a página em --tm-inset-top / -bottom / -left / -right (styles.css).
      */
     private void publishInsets() {
         try {
@@ -74,16 +75,23 @@ public class MainActivity extends BridgeActivity {
             int[] location = new int[2];
             webView.getLocationOnScreen(location);
             int screenHeight = webView.getRootView().getHeight();
+            int screenWidth = webView.getRootView().getWidth();
             int top = Math.max(0, bars.top - location[1]);
             int bottom = Math.max(0, location[1] + webView.getHeight() - (screenHeight - bars.bottom));
+            // Com o celular deitado, o recorte da câmera e os botões ficam nas laterais.
+            int left = Math.max(0, bars.left - location[0]);
+            int right = Math.max(0, location[0] + webView.getWidth() - (screenWidth - bars.right));
             float density = getResources().getDisplayMetrics().density;
-            String css = Math.round(top / density) + "px," + Math.round(bottom / density) + "px";
+            String css = Math.round(top / density) + "px," + Math.round(bottom / density) + "px,"
+                + Math.round(left / density) + "px," + Math.round(right / density) + "px";
             if (css.equals(lastInsets)) return;
             lastInsets = css;
             String[] parts = css.split(",");
             webView.post(() -> webView.evaluateJavascript(
                 "document.documentElement.style.setProperty('--tm-inset-top','" + parts[0] + "');"
-                    + "document.documentElement.style.setProperty('--tm-inset-bottom','" + parts[1] + "');",
+                    + "document.documentElement.style.setProperty('--tm-inset-bottom','" + parts[1] + "');"
+                    + "document.documentElement.style.setProperty('--tm-inset-left','" + parts[2] + "');"
+                    + "document.documentElement.style.setProperty('--tm-inset-right','" + parts[3] + "');",
                 null));
         } catch (RuntimeException ignored) {
         }

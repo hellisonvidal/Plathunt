@@ -118,9 +118,22 @@ export function setInboxStatus(id: string, status: ReceivedBoost["status"]) {
   if (found?.cloudId && status === "aceito") void answerBoostRequest(found.cloudId, "aceito").catch(() => {});
 }
 
+/** Pedidos online que o jogador apagou: não voltam na próxima sincronização. */
+const DISMISSED_KEY = "tm.boostInboxDismissed" as const;
+
+function getDismissed(): string[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(DISMISSED_KEY) ?? "[]");
+    return Array.isArray(list) ? list.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export function removeFromInbox(id: string) {
   const list = getInbox();
   const found = list.find((r) => r.id === id);
+  if (found?.cloudId) persistSet(DISMISSED_KEY, JSON.stringify([found.cloudId, ...getDismissed()].slice(0, 500)));
   // Recusar um pedido que veio pelo app avisa quem pediu.
   if (found?.cloudId && found.status === "novo") void answerBoostRequest(found.cloudId, "recusado").catch(() => {});
   save(list.filter((r) => r.id !== id));
@@ -133,7 +146,7 @@ export function removeFromInbox(id: string) {
 export async function syncCloudInbox(now = new Date()): Promise<ReceivedBoost[]> {
   const { received } = await myBoostRequests();
   const list = getInbox();
-  const known = new Set(list.map((r) => r.cloudId).filter(Boolean));
+  const known = new Set([...list.map((r) => r.cloudId).filter(Boolean), ...getDismissed()]);
   const added: ReceivedBoost[] = [];
   for (const r of received) {
     if (known.has(r.id) || r.status === "recusado") continue;

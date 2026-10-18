@@ -38,6 +38,14 @@ export const AppUpdater = registerPlugin<AppUpdaterPlugin>("AppUpdater");
 
 export const isNativeApp = () => Capacitor.isNativePlatform();
 
+/**
+ * Versão da Play Store: o app não tem o plugin de atualização (o Google não
+ * deixa o app se atualizar sozinho), e as versões novas chegam pela loja.
+ */
+export const isPlayStoreBuild = () => isNativeApp() && !Capacitor.isPluginAvailable("AppUpdater");
+
+export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.hellisonvidal.perseus";
+
 /** Plugin nativo (android/.../ExternalBrowserPlugin.java). */
 interface ExternalBrowserPlugin {
   /** Abre o endereço no navegador, sem deixar outro app (ex.: o da PlayStation) capturar o link. */

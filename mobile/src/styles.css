@@ -22,12 +22,14 @@
 
 /*
  * Escala da interface: tudo (texto, espaçamentos, ícones, avatares) é medido
- * em rem, e o rem acompanha a largura da tela. Em um celular de 390 px de
- * largura fica em 16 px; telas estreitas encolhem até 14 px e telas largas
- * (celulares grandes, tablets, paisagem) crescem até 18 px.
+ * em rem, e o rem acompanha o lado menor da tela (vmin). Em um celular de
+ * 390 px de largura fica em 16 px; telas estreitas encolhem até 14 px e telas
+ * largas (celulares grandes, tablets) crescem até 18 px. Por ser o lado menor,
+ * o celular deitado mantém o tamanho de em pé, em vez de crescer e esconder
+ * o conteúdo na pouca altura que sobra.
  */
 html {
-  font-size: clamp(14px, 4.1vw, 18px);
+  font-size: clamp(14px, 4.1vmin, 18px);
   color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
 }
@@ -270,6 +272,15 @@ body {
 :root {
   --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px), var(--tm-inset-top, 0px));
   --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px), var(--tm-inset-bottom, 0px));
+  /* Laterais: recorte da câmera e barra de navegação com o celular deitado. */
+  --sal: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px), var(--tm-inset-left, 0px));
+  --sar: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px), var(--tm-inset-right, 0px));
+}
+
+body,
+.safe-x {
+  padding-left: var(--sal);
+  padding-right: var(--sar);
 }
 
 .safe-top {

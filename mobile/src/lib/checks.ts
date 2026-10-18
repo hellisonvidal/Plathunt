@@ -19,6 +19,7 @@ import { countReactedItems } from "./reactions";
 import { BUILD_NUMBER, getSettings } from "./settings";
 import { matchPlayed } from "./stats";
 import { checkForUpdate } from "./updates";
+import { isPlayStoreBuild } from "../psn/native";
 import { syncCloudInbox } from "./boostInbox";
 import { cloudIdentity, likesOnMine } from "./cloud";
 
@@ -158,6 +159,9 @@ async function checkFriends(client: PsnClient, since: string | null, now: number
   if (!since) return stamp;
   const feed = await client.feed().catch(() => []);
   const plats = feed.filter((i) => !i.owner.isMe && i.trophy.type === "platinum" && i.earnedAt > since).slice(0, 3);
+  // O próximo ponto de partida é a conquista mais recente que chegou de fato
+  // (a lista pode estar até meia hora atrasada; sem resposta, fica onde estava).
+  const newest = feed.reduce((max, i) => (i.earnedAt > max ? i.earnedAt : max), since);
   for (const item of plats) {
     await notify(
       "friends",
@@ -168,7 +172,7 @@ async function checkFriends(client: PsnClient, since: string | null, now: number
       `/game/${item.owner.accountId}/${item.game.id}?service=${item.game.service}`,
     );
   }
-  return stamp;
+  return newest;
 }
 
 /** Recursos online: curtidas nas suas conquistas e pedidos de boost que chegaram. */
@@ -204,7 +208,8 @@ async function checkSocial(since: string | null, now: number): Promise<string | 
 
 async function checkUpdate(notified: number | null): Promise<number | null> {
   const current = Number(BUILD_NUMBER);
-  if (!Number.isFinite(current)) return notified;
+  // Na versão da Play Store, a própria loja avisa e instala as atualizações.
+  if (!Number.isFinite(current) || isPlayStoreBuild()) return notified;
   const result = await checkForUpdate();
   if (result.status !== "available" || result.latest === notified) return notified;
   await notify("updates", `update:${result.latest}`, t("⬇️ Nova versão do Trophy Mania"), t("Toque em Configurações → Atualizações para instalar."));

@@ -1,6 +1,6 @@
 name: Android APK
 
-# Gera o APK do PlayStation Trophy Mania. Roda sozinho a cada mudança no app e
+# Gera o APK do PlayStation Trophy Mania (versão do GitHub) e o AAB da Play Store. Roda sozinho a cada mudança no app e
 # também manualmente em Actions → Android APK → Run workflow.
 # - Em qualquer branch: o APK fica em "Artifacts" (trophy-mania-android).
 # - Na main: também publica uma Release "build-N" com o APK, que é o que o botão
@@ -53,14 +53,43 @@ jobs:
       - name: Sincronizar projeto Android
         run: npx cap sync android
 
-      - name: Compilar APK
+      # Chave de envio da Play Store (segredos do repositório, ver docs/play-store.md).
+      # Sem os segredos, o pacote da Play Store é compilado (para conferir) mas sai sem assinatura.
+      - name: Preparar chave da Play Store
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.keystore"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/upload.keystore" >> "$GITHUB_ENV"
+          else
+            echo "::notice::Sem ANDROID_KEYSTORE_BASE64: o AAB da Play Store sai sem assinatura."
+          fi
+
+      - name: Compilar APK (GitHub) e AAB (Play Store)
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleGithubDebug bundlePlayRelease --no-daemon
+
+      - name: Apagar chave da Play Store
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.keystore"
 
       - uses: actions/upload-artifact@v4
         with:
           name: trophy-mania-android
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/github/debug/app-github-debug.apk
+          if-no-files-found: error
+
+      # Pacote para enviar na Play Console (Produção, Teste interno...).
+      - uses: actions/upload-artifact@v4
+        if: env.ANDROID_KEYSTORE_FILE != ''
+        with:
+          name: trophy-mania-play-store
+          path: android/app/build/outputs/bundle/playRelease/app-play-release.aab
           if-no-files-found: error
 
       - name: Publicar versão (Release)
@@ -69,8 +98,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           NOTES: ${{ github.event.head_commit.message }}
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk PlayStation-Trophy-Mania.apk
+          cp android/app/build/outputs/apk/github/debug/app-github-debug.apk PlayStation-Trophy-Mania.apk
           gh release create "build-$BUILD_NUMBER" PlayStation-Trophy-Mania.apk \
-            --title "PlayStation Trophy Mania 1.1.0 (build $BUILD_NUMBER)" \
+            --title "PlayStation Trophy Mania 1.2 (build $BUILD_NUMBER)" \
             --notes "${NOTES:-Nova versão}" \
             --target "$GITHUB_SHA"
