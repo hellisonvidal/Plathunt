@@ -190,6 +190,34 @@ describe("pacotes e contagem dos filtros", () => {
     expect(productKind(null, "God of War Ragnarök")).toBe("jogo");
   });
 
+  it("separa edição premium, pacote e avaliação", async () => {
+    const { productKind, kindOf, toStoreProduct } = await import("../src/lib/store");
+    // A classificação da loja vale mais que o nome.
+    expect(productKind("GAME_BUNDLE · Pacote de jogos", "Call of Duty Vault Edition")).toBe("pacote");
+    expect(productKind("PREMIUM_EDITION · Edição premium", "Jogo X")).toBe("premium");
+    expect(productKind("ADD-ON_PACK · Complemento", "Pacote X")).toBe("dlc");
+    // Palavras de edição só contam como edição, não no meio do título.
+    expect(productKind(null, "Marvel Ultimate Alliance")).toBe("jogo");
+    expect(productKind(null, "Ultimate Chicken Horse")).toBe("jogo");
+    expect(productKind("FULL_GAME", "Mortal Kombat 11 Ultimate")).toBe("premium");
+    expect(productKind("FULL_GAME", "EA SPORTS FC 25 Edição Ultimate")).toBe("premium");
+    expect(productKind(null, "The Witcher 3 – Edição Jogo do Ano")).toBe("premium");
+    // Jogo + passe/DLC é edição premium; vários jogos juntos são pacote.
+    expect(productKind("FULL_GAME", "Elden Ring + Passe de Temporada")).toBe("premium");
+    expect(productKind("FULL_GAME", "Crash + Spyro Bundle")).toBe("pacote");
+    expect(productKind("FULL_GAME", "Deluxe Bundle")).toBe("pacote");
+    expect(productKind(null, "Assassin's Creed 2 em 1")).toBe("pacote");
+    expect(productKind(null, "Pacote de trajes Ninja")).toBe("dlc");
+    // Avaliações de jogo, mesmo marcadas como jogo completo.
+    expect(productKind("FULL_GAME · Jogo completo", "Avaliação do jogo: Hogwarts Legacy")).toBe("avaliacao");
+    expect(productKind("TRIAL", "Hogwarts Legacy")).toBe("avaliacao");
+    // O tipo é recalculado com as regras atuais, inclusive em listas salvas antigas.
+    const raw = { id: "x", name: "Jogo X", storeDisplayClassification: "PREMIUM_EDITION", price: { basePrice: "R$ 10,00" } };
+    expect(kindOf(toStoreProduct(raw))).toBe("premium");
+    const old = { ...toStoreProduct({ id: "y", name: "Marvel Ultimate Alliance" }), kind: "premium" as const, classification: undefined };
+    expect(kindOf(old)).toBe("jogo");
+  });
+
   it("conta quantos jogos cada opção mostra", async () => {
     const { filterCounts } = await import("../src/lib/store");
     const list = [

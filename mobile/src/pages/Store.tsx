@@ -519,19 +519,22 @@ function PriceInfo({ product: p, region }: { product: StoreProduct; region: Stor
     ? t("Menor já visto: {price} em {date}", { date: new Date(history.minAt).toLocaleDateString(locale()) }).split("{price}")
     : [];
   return (
-    <div className="mt-1">
-      <div className="flex flex-wrap items-baseline gap-x-1.5">
-        <span className="text-sm font-bold">{p.isFree ? t("Grátis") : (p.priceText ?? "—")}</span>
-        {p.discount > 0 && p.basePriceText && <span className="text-[0.6875rem] text-muted line-through">{p.basePriceText}</span>}
-      </div>
+    // Fica no pé do cartão: os preços de uma mesma linha da grade ficam alinhados.
+    <div className="mt-auto pt-1">
       {lowestSeen && (
-        <p className="text-[0.6875rem] text-muted">
+        <p className="text-[0.6875rem] leading-tight text-muted">
           {lowestParts[0]}
           <strong className="text-ink">{formatPrice(history.min, region)}</strong>
           {lowestParts[1]}
         </p>
       )}
-      {atLowest && <p className="text-[0.6875rem] font-semibold text-ps-blue-2">{t("🔥 Menor preço já visto pelo app")}</p>}
+      {atLowest && <p className="text-[0.6875rem] font-semibold leading-tight text-ps-blue-2">{t("🔥 Menor preço já visto pelo app")}</p>}
+      <div className="flex items-baseline gap-x-1.5 overflow-hidden whitespace-nowrap">
+        <span className="shrink-0 text-sm font-bold">{p.isFree ? t("Grátis") : (p.priceText ?? "—")}</span>
+        {p.discount > 0 && p.basePriceText && (
+          <span className="truncate text-[0.6875rem] text-muted line-through">{p.basePriceText}</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -549,7 +552,7 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
         e.preventDefault();
         void openInBrowser(storeProductUrl(p.id, region));
       }}
-      className="block overflow-hidden rounded-2xl border border-line bg-surface"
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface"
     >
       <div className="relative bg-surface-2">
         <RemoteImage
@@ -572,18 +575,18 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
           </span>
         )}
       </div>
-      <div className="p-2.5">
+      <div className="flex flex-1 flex-col p-2.5">
         <p className="line-clamp-2 text-xs font-semibold leading-snug">{p.name}</p>
-        <p className="mt-0.5 flex flex-wrap items-center gap-1 text-[0.625rem] text-muted">
+        <p className="mt-0.5 flex items-center gap-1 overflow-hidden whitespace-nowrap text-[0.625rem] text-muted">
           {/* Tipo do produto: jogo completo, demo, avaliação, DLC... */}
           <span
-            className={`rounded px-1 py-px font-semibold ${
+            className={`shrink-0 rounded px-1 py-px font-semibold ${
               kindOf(p) === "jogo" ? "bg-surface-2 text-muted" : "bg-ps-blue-2/10 text-ps-blue-2"
             }`}
           >
             {t(STORE_KINDS.find((k) => k.value === kindOf(p))!.label)}
           </span>
-          {p.platforms.join(" · ")}
+          <span className="truncate">{p.platforms.join(" · ")}</span>
         </p>
         <PriceInfo product={p} region={region} />
       </div>
