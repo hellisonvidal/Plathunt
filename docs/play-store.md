@@ -53,7 +53,7 @@ segredos, o AAB é compilado só para conferir e não é publicado como artefato
    - **Anúncios**: não.
    - **Classificação de conteúdo**: questionário (sem violência, sem compras; tem interação entre usuários só por curtidas e pedidos de boost).
    - **Público-alvo**: 13 anos ou mais.
-   - **Segurança dos dados** (com os recursos online ligados): coleta **ID de usuário** (ID e avatar da PSN) e **outro conteúdo gerado pelo usuário** (curtidas e pedidos de boost), para *funcionalidade do app*; criptografado em trânsito; o usuário pode pedir a exclusão (ver a política). Senha da PSN: **não** é coletada (o login é na página da Sony). Troféus e amigos ficam só no aparelho.
+   - **Segurança dos dados** (com os recursos online ligados): coleta **ID de usuário** (ID e avatar da PSN) e **outro conteúdo gerado pelo usuário** (curtidas e pedidos de boost), para *funcionalidade do app*; criptografado em trânsito; o usuário pode apagar os dados no próprio app (Configurações → Recursos online → Apagar meus dados do servidor). Senha da PSN: **não** é coletada (o login é na página da Sony). Troféus e amigos ficam só no aparelho.
 5. **Página da loja**: ícone 512×512 (`assets/play-store/icone-512.png`), imagem de destaque 1024×500 (`assets/play-store/destaque-1024x500.png`), capturas de tela (abaixo), descrição curta e completa.
 
 ### Capturas de tela

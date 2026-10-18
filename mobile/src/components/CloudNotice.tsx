@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { t } from "../i18n";
-import { cloudIdentity, connectCloud, disconnectCloud, PRIVACY_URL } from "../lib/cloud";
+import { cloudAvailable, cloudIdentity, connectCloud, disconnectCloud, PRIVACY_URL } from "../lib/cloud";
 import { getSettings, updateSettings } from "../lib/settings";
 
 /** Liga os recursos online sem incomodar (sem rede, tenta de novo na próxima abertura). */
 async function connectQuietly() {
-  if (await cloudIdentity()) return;
+  if (!cloudAvailable() || (await cloudIdentity())) return;
   await connectCloud().catch(() => {});
 }
 
@@ -23,7 +23,8 @@ export function CloudNotice() {
     if (cloudNoticeSeen && !cloudOff) void connectQuietly();
   }, []);
 
-  if (!open) return null;
+  // Build sem o servidor dos recursos online: nada a perguntar.
+  if (!open || !cloudAvailable()) return null;
 
   const choose = (keep: boolean) => {
     updateSettings({ cloudNoticeSeen: true, cloudOff: !keep });

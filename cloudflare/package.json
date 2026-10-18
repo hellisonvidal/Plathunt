@@ -1,0 +1,14 @@
+{
+  "name": "plathunt-api",
+  "private": true,
+  "type": "module",
+  "description": "Servidor dos recursos online do Plathunt (Cloudflare Workers + D1).",
+  "scripts": {
+    "check": "tsc",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "wrangler": "4.143.0"
+  }
+}
