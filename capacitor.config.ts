@@ -16,6 +16,8 @@ const config: CapacitorConfig = {
     // Faz o fetch() passar pela pilha HTTP nativa: a API da PSN não aceita
     // chamadas de navegador (CORS), mas aceita as do app.
     CapacitorHttp: { enabled: true },
+    // Ícone das notificações: troféu de platina (android/app/src/main/res/drawable/ic_stat_trophy.xml).
+    LocalNotifications: { smallIcon: "ic_stat_trophy", iconColor: "#7fc4ec" },
   },
 };
 

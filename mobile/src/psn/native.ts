@@ -37,3 +37,28 @@ interface AppUpdaterPlugin {
 export const AppUpdater = registerPlugin<AppUpdaterPlugin>("AppUpdater");
 
 export const isNativeApp = () => Capacitor.isNativePlatform();
+
+/** Plugin nativo (android/.../ExternalBrowserPlugin.java). */
+interface ExternalBrowserPlugin {
+  /** Abre o endereço no navegador, sem deixar outro app (ex.: o da PlayStation) capturar o link. */
+  open(options: { url: string }): Promise<void>;
+}
+
+const ExternalBrowser = registerPlugin<ExternalBrowserPlugin>("ExternalBrowser");
+
+/**
+ * Abre um link no navegador. No app Android usa o plugin nativo (o app da
+ * PlayStation capturava os links da loja e abria na tela inicial dele); se o
+ * plugin falhar, ou fora do app, abre do jeito normal.
+ */
+export async function openInBrowser(url: string): Promise<void> {
+  if (isNativeApp()) {
+    try {
+      await ExternalBrowser.open({ url });
+      return;
+    } catch {
+      // Segue para o jeito normal.
+    }
+  }
+  window.open(url, "_blank", "noopener");
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone das notificações: troféu de platina (o Android pinta de branco/cor de destaque). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M7,3h10v2h3v3a4,4 0,0 1,-4 4h-0.3A5,5 0,0 1,13 14.9V18h3v3H8v-3h3v-3.1A5,5 0,0 1,8.3 12H8a4,4 0,0 1,-4 -4V5h3V3Zm0,4H6v1a2,2 0,0 0,1 1.7V7Zm10,0v2.7A2,2 0,0 0,18 8V7h-1Z" />
+</vector>

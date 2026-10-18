@@ -56,6 +56,18 @@ export const STORE_CATEGORIES = [
   { id: PLUS_ID, label: "PS Plus" },
 ] as const;
 
+/** De quanto em quanto tempo a loja salva no celular é atualizada (Configurações). */
+export const STORE_REFRESH = [
+  { value: "30m", label: "A cada 30 minutos", ms: 30 * 60_000 },
+  { value: "6h", label: "A cada 6 horas", ms: 6 * 3_600_000 },
+  { value: "24h", label: "Uma vez por dia", ms: 24 * 3_600_000 },
+  { value: "manual", label: "Só quando eu puxar para atualizar", ms: Number.POSITIVE_INFINITY },
+] as const;
+export type StoreRefresh = (typeof STORE_REFRESH)[number]["value"];
+
+export const storeRefreshMs = (value: StoreRefresh) =>
+  (STORE_REFRESH.find((o) => o.value === value) ?? STORE_REFRESH[1]).ms;
+
 /** Regiões da loja (definem moeda e preços). */
 export const STORE_REGIONS = [
   { value: "pt-BR", label: "Brasil" },

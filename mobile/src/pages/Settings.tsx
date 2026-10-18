@@ -8,7 +8,7 @@ import { clearReactions } from "../lib/reactions";
 import { connectCloud, disconnectCloud, PRIVACY_URL, useCloud } from "../lib/cloud";
 import { cancelAllNotifications, requestNotificationPermission } from "../lib/notify";
 import { appVersion, updateSettings, useSettings, type Settings } from "../lib/settings";
-import { STORE_REGIONS } from "../lib/store";
+import { STORE_REFRESH, STORE_REGIONS } from "../lib/store";
 import { LANGUAGES, locale, t } from "../i18n";
 import { applyTheme, THEMES } from "../lib/theme";
 import { checkForUpdate, RELEASES_PAGE, type UpdateResult } from "../lib/updates";
@@ -109,6 +109,15 @@ export function SettingsPage() {
             value={settings.storeRegion}
             onChange={(storeRegion) => updateSettings({ storeRegion })}
           />
+          <Choice
+            label={t("Atualizar a loja salva no celular")}
+            options={STORE_REFRESH.map((o) => ({ value: o.value, label: t(o.label) }))}
+            value={settings.storeRefresh}
+            onChange={(storeRefresh) => updateSettings({ storeRefresh })}
+          />
+          <p className="px-4 pb-4 text-xs text-muted">
+            {t("A loja fica salva no celular e abre na hora. Puxe a tela da loja para baixo para atualizar quando quiser.")}
+          </p>
         </Section>
 
         <Section title={t("Geral")}>
@@ -126,7 +135,12 @@ export function SettingsPage() {
 
         <Section title={t("Notificações")}>
           <Toggle
-            label={t("🔔 Notificações")}
+            label={
+              <span className="flex items-center gap-1.5">
+                <PlatinumTrophy />
+                {t("Notificações")}
+              </span>
+            }
             hint={t("Desligue para não receber nenhuma notificação do app")}
             checked={settings.notifications}
             onChange={(notifications) => {
@@ -202,7 +216,7 @@ export function SettingsPage() {
       </div>
 
       {toast && (
-        <div className="fixed inset-x-4 bottom-24 z-30 mx-auto max-w-md rounded-xl bg-surface-2 px-4 py-3 text-center text-sm shadow-xl">
+        <div className="fixed inset-x-4 bottom-[calc(6rem+var(--sab))] z-30 mx-auto max-w-md rounded-xl bg-surface-2 px-4 py-3 text-center text-sm shadow-xl">
           {toast}
         </div>
       )}
@@ -519,7 +533,7 @@ function Toggle({
   checked,
   onChange,
 }: {
-  label: string;
+  label: React.ReactNode;
   hint?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
@@ -633,5 +647,14 @@ function CloudSettings({ demo, onMessage }: { demo: boolean; onMessage: (m: stri
         </button>
       )}
     </div>
+  );
+}
+
+/** Troféu de platina (o mesmo das notificações do Android). */
+function PlatinumTrophy() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current text-platinum" aria-hidden>
+      <path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V18h3v3H8v-3h3v-3.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3V3Zm0 4H6v1a2 2 0 0 0 1 1.7V7Zm10 0v2.7A2 2 0 0 0 18 8V7h-1Z" />
+    </svg>
   );
 }

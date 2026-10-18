@@ -80,7 +80,7 @@ export function LoginPage({
   );
 
   return (
-    <div className="safe-top safe-bottom mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 py-8">
+    <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 pb-[calc(2rem+var(--sab))] pt-[calc(2rem+var(--sat))]">
       {/* Bloco principal centralizado na vertical; o aviso de privacidade fica no rodapé. */}
       <div className="my-auto flex flex-col items-center pt-6 text-center">
         <img src="./icon.png" alt="" className="h-28 w-28 drop-shadow-[0_8px_24px_rgba(0,112,209,0.45)]" />

@@ -1,12 +1,24 @@
 /**
- * Cache simples (memória + localStorage) para não repetir chamadas à PSN a
- * cada troca de tela. As chaves já incluem a conta logada.
+ * Cache (memória + celular) para não repetir chamadas à PSN e à loja a cada
+ * troca de tela. As chaves já incluem a conta logada. O que é pequeno fica no
+ * localStorage; o que é grande (catálogo da loja, listas de milhares de
+ * jogos) fica no IndexedDB, que aguenta bem mais e sobrevive ao fechar o app.
  */
+import { idbClear, idbDelete, idbGet, idbSet } from "./idb";
+
 const PREFIX = "tm.cache.";
-const memory = new Map<string, { at: number; value: unknown }>();
+/** Acima disso (caracteres de JSON), vai para o IndexedDB. */
+const LARGE = 200_000;
+
+export interface CacheEntry {
+  at: number;
+  value: unknown;
+}
+
+const memory = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<unknown>>();
 
-function read(key: string): { at: number; value: unknown } | undefined {
+function readLocal(key: string): CacheEntry | undefined {
   const hit = memory.get(key);
   if (hit) return hit;
   try {
@@ -20,19 +32,44 @@ function read(key: string): { at: number; value: unknown } | undefined {
   }
 }
 
+async function read(key: string): Promise<CacheEntry | undefined> {
+  const local = readLocal(key);
+  if (local) return local;
+  const stored = await idbGet<CacheEntry>(PREFIX + key);
+  if (stored && typeof stored.at === "number") {
+    memory.set(key, stored);
+    return stored;
+  }
+  return undefined;
+}
+
 function write(key: string, value: unknown) {
   const entry = { at: Date.now(), value };
   memory.set(key, entry);
+  let json = "";
   try {
-    localStorage.setItem(PREFIX + key, JSON.stringify(entry));
+    json = JSON.stringify(entry);
   } catch {
-    // Armazenamento cheio: fica só na memória.
+    return;
   }
+  if (json.length <= LARGE) {
+    try {
+      localStorage.setItem(PREFIX + key, json);
+      void idbDelete(PREFIX + key);
+      return;
+    } catch {
+      // localStorage cheio: segue para o IndexedDB.
+    }
+  }
+  try {
+    localStorage.removeItem(PREFIX + key);
+  } catch {}
+  void idbSet(PREFIX + key, entry);
 }
 
 export async function cached<T>(key: string, ttlMs: number, load: () => Promise<T>, force = false): Promise<T> {
-  const hit = read(key);
-  if (!force && hit && Date.now() - hit.at < ttlMs) return hit.value as T;
+  const hit = force ? undefined : await read(key);
+  if (hit && Date.now() - hit.at < ttlMs) return hit.value as T;
 
   const pending = inflight.get(key);
   if (pending) return pending as Promise<T>;
@@ -47,11 +84,17 @@ export async function cached<T>(key: string, ttlMs: number, load: () => Promise<
   return p;
 }
 
+/** O que estiver salvo para a chave, mesmo vencido (para mostrar na hora enquanto atualiza). */
+export async function peekCached<T>(key: string): Promise<{ at: number; value: T } | undefined> {
+  return (await read(key)) as { at: number; value: T } | undefined;
+}
+
 export function clearCache() {
   memory.clear();
   try {
     for (const k of Object.keys(localStorage)) if (k.startsWith(PREFIX)) localStorage.removeItem(k);
   } catch {}
+  void idbClear();
 }
 
 /** Limita quantas tarefas rodam ao mesmo tempo (para não estourar o rate limit da PSN). */

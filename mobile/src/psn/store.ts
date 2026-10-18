@@ -1,5 +1,6 @@
 import { t } from "../i18n";
 import { cached } from "../lib/cache";
+import { getSettings } from "../lib/settings";
 import {
   ALL_ID,
   FREE_CATEGORY_IDS,
@@ -10,6 +11,7 @@ import {
   PLUS_ID,
   PS4_ID,
   PS5_ID,
+  storeRefreshMs,
   toStoreProduct,
   type StoreProduct,
   type StoreRegion,
@@ -28,7 +30,6 @@ const PAGE_SIZE = 100;
 const MAX_PAGES = 200;
 /** Páginas buscadas ao mesmo tempo. */
 const PARALLEL = 4;
-const MIN = 60_000;
 
 /** Recebe os jogos já carregados (em ordem) e o total da categoria, enquanto o resto chega. */
 export type StoreProgress = (products: StoreProduct[], total: number) => void;
@@ -122,6 +123,8 @@ const DERIVED: Record<string, [string[], (p: StoreProduct) => boolean]> = {
   [PLUS_ID]: [PLUS_CATEGORY_IDS, (p) => p.plus],
 };
 
+export const storeCacheKey = (region: StoreRegion, categoryId: string) => `store:${region}:${categoryId}`;
+
 /**
  * Jogos de uma categoria da loja (todos os que a loja tiver), na ordem de mais
  * vendidos. `onProgress` mostra os jogos enquanto as páginas chegam.
@@ -133,8 +136,9 @@ export async function storeCategory(
   onProgress?: StoreProgress,
 ): Promise<StoreProduct[]> {
   return cached(
-    `store:${region}:${categoryId}`,
-    30 * MIN,
+    storeCacheKey(region, categoryId),
+    // Salva no celular; atualiza no intervalo escolhido em Configurações (ou ao puxar a tela).
+    storeRefreshMs(getSettings().storeRefresh),
     () => {
       if (categoryId === ALL_ID) return fetchEverything(region, force, onProgress);
       const derived = DERIVED[categoryId];

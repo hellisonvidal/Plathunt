@@ -91,7 +91,7 @@ export function PullIndicator({ pull, refreshing }: { pull: number; refreshing?:
   const offset = refreshing && pull === 0 ? THRESHOLD * 0.6 : pull;
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 top-0 z-30 flex justify-center"
+      className="pointer-events-none fixed inset-x-0 top-[var(--sat)] z-30 flex justify-center"
       style={{ transform: `translateY(calc(${offset}px + max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px))))` }}
       aria-live="polite"
     >
