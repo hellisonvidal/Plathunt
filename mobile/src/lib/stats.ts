@@ -225,6 +225,12 @@ export function computeStats(titles: Title[], playtime: Map<string, number>, pla
   };
 }
 
+/** Ano em que o jogo começou: primeira vez jogada (PSN) ou, sem essa data, o último troféu. */
+export function startYear(title: Title, firstPlayed?: Map<string, string | null>): number | null {
+  const when = Date.parse(firstPlayed?.get(title.id) ?? title.lastUpdated);
+  return Number.isFinite(when) ? new Date(when).getFullYear() : null;
+}
+
 export interface YearRow {
   year: number;
   /** Jogos começados no ano. */
@@ -241,9 +247,8 @@ export interface YearRow {
 export function gamesByYear(titles: Title[], firstPlayed: Map<string, string | null>, now = new Date()): YearRow[] {
   const byYear = new Map<number, YearRow>();
   for (const t of titles) {
-    const when = Date.parse(firstPlayed.get(t.id) ?? t.lastUpdated);
-    if (!Number.isFinite(when)) continue;
-    const year = new Date(when).getFullYear();
+    const year = startYear(t, firstPlayed);
+    if (year === null) continue;
     const row = byYear.get(year) ?? { year, games: 0, platinums: 0 };
     row.games++;
     row.platinums += t.earned.platinum > 0 ? 1 : 0;

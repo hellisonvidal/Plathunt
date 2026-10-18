@@ -59,10 +59,13 @@ export function CompletionTimes({ titles }: { titles: Title[] }) {
 
   if (!done.length) return null;
   const loaded = [...rows.values()].filter((r): r is Row => !!r);
-  const counts = { platinum: loaded.filter((r) => r.platinum).length, full: loaded.filter((r) => r.full).length };
-  const list = loaded
-    .filter((r) => r[kind])
-    .map((r) => ({ title: r.title, span: r[kind]!, other: kind === "platinum" ? r.full : r.platinum }));
+  // 100% só de jogos com DLC: nos outros, o 100% é o mesmo momento da platina.
+  const ofKind = (r: Row, k: typeof kind) => (k === "full" ? (r.title.hasGroups ? r.full : null) : r.platinum);
+  const counts = {
+    platinum: loaded.filter((r) => ofKind(r, "platinum")).length,
+    full: loaded.filter((r) => ofKind(r, "full")).length,
+  };
+  const list = loaded.filter((r) => ofKind(r, kind)).map((r) => ({ title: r.title, span: ofKind(r, kind)! }));
   const sorted = [...list].sort((a, b) =>
     sort === "rapidos"
       ? a.span.ms - b.span.ms
@@ -112,7 +115,7 @@ export function CompletionTimes({ titles }: { titles: Title[] }) {
       <p className="text-[0.6875rem] text-muted">
         {kind === "platinum"
           ? t("Do primeiro troféu conquistado até a platina.")
-          : t("Do primeiro troféu conquistado até o último, contando as DLCs.")}
+          : t("Só jogos com DLC: do primeiro troféu conquistado até o último, contando as DLCs.")}
       </p>
 
       {spans.length > 0 && (
@@ -129,7 +132,7 @@ export function CompletionTimes({ titles }: { titles: Title[] }) {
       )}
       {!loading && !spans.length && (
         <p className="text-xs text-muted">
-          {kind === "platinum" ? t("Nenhuma platina por aqui ainda.") : t("Nenhum jogo 100% por aqui ainda.")}
+          {kind === "platinum" ? t("Nenhuma platina por aqui ainda.") : t("Nenhum jogo com DLC 100% por aqui ainda.")}
         </p>
       )}
 
@@ -157,11 +160,6 @@ export function CompletionTimes({ titles }: { titles: Title[] }) {
                   {date(r.span.start)} → {date(r.span.end)}
                 </span>
               </p>
-              {r.other && r.other.end === r.span.end && (
-                <p className="mt-0.5 pl-5 text-[0.6875rem] text-muted">
-                  {t("Platina e 100% ao mesmo tempo.")}
-                </p>
-              )}
             </Link>
           </li>
         ))}
