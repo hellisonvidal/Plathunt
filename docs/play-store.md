@@ -68,7 +68,7 @@ segredos, o AAB é compilado só para conferir e não é publicado como artefato
 - **Nome embaixo do ícone:** `Plathunt` (vem de `capacitor.config.ts` e `android/app/src/main/res/values/strings.xml`).
 - O nome não usa "PlayStation", "PSN" nem "PS" (marcas da Sony). Na descrição, citar
   que o app funciona com os troféus da PSN é permitido, junto do aviso "não afiliado à Sony".
-- **Ícone:** troféu de platina dentro de um alvo de caça (mira), sem os símbolos dos botões da PlayStation (`assets/app-icon.svg`).
+- **Ícone:** troféu de platina dentro de um alvo de caça (mira azul com detalhes em vermelho), sem os símbolos dos botões da PlayStation (`assets/app-icon.svg`).
 
 ## Telas e aparelhos
 
