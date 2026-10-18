@@ -73,6 +73,18 @@ describe("filtros e ordenação", () => {
     expect(ids({ price: { min: 10001, max: null } })).toEqual(["3"]);
     expect(ids({ price: "gratis" })).toEqual([]);
   });
+  it("aceita várias opções ao mesmo tempo (lista vazia = todas)", () => {
+    expect(ids({ platform: [] })).toEqual(["1", "2", "3"]);
+    expect(ids({ platform: ["PS5", "PS4"] })).toEqual(["1", "2", "3"]);
+    expect(ids({ platform: ["PS4"] })).toEqual(["2", "3"]);
+    // Duas faixas de preço: vale estar em qualquer uma.
+    expect(ids({ price: [{ min: 1, max: 8000 }, { min: 10001, max: null }] })).toEqual(["2", "3"]);
+    expect(ids({ price: [] })).toEqual(["1", "2", "3"]);
+    // A faixa digitada também conta.
+    expect(ids({ price: [], customPrice: { min: 10001, max: null } })).toEqual(["3"]);
+    expect(ids({ kind: ["jogo", "pacote"] })).toEqual(["1", "2", "3"]);
+    expect(ids({ kind: ["demo"] })).toEqual([]);
+  });
 });
 
 describe("faixas de preço", () => {

@@ -224,19 +224,37 @@ export const STORE_SORTS: { value: StoreSort; label: string }[] = [
 /** Faixa de preço: "gratis" ou [mínimo, máximo] em centavos (null = sem limite). */
 export type PriceRange = "todas" | "gratis" | { min: number | null; max: number | null };
 
+/** Plataformas da loja usadas no filtro. */
+export type StorePlatform = "PS5" | "PS4";
+
+/**
+ * Filtros da loja. Plataforma, tipo e preço aceitam várias opções ao mesmo
+ * tempo (lista; vazia = todas). Um valor único também vale (filtros antigos).
+ */
 export interface StoreFilters {
   query: string;
-  platform: "todas" | "PS5" | "PS4";
+  platform: "todas" | StorePlatform | StorePlatform[];
   onlyDiscount: boolean;
   /** Esconde os jogos que dependem da PS Plus (catálogo ou preço de assinante). */
   hidePlus: boolean;
   /** Esconde os jogos gratuitos. */
   hideFree: boolean;
-  price: PriceRange;
+  price: PriceRange | PriceRange[];
+  /** Faixa digitada (mínimo e máximo); substitui as faixas prontas. */
+  customPrice?: { min: number | null; max: number | null } | null;
   sort: StoreSort;
-  /** Tipo de produto ("todos" = sem filtro). */
-  kind: "todos" | StoreKind;
+  /** Tipo de produto ("todos" ou lista vazia = sem filtro). */
+  kind: "todos" | StoreKind | StoreKind[];
 }
+
+const asList = <T,>(v: T | T[]): T[] => (Array.isArray(v) ? v : [v]);
+/** Opções escolhidas de cada filtro (sem "todas"/"todos": lista vazia = sem filtro). */
+export const selectedPlatforms = (f: StoreFilters) => asList(f.platform).filter((x): x is StorePlatform => x !== "todas");
+export const selectedKinds = (f: StoreFilters) => asList(f.kind ?? "todos").filter((x): x is StoreKind => x !== "todos");
+export const selectedPrices = (f: StoreFilters): PriceRange[] => [
+  ...asList(f.price).filter((r) => r !== "todas"),
+  ...(f.customPrice ? [f.customPrice] : []),
+];
 
 /** Limites das faixas de preço em cada moeda (em unidades, não centavos). */
 const PRICE_STEPS: Record<StoreRegion, number[]> = {
@@ -281,17 +299,20 @@ export function inRange(p: StoreProduct, r: PriceRange): boolean {
   return (r.min === null || p.price >= r.min) && (r.max === null || p.price <= r.max);
 }
 
+/** Sem opção escolhida, passa tudo; com várias, basta uma servir. */
+const anyOf = <T,>(list: T[], test: (x: T) => boolean) => list.length === 0 || list.some(test);
+
 /** O produto passa nos filtros (menos o filtro `skip`, para contar as opções dele). */
 function matches(p: StoreProduct, f: StoreFilters, skip?: "platform" | "kind" | "price"): boolean {
   const q = f.query.trim().toLowerCase();
   return (
     (!q || p.name.toLowerCase().includes(q)) &&
-    (skip === "platform" || f.platform === "todas" || p.platforms.includes(f.platform)) &&
+    (skip === "platform" || anyOf(selectedPlatforms(f), (x) => p.platforms.includes(x))) &&
     (!f.onlyDiscount || p.discount > 0) &&
     !(f.hidePlus && p.plus) &&
     !(f.hideFree && (p.isFree || p.price === 0)) &&
-    (skip === "kind" || !f.kind || f.kind === "todos" || kindOf(p) === f.kind) &&
-    (skip === "price" || inRange(p, f.price))
+    (skip === "kind" || anyOf(selectedKinds(f), (k) => kindOf(p) === k)) &&
+    (skip === "price" || anyOf(selectedPrices(f), (r) => inRange(p, r)))
   );
 }
 
