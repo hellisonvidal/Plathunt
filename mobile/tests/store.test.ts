@@ -157,3 +157,14 @@ describe("tipo de produto", () => {
     expect(productKind(null, "Astro Bot")).toBe("jogo");
   });
 });
+
+describe("edição premium", () => {
+  it("separa as edições especiais do jogo completo", async () => {
+    const { productKind } = await import("../src/lib/store");
+    expect(productKind("PREMIUM_EDITION", "Jogo X")).toBe("premium");
+    expect(productKind("FULL_GAME", "Jogo X Deluxe Edition")).toBe("premium");
+    expect(productKind(null, "Hogwarts Legacy Edição Digital Deluxe")).toBe("premium");
+    expect(productKind("FULL_GAME", "Jogo X")).toBe("jogo");
+    expect(productKind(null, "Jogo X Standard Edition")).toBe("jogo");
+  });
+});

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useBackInterceptor } from "../lib/backButton";
 import { Link } from "react-router-dom";
-import { filterByPlatform, formatDuration, isComplete, isCompleteNoDlc, isCompletePsn, isUnfinished, startYear, type PlayedOn } from "../lib/stats";
+import { filterByPlatform, formatDuration, isComplete, isCompleteNoDlc, isCompletePsn, isPlatinumOnly, isUnfinished, startYear, type PlayedOn } from "../lib/stats";
 import { t } from "../i18n";
 import type { Title } from "../psn/types";
 import { SERIES_COLORS } from "./charts";
@@ -14,6 +14,7 @@ export type MuralCategory =
   | "completos"
   | "completosSemDlc"
   | "completosPsn"
+  | "platinaSem100"
   | "naoConcluidos"
   | "conclusao"
   | "trofeus"
@@ -28,6 +29,7 @@ export const MURAL_LABELS: Record<MuralCategory, string> = {
   completos: "100% com DLC",
   completosSemDlc: "100% sem DLC",
   completosPsn: "100% PSN",
+  platinaSem100: "Platina sem 100%",
   naoConcluidos: "Não concluídos",
   conclusao: "Conclusão média",
   trofeus: "Troféus",
@@ -90,6 +92,11 @@ export function muralTiles(
         .filter(isCompletePsn)
         .sort(recent)
         .map((t) => ({ title: t, metric: "100%" }));
+    case "platinaSem100":
+      return titles
+        .filter(isPlatinumOnly)
+        .sort((a, b) => b.progress - a.progress || recent(a, b))
+        .map((t) => ({ title: t, metric: pct(t) }));
     case "naoConcluidos":
       return titles
         .filter(isUnfinished)

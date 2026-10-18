@@ -18,6 +18,7 @@ import {
   matchPlayed,
   platformsOf,
   titlesByPlatform,
+  type GameStats,
   type PlayedOn,
   type PlayInfo,
   PLATFORM_ORDER,
@@ -101,6 +102,19 @@ export function StatsPage() {
   const series = (pick: (s: NonNullable<typeof meStats>) => number[]): Series[] =>
     all.map((s, i) => ({ name: names[i], values: pick(s) }));
 
+  // Quadros tocáveis: abrem o mural da categoria.
+  const tiles = (list: [MuralCategory, string[]][]) =>
+    list.map(([key, values]) => (
+      <StatTile
+        key={key}
+        label={t(MURAL_LABELS[key])}
+        names={names}
+        values={values}
+        selected={mural === key}
+        onSelect={() => setMural(key)}
+      />
+    ));
+
   return (
     <>
       <PageHeader
@@ -179,31 +193,23 @@ export function StatsPage() {
 
                 <Legend series={series(() => [])} />
 
-                {/* Com número ímpar de quadros, o último ocupa a linha toda. */}
-                <div className="grid grid-cols-2 gap-3 [&>*:last-child:nth-child(odd)]:col-span-2">
-                  {(
-                    [
-                      ["jogos", all.map((s) => s.games.toLocaleString(locale()))],
-                      ["platinas", all.map((s) => s.platinums.toLocaleString(locale()))],
-                      ["completos", all.map((s) => s.completed.toLocaleString(locale()))],
-                      ["completosSemDlc", all.map((s) => s.completedNoDlc.toLocaleString(locale()))],
-                      ["completosPsn", all.map((s) => s.completedPsn.toLocaleString(locale()))],
-                      ["naoConcluidos", all.map((s) => s.unfinished.toLocaleString(locale()))],
-                      ["conclusao", all.map((s) => `${s.avgProgress}%`)],
-                      ["trofeus", all.map((s) => s.totalTrophies.toLocaleString(locale()))],
-                      ["faltam", all.map((s) => s.totalMissing.toLocaleString(locale()))],
-                      ["tempo", all.map((s) => formatDuration(s.playSeconds))],
-                    ] as [MuralCategory, string[]][]
-                  ).map(([key, values]) => (
-                    <StatTile
-                      key={key}
-                      label={t(MURAL_LABELS[key])}
-                      names={names}
-                      values={values}
-                      selected={mural === key}
-                      onSelect={() => setMural(key)}
-                    />
-                  ))}
+                {/* Total de jogos e de horas lado a lado. */}
+                <div className="grid grid-cols-2 gap-3">
+                  {tiles([
+                    ["jogos", all.map((s) => s.games.toLocaleString(locale()))],
+                    ["tempo", all.map((s) => formatDuration(s.playSeconds))],
+                  ])}
+                </div>
+
+                <GamesBreakdown stats={all} names={names} selected={mural} onSelect={setMural} />
+
+                <div className="grid grid-cols-2 gap-3">
+                  {tiles([
+                    ["platinas", all.map((s) => s.platinums.toLocaleString(locale()))],
+                    ["conclusao", all.map((s) => `${s.avgProgress}%`)],
+                    ["trofeus", all.map((s) => s.totalTrophies.toLocaleString(locale()))],
+                    ["faltam", all.map((s) => s.totalMissing.toLocaleString(locale()))],
+                  ])}
                 </div>
 
                 {mural && (
@@ -478,6 +484,90 @@ function YearStats({
       </ul>
       <p className="text-[0.6875rem] text-muted">
         {t("O ano é o da primeira vez que jogou (PS4 e PS5); para PS3 e Vita, o do último troféu.")}
+      </p>
+    </section>
+  );
+}
+
+/** Situação de cada jogo: cada um entra em uma só categoria, e a soma dá o total de jogos. */
+const BREAKDOWN: { key: MuralCategory; color: string; value: (s: GameStats) => number }[] = [
+  { key: "completos", color: "#22c55e", value: (s) => s.completed },
+  { key: "completosSemDlc", color: "#3b82f6", value: (s) => s.completedNoDlc },
+  { key: "completosPsn", color: "#a855f7", value: (s) => s.completedPsn },
+  { key: "platinaSem100", color: "#5f9fc9", value: (s) => s.platinumOnly },
+  { key: "naoConcluidos", color: "#9aa3b2", value: (s) => s.unfinished },
+];
+
+/**
+ * Situação dos jogos: 100% com DLC, 100% sem DLC, 100% PSN, platina sem 100%
+ * e não concluídos. Cada jogo conta uma vez só, então a soma é o total de
+ * jogos (ao contrário do quadro "Platinas", que conta todas as platinas,
+ * inclusive as dos jogos 100%). Cada linha abre o mural da categoria.
+ */
+function GamesBreakdown({
+  stats,
+  names,
+  selected,
+  onSelect,
+}: {
+  stats: GameStats[];
+  names: string[];
+  selected: MuralKind | null;
+  onSelect: (k: MuralCategory) => void;
+}) {
+  return (
+    <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+      <h2 className="font-semibold">{t("Situação dos jogos")}</h2>
+      {stats.map((s, i) => (
+        <div key={names[i]} className="space-y-1">
+          {stats.length > 1 && (
+            <p className="flex items-center gap-1.5 text-xs text-muted">
+              <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />
+              {names[i]}
+            </p>
+          )}
+          <div className="flex h-2.5 overflow-hidden rounded-full bg-surface-2" aria-hidden>
+            {BREAKDOWN.map((b) => {
+              const v = b.value(s);
+              return v > 0 ? <span key={b.key} style={{ width: `${(v / Math.max(1, s.games)) * 100}%`, background: b.color }} /> : null;
+            })}
+          </div>
+        </div>
+      ))}
+      <ul className="divide-y divide-line">
+        {BREAKDOWN.map((b) => (
+          <li key={b.key}>
+            <button
+              onClick={() => onSelect(b.key)}
+              aria-pressed={selected === b.key}
+              className={`flex w-full items-center gap-2 py-2 text-left text-sm ${selected === b.key ? "font-semibold" : ""}`}
+            >
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: b.color }} />
+              <span className="min-w-0 flex-1">{t(MURAL_LABELS[b.key])}</span>
+              {stats.map((s, i) => (
+                <span key={names[i]} className="w-10 text-right font-semibold tabular-nums" style={stats.length > 1 ? { color: SERIES_COLORS[i] } : undefined}>
+                  {b.value(s).toLocaleString(locale())}
+                </span>
+              ))}
+              <span className="text-xs text-muted" aria-hidden>
+                ▸
+              </span>
+            </button>
+          </li>
+        ))}
+        <li className="flex items-center gap-2 py-2 text-sm font-bold">
+          <span className="w-2.5" />
+          <span className="flex-1">{t("Total de jogos")}</span>
+          {stats.map((s, i) => (
+            <span key={names[i]} className="w-10 text-right tabular-nums">
+              {s.games.toLocaleString(locale())}
+            </span>
+          ))}
+          <span className="text-xs opacity-0">▸</span>
+        </li>
+      </ul>
+      <p className="text-[0.6875rem] text-muted">
+        {t("Cada jogo entra em uma só situação. O quadro Platinas conta todas as platinas, inclusive as dos jogos 100%.")}
       </p>
     </section>
   );
