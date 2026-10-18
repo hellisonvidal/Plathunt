@@ -13,6 +13,9 @@ import {
   kindOf,
   priceRangeKey,
   priceRanges,
+  selectedKinds,
+  selectedPlatforms,
+  selectedPrices,
   priceHistory,
   recordPrices,
   PLUS_ID,
@@ -21,6 +24,8 @@ import {
   STORE_SORTS,
   storeProductUrl,
   type StoreFilters,
+  type StoreKind,
+  type StorePlatform,
   type StoreProduct,
   type StoreRegion,
 } from "../lib/store";
@@ -33,13 +38,13 @@ import { peekCached } from "../lib/cache";
 const PAGE = 40;
 const DEFAULT_FILTERS: StoreFilters = {
   query: "",
-  platform: "todas",
+  platform: [],
   onlyDiscount: false,
   hidePlus: false,
   hideFree: false,
-  price: "todas",
+  price: [],
   sort: "relevancia",
-  kind: "todos",
+  kind: [],
 };
 /** Intervalo mínimo entre atualizações da lista enquanto a loja carrega (evita a tela piscar). */
 const STREAM_THROTTLE_MS = 700;
@@ -188,6 +193,9 @@ function FilterBar({
   products: StoreProduct[] | null;
 }) {
   const [open, setOpen] = useState(false);
+  // Faixas de preço em chips (sem "Qualquer": nenhuma escolhida = qualquer preço).
+  const chipRanges = priceRanges(region).filter((r) => r.key !== "todas");
+  const chipKeys = new Set(chipRanges.map((r) => r.key));
   // Contagem de cada opção (só com o painel aberto): opções vazias somem.
   const counts = useMemo(
     () => (open && products ? filterCounts(products, filters, region) : null),
@@ -195,12 +203,12 @@ function FilterBar({
   );
   const set = (patch: Partial<StoreFilters>) => onChange({ ...filters, ...patch });
   const active =
-    (filters.platform !== "todas" ? 1 : 0) +
+    selectedPlatforms(filters).length +
     (filters.onlyDiscount ? 1 : 0) +
     (filters.hidePlus ? 1 : 0) +
     (filters.hideFree ? 1 : 0) +
-    (filters.price !== "todas" ? 1 : 0) +
-    (filters.kind !== "todos" ? 1 : 0);
+    selectedPrices(filters).length +
+    selectedKinds(filters).length;
 
   return (
     <div className="space-y-2">
@@ -241,34 +249,38 @@ function FilterBar({
       </div>
       {open && (
         <div className="space-y-3 rounded-xl border border-line bg-surface p-3 text-sm">
+          {/* Várias opções ao mesmo tempo; tocar de novo numa opção escolhida tira ela (sem nenhuma = todas). */}
           <Chips
             counts={counts?.platform}
             label={t("Plataforma")}
+            allOption={["todas", t("Todas")]}
             options={[
-              ["todas", t("Todas")],
               ["PS5", "PS5"],
               ["PS4", "PS4"],
             ]}
-            value={filters.platform}
-            onChange={(platform) => set({ platform: platform as StoreFilters["platform"] })}
+            selected={selectedPlatforms(filters)}
+            onChange={(list) => set({ platform: list as StorePlatform[] })}
           />
           <Chips
             counts={counts?.kind}
             label={t("Tipo")}
-            options={[["todos", t("Todos")] as const, ...STORE_KINDS.map((k) => [k.value, t(k.label)] as const)]}
-            value={filters.kind}
-            onChange={(kind) => set({ kind: kind as StoreFilters["kind"] })}
+            allOption={["todos", t("Todos")]}
+            options={STORE_KINDS.map((k) => [k.value, t(k.label)] as const)}
+            selected={selectedKinds(filters)}
+            onChange={(list) => set({ kind: list as StoreKind[] })}
           />
           <Chips
             counts={counts?.price}
             label={t("Preço")}
-            options={priceRanges(region).map((r) => [r.key, r.label] as const)}
-            value={priceRangeKey(filters.price)}
-            onChange={(k) => set({ price: priceRanges(region).find((r) => r.key === k)?.range ?? "todas" })}
+            options={chipRanges.map((r) => [r.key, r.label] as const)}
+            selected={(Array.isArray(filters.price) ? filters.price : [filters.price]).map(priceRangeKey).filter((k) => chipKeys.has(k))}
+            // Escolher faixas prontas apaga a faixa digitada.
+            onChange={(keys) => set({ price: chipRanges.filter((r) => keys.includes(r.key)).map((r) => r.range), customPrice: null })}
           />
           <CustomPrice
-            value={filters.price}
-            onChange={(price) => set({ price })}
+            value={filters.customPrice ?? null}
+            // Digitar uma faixa tira as faixas prontas escolhidas.
+            onChange={(customPrice) => set({ customPrice, price: [] })}
           />
           <label className="flex items-center justify-between">
             <span>{t("Só jogos com desconto")}</span>
@@ -314,26 +326,30 @@ function FilterBar({
 }
 
 /** Faixa de preço livre: mínimo e máximo digitados (na moeda da região). */
-function CustomPrice({ value, onChange }: { value: StoreFilters["price"]; onChange: (p: StoreFilters["price"]) => void }) {
-  const range = typeof value === "object" ? value : null;
+function CustomPrice({
+  value,
+  onChange,
+}: {
+  value: { min: number | null; max: number | null } | null;
+  onChange: (range: { min: number | null; max: number | null } | null) => void;
+}) {
   const toText = (cents: number | null | undefined) => (cents ? String(Math.round(cents / 100)) : "");
-  const [min, setMin] = useState(toText(range?.min && range.min > 1 ? range.min - 1 : null));
-  const [max, setMax] = useState(toText(range?.max));
-  // Quando a faixa muda por fora (chip ou "Limpar filtros"), os campos acompanham.
-  const emitted = useRef<StoreFilters["price"]>(value);
+  const [min, setMin] = useState(toText(value?.min && value.min > 1 ? value.min - 1 : null));
+  const [max, setMax] = useState(toText(value?.max));
+  // Quando a faixa digitada some por fora (chip de preço ou "Limpar filtros"), os campos esvaziam.
+  const emitted = useRef(value);
   useEffect(() => {
     if (value === emitted.current) return;
     emitted.current = value;
-    const r = typeof value === "object" ? value : null;
-    setMin(toText(r?.min && r.min > 1 ? r.min - 1 : null));
-    setMax(toText(r?.max));
+    setMin(toText(value?.min && value.min > 1 ? value.min - 1 : null));
+    setMax(toText(value?.max));
   }, [value]);
   const apply = (lo: string, hi: string) => {
     const a = Number(lo.replace(",", "."));
     const b = Number(hi.replace(",", "."));
     const minC = lo && Number.isFinite(a) ? Math.round(a * 100) : null;
     const maxC = hi && Number.isFinite(b) ? Math.round(b * 100) : null;
-    const next: StoreFilters["price"] = minC === null && maxC === null ? "todas" : { min: (minC ?? 0) + 1, max: maxC };
+    const next = minC === null && maxC === null ? null : { min: (minC ?? 0) + 1, max: maxC };
     emitted.current = next;
     onChange(next);
   };
@@ -373,34 +389,49 @@ function CustomPrice({ value, onChange }: { value: StoreFilters["price"]; onChan
 function Chips({
   label,
   options,
-  value,
+  selected,
   onChange,
   counts,
+  allOption,
 }: {
   label: string;
   options: (readonly [string, string])[];
-  value: string;
-  onChange: (v: string) => void;
-  /** Quantos jogos cada opção mostra: a contagem aparece e as opções vazias somem (menos a escolhida e a primeira, "todas"). */
+  /** Opções escolhidas (várias ao mesmo tempo; vazia = todas). */
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  /** Quantos jogos cada opção mostra: a contagem aparece e as opções vazias somem (menos as escolhidas). */
   counts?: Record<string, number>;
+  /** Opção "Todas": fica marcada sem nenhuma escolha e, ao tocar, limpa o filtro. */
+  allOption?: readonly [string, string];
 }) {
-  const shown = counts ? options.filter(([v], i) => i === 0 || v === value || (counts[v] ?? 0) > 0) : options;
+  const shown = counts ? options.filter(([v]) => selected.includes(v) || (counts[v] ?? 0) > 0) : options;
+  const chip = (on: boolean) => `rounded-full px-3 py-1 ${on ? "bg-ps-blue font-semibold" : "border border-line text-muted"}`;
+  const count = (v: string) =>
+    counts && <span className="ml-1 tabular-nums opacity-70">{(counts[v] ?? 0).toLocaleString(locale())}</span>;
   return (
     <div>
       <p className="mb-1.5 text-xs text-muted">{label}</p>
-      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={label}>
-        {shown.map(([v, l]) => (
-          <button
-            key={v}
-            role="radio"
-            aria-checked={value === v}
-            onClick={() => onChange(v)}
-            className={`rounded-full px-3 py-1 ${value === v ? "bg-ps-blue font-semibold" : "border border-line text-muted"}`}
-          >
-            {l}
-            {counts && <span className="ml-1 tabular-nums opacity-70">{(counts[v] ?? 0).toLocaleString(locale())}</span>}
+      <div className="flex flex-wrap gap-2" role="group" aria-label={label}>
+        {allOption && (
+          <button aria-pressed={selected.length === 0} onClick={() => onChange([])} className={chip(selected.length === 0)}>
+            {allOption[1]}
+            {count(allOption[0])}
           </button>
-        ))}
+        )}
+        {shown.map(([v, l]) => {
+          const on = selected.includes(v);
+          return (
+            <button
+              key={v}
+              aria-pressed={on}
+              onClick={() => onChange(on ? selected.filter((x) => x !== v) : [...selected, v])}
+              className={chip(on)}
+            >
+              {l}
+              {count(v)}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
