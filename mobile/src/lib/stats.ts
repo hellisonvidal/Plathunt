@@ -171,6 +171,8 @@ export function titlesByPlatform(titles: Title[], playedOn?: PlayedOn): Map<stri
 export interface GameStats {
   games: number;
   completed: number;
+  /** Jogos 100% sem DLC (`completed` conta os 100% com DLC). */
+  completedNoDlc: number;
   /** Jogos sem platina e com troféus faltando. */
   unfinished: number;
   /** Troféus ainda não conquistados (por tipo), somando todos os jogos. */
@@ -192,6 +194,9 @@ export interface GameStats {
  * mesmo momento da platina, então ele conta como platina, não como 100%.
  */
 export const isComplete = (t: Pick<Title, "hasGroups" | "progress">) => t.hasGroups && t.progress >= 100;
+
+/** Jogo 100% sem DLC (o 100% veio junto com a platina, ou é um jogo sem platina). */
+export const isCompleteNoDlc = (t: Pick<Title, "hasGroups" | "progress">) => !t.hasGroups && t.progress >= 100;
 
 /** Jogo ainda não concluído: sem platina e com troféus faltando. */
 export const isUnfinished = (t: Pick<Title, "earned" | "progress">) => t.earned.platinum === 0 && t.progress < 100;
@@ -225,6 +230,7 @@ export function computeStats(titles: Title[], playtime: Map<string, number>, pla
   return {
     games: titles.length,
     completed,
+    completedNoDlc: titles.filter(isCompleteNoDlc).length,
     unfinished: titles.filter(isUnfinished).length,
     missing,
     totalMissing: missing.bronze + missing.silver + missing.gold + missing.platinum,

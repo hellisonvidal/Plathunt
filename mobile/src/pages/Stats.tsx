@@ -186,6 +186,7 @@ export function StatsPage() {
                       ["jogos", all.map((s) => s.games.toLocaleString(locale()))],
                       ["platinas", all.map((s) => s.platinums.toLocaleString(locale()))],
                       ["completos", all.map((s) => s.completed.toLocaleString(locale()))],
+                      ["completosSemDlc", all.map((s) => s.completedNoDlc.toLocaleString(locale()))],
                       ["naoConcluidos", all.map((s) => s.unfinished.toLocaleString(locale()))],
                       ["conclusao", all.map((s) => `${s.avgProgress}%`)],
                       ["trofeus", all.map((s) => s.totalTrophies.toLocaleString(locale()))],

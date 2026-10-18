@@ -5,14 +5,14 @@ import { CompletionSummary } from "../components/Completion";
 import { PageHeader } from "../components/PageHeader";
 import { TitleList } from "../components/TitleList";
 import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge, TrophyStack } from "../components/ui";
-import { formatDuration, isComplete, matchPlaytime } from "../lib/stats";
+import { formatDuration, isComplete, isCompleteNoDlc, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import { PsPlusIcon } from "../components/icons";
 import { locale, t } from "../i18n";
 import type { Title } from "../psn/types";
 
 type Sort = "recentes" | "antigos" | "progresso" | "tempo";
-type Filter = "todos" | "platinados" | "semPlatina" | "completos" | "incompletos";
+type Filter = "todos" | "platinados" | "semPlatina" | "completos" | "completosSemDlc" | "incompletos";
 
 /** Filtros da lista de jogos. "Sem platina": jogos em que você ainda não tem a platina (ou que não têm). */
 const FILTERS: { key: Filter; label: string; test: (t: Title) => boolean }[] = [
@@ -20,7 +20,8 @@ const FILTERS: { key: Filter; label: string; test: (t: Title) => boolean }[] = [
   { key: "platinados", label: "Com platina", test: (t) => t.earned.platinum > 0 },
   { key: "semPlatina", label: "Sem platina", test: (t) => t.earned.platinum === 0 },
   // 100% só de jogos com DLC (sem DLC, o 100% é a própria platina).
-  { key: "completos", label: "💯 100%", test: isComplete },
+  { key: "completos", label: "💯 100% com DLC", test: isComplete },
+  { key: "completosSemDlc", label: "💯 100% sem DLC", test: isCompleteNoDlc },
   { key: "incompletos", label: "Em andamento", test: (t) => t.progress < 100 },
 ];
 
@@ -120,6 +121,14 @@ export function ProfilePage() {
                     {t("{n} jogos", { n: data.titles?.length ?? 0 })}
                     {totalPlay > 0 && t(" · ⏱ {time} jogados", { time: formatDuration(totalPlay) })}
                   </p>
+                  {data.titles && (
+                    <p className="mt-1 text-xs text-muted">
+                      {t("💯 100%: {a} com DLC · {b} sem DLC", {
+                        a: data.titles.filter(isComplete).length,
+                        b: data.titles.filter(isCompleteNoDlc).length,
+                      })}
+                    </p>
+                  )}
                   {data.titles && <CompletionSummary titles={data.titles} />}
                 </>
               ) : (
