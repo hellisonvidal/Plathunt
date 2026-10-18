@@ -1,8 +1,9 @@
 import { getSettings, onSettingsChange, type Settings } from "./settings";
 
 /**
- * Temas (Configurações → Aparência), com as cores dos personagens principais
- * de jogos de PlayStation. O id de cada tema não muda (fica salvo no celular).
+ * Temas (Configurações → Aparência), inspirados nas cores de jogos famosos.
+ * Os nomes só dão a dica do jogo (sem títulos nem personagens, que são marcas
+ * de terceiros). O id de cada tema não muda (fica salvo no celular).
  */
 export const THEMES: {
   value: Settings["theme"];
@@ -16,18 +17,18 @@ export const THEMES: {
   standard?: boolean;
 }[] = [
   { value: "auto", label: "Automático", description: "Claro ou escuro, como o sistema do celular", swatch: ["#f5f6f8", "#0d0f13", "#2d7ff9"], standard: true },
-  { value: "claro", label: "Claro", description: "Fundo claro com o azul PlayStation", swatch: ["#f5f6f8", "#ffffff", "#0070d1"], standard: true },
-  { value: "escuro", label: "Escuro", description: "Fundo escuro com o azul PlayStation", swatch: ["#0d0f13", "#1f242c", "#2d7ff9"], standard: true },
-  { value: "playstation", label: "Astro Bot", description: "Azul-céu, branco do robô, preto do visor e azul dos olhos", swatch: ["#bfd5fb", "#ffffff", "#0a6cff"], bars: "#0b0d12" },
-  { value: "light", label: "Gran Turismo", description: "Vermelho do logo com branco de pista", swatch: ["#8c0013", "#b3001a", "#ffffff"] },
-  { value: "oled", label: "Demon's Souls", description: "Preto puro (OLED) com o prata da armadura do Slayer", swatch: ["#000000", "#1c1c1c", "#b9c0ca"] },
-  { value: "green", label: "The Last of Us", description: "Verde-oliva de Ellie com o cáqui de Joel", swatch: ["#13140c", "#282b1a", "#5e7a24"] },
-  { value: "crimson", label: "God of War", description: "Cinza das cinzas de Kratos com a tatuagem vermelha", swatch: ["#171615", "#2e2b29", "#b3121f"] },
-  { value: "purple", label: "Ratchet & Clank", description: "Pelo dourado de Ratchet sobre marrom", swatch: ["#1a1207", "#342411", "#e0a11b"] },
-  { value: "spiderman", label: "Marvel's Spider-Man", description: "Azul do traje de Peter com o vermelho da máscara", swatch: ["#0b1238", "#1d2a6b", "#d01f2e"] },
-  { value: "uncharted", label: "Uncharted", description: "Bege de mapa antigo com verde militar", swatch: ["#efe6d2", "#faf5ea", "#3d5a2a"] },
-  { value: "deathstranding", label: "Death Stranding", description: "Claro como a Bridges, com detalhes em laranja", swatch: ["#f1f3f4", "#ffffff", "#c25400"] },
-  { value: "horizon", label: "Horizon", description: "Azul-petróleo do Focus com o ruivo de Aloy", swatch: ["#0a1a1f", "#173540", "#d9621b"] },
+  { value: "claro", label: "Claro", description: "Fundo claro com o azul clássico", swatch: ["#f5f6f8", "#ffffff", "#0070d1"], standard: true },
+  { value: "escuro", label: "Escuro", description: "Fundo escuro com o azul clássico", swatch: ["#0d0f13", "#1f242c", "#2d7ff9"], standard: true },
+  { value: "playstation", label: "Robozinho Azul", description: "Azul-céu, branco do robozinho, preto do visor e azul dos olhos", swatch: ["#bfd5fb", "#ffffff", "#0a6cff"], bars: "#0b0d12" },
+  { value: "light", label: "Pista de Corrida", description: "Vermelho de bandeira de largada com o branco das faixas", swatch: ["#8c0013", "#b3001a", "#ffffff"] },
+  { value: "oled", label: "Cavaleiro Sombrio", description: "Preto puro (OLED) com o prata de uma armadura antiga", swatch: ["#000000", "#1c1c1c", "#b9c0ca"] },
+  { value: "green", label: "Mundo Pós-Apocalipse", description: "Verde-oliva da mata que tomou a cidade, com cáqui de sobrevivente", swatch: ["#13140c", "#282b1a", "#5e7a24"] },
+  { value: "crimson", label: "Deus Espartano", description: "Cinza das cinzas com a tatuagem vermelha do guerreiro", swatch: ["#171615", "#2e2b29", "#b3121f"] },
+  { value: "purple", label: "Mecânico Galáctico", description: "Pelo dourado de um mecânico das estrelas sobre marrom", swatch: ["#1a1207", "#342411", "#e0a11b"] },
+  { value: "spiderman", label: "Herói Aracnídeo", description: "Azul do traje com o vermelho da máscara", swatch: ["#0b1238", "#1d2a6b", "#d01f2e"] },
+  { value: "uncharted", label: "Caçador de Tesouros", description: "Bege de mapa antigo com verde de expedição", swatch: ["#efe6d2", "#faf5ea", "#3d5a2a"] },
+  { value: "deathstranding", label: "Entregas no Fim do Mundo", description: "Claro e limpo, com detalhes em laranja", swatch: ["#f1f3f4", "#ffffff", "#c25400"] },
+  { value: "horizon", label: "Caçadora de Máquinas", description: "Azul-petróleo com o ruivo da caçadora", swatch: ["#0a1a1f", "#173540", "#d9621b"] },
 ];
 
 /** Cores do tema que também são usadas com transparência (ex.: bg-bg/95). */
