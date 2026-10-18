@@ -271,7 +271,7 @@ function ThemesButton({ current }: { current: Settings["theme"] }) {
       <span className="min-w-0 flex-1">
         <span className="block text-sm">{t("Temas")}</span>
         <span className="mt-0.5 block text-xs text-muted">
-          {t(theme.label)} · {t("{n} temas de jogos de PlayStation", { n: THEMES.filter((th) => !th.standard).length })}
+          {t(theme.label)} · {t("{n} temas inspirados em jogos", { n: THEMES.filter((th) => !th.standard).length })}
         </span>
       </span>
       <span className="text-muted">›</span>
@@ -307,9 +307,9 @@ export function ThemesPage() {
             />
           ))}
         </div>
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t("Temas de jogos")}</h2>
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t("Temas inspirados em jogos")}</h2>
         <p className="mb-3 text-sm text-muted">
-          {t("Cada tema usa as cores do personagem principal de um jogo de PlayStation.")}
+          {t("Cada tema usa as cores de um jogo famoso. Pelo nome, dá para adivinhar qual é?")}
         </p>
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("Tema")}>
           {sortedThemes(THEMES.filter((th) => !th.standard)).map((th) => (
