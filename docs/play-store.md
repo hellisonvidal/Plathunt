@@ -44,7 +44,7 @@ segredos, o AAB é compilado só para conferir e não é publicado como artefato
 
 ## 3. Play Console
 
-1. **Criar app**: nome, idioma padrão Português (Brasil), app gratuito, sem anúncios.
+1. **Criar app**: nome `Plathunt: Trophy Tracker`, idioma padrão Português (Brasil), app gratuito, sem anúncios.
 2. **Assinatura do app pelo Google Play**: aceitar (o Google guarda a chave final; a sua é só de envio).
 3. **Teste interno** → criar versão → enviar o `.aab`. Testar em alguns aparelhos antes da produção.
 4. **Conteúdo do app**:
@@ -58,18 +58,18 @@ segredos, o AAB é compilado só para conferir e não é publicado como artefato
 
 ### Texto sugerido
 
-**Descrição curta:** Seus troféus PlayStation, estatísticas, amigos, méritos e ofertas da loja.
+**Descrição curta:** Seus troféus da PSN, platinas, estatísticas, amigos, méritos e ofertas da loja.
 
-**Descrição completa:** Acompanhe seus troféus da PSN no celular: platinas e jogos 100%, estatísticas por plataforma e por ano, tempo até a platina, comparação com amigos, atividades com curtidas, convocações de boost, desafios, 2.000 méritos e ofertas da PlayStation Store com o menor preço já visto. Os dados vão direto do celular para a Sony. App não oficial, sem afiliação com a Sony Interactive Entertainment.
+**Descrição completa:** Acompanhe seus troféus da PSN no celular: platinas e jogos 100%, estatísticas por plataforma e por ano, tempo até a platina, comparação com amigos, atividades com curtidas, convocações de boost, desafios, 2.000 méritos e ofertas da loja de jogos com o menor preço já visto. Os dados vão direto do celular para a Sony. App não oficial, sem afiliação com a Sony Interactive Entertainment.
 
-## Atenção: marca "PlayStation"
+## Nome e marca
 
-O Google costuma recusar apps que usam marca de terceiros no **nome** ou no
-**ícone** sem autorização (política de propriedade intelectual e de
-falsificação de identidade). Para a loja, o mais seguro é publicar como
-**Trophy Mania** (ou "Trophy Mania para PSN"), com ícone sem logotipo da Sony e
-o aviso "não afiliado à Sony" na descrição (já está no app, em Configurações → Sobre).
-O nome do app instalado vem de `capacitor.config.ts` e `android/app/src/main/res/values/strings.xml`.
+- **Título na Play Store:** `Plathunt: Trophy Tracker` (24 caracteres; o limite é 30).
+- **Nome embaixo do ícone:** `Plathunt` (vem de `capacitor.config.ts` e `android/app/src/main/res/values/strings.xml`).
+- O nome não usa "PlayStation", "PSN" nem "PS" (marcas da Sony). Na descrição, citar
+  que o app funciona com os troféus da PSN é permitido, junto do aviso "não afiliado à Sony".
+- **Ícone:** o troféu atual traz os símbolos △ ○ ✕ □ dos botões, que também são
+  marca da Sony. Para reduzir o risco de recusa, troque por um ícone sem eles.
 
 ## Telas e aparelhos
 

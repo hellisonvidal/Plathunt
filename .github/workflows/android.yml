@@ -1,6 +1,6 @@
 name: Android APK
 
-# Gera o APK do PlayStation Trophy Mania (versão do GitHub) e o AAB da Play Store. Roda sozinho a cada mudança no app e
+# Gera o APK do Plathunt (versão do GitHub) e o AAB da Play Store. Roda sozinho a cada mudança no app e
 # também manualmente em Actions → Android APK → Run workflow.
 # - Em qualquer branch: o APK fica em "Artifacts" (trophy-mania-android).
 # - Na main: também publica uma Release "build-N" com o APK, que é o que o botão
@@ -98,8 +98,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           NOTES: ${{ github.event.head_commit.message }}
         run: |
-          cp android/app/build/outputs/apk/github/debug/app-github-debug.apk PlayStation-Trophy-Mania.apk
-          gh release create "build-$BUILD_NUMBER" PlayStation-Trophy-Mania.apk \
-            --title "PlayStation Trophy Mania 1.2 (build $BUILD_NUMBER)" \
+          cp android/app/build/outputs/apk/github/debug/app-github-debug.apk Plathunt.apk
+          gh release create "build-$BUILD_NUMBER" Plathunt.apk \
+            --title "Plathunt 1.2 (build $BUILD_NUMBER)" \
             --notes "${NOTES:-Nova versão}" \
             --target "$GITHUB_SHA"

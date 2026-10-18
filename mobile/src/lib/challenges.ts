@@ -188,7 +188,7 @@ export function challengeMessage(c: Challenge, me: string): string {
       : t("⏳ Sem prazo"),
   );
   lines.push(`👥 ${c.players.map((p) => p.onlineId).join(", ")}`);
-  lines.push(t("Desafio criado por {me} no Trophy Mania", { me }));
+  lines.push(t("Desafio criado por {me} no Plathunt", { me }));
   return lines.join("\n");
 }
 

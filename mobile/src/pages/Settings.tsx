@@ -208,7 +208,7 @@ export function SettingsPage() {
         <Section title={t("Sobre")}>
           <p className="p-4 text-xs leading-relaxed text-muted">
             {t(
-              "PlayStation Trophy Mania {version}. Os dados da PSN vão direto do celular para a Sony e ficam no aparelho; só os recursos online, quando ligados, usam o servidor do app. Não é afiliado à Sony Interactive Entertainment; PlayStation é marca da Sony.",
+              "Plathunt {version}. Os dados da PSN vão direto do celular para a Sony e ficam no aparelho; só os recursos online, quando ligados, usam o servidor do app. Não é afiliado à Sony Interactive Entertainment; PlayStation é marca da Sony.",
               { version: appVersion() },
             )}
           </p>
@@ -473,7 +473,7 @@ function InstallButton({ url }: { url: string }) {
       {state.step === "permission" && (
         <p className="text-xs text-gold">
           {t(
-            "Permita que o PlayStation Trophy Mania instale apps (na tela que abriu), volte e toque em “Baixar e instalar” de novo.",
+            "Permita que o Plathunt instale apps (na tela que abriu), volte e toque em “Baixar e instalar” de novo.",
           )}
         </p>
       )}
@@ -643,7 +643,7 @@ function CloudSettings({ demo, onMessage }: { demo: boolean; onMessage: (m: stri
       </p>
       <p className="text-xs text-muted">
         {t(
-          "Com os recursos online, suas curtidas chegam ao dono da conquista e os pedidos de boost vão direto para o app dos amigos que também usam o Trophy Mania. Ficam guardados no servidor do app só seu ID e avatar da PSN, suas curtidas e seus pedidos de boost.",
+          "Com os recursos online, suas curtidas chegam ao dono da conquista e os pedidos de boost vão direto para o app dos amigos que também usam o Plathunt. Ficam guardados no servidor do app só seu ID e avatar da PSN, suas curtidas e seus pedidos de boost.",
         )}{" "}
         <a href={PRIVACY_URL} target="_blank" rel="noreferrer" className="text-ps-blue-2 underline">
           {t("Política de privacidade")}

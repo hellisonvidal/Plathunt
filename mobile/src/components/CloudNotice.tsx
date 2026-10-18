@@ -44,7 +44,7 @@ export function CloudNotice() {
         </h2>
         <p className="text-sm text-muted">
           {t(
-            "Com os recursos online, suas curtidas chegam ao dono da conquista e os pedidos de boost vão direto para o app dos amigos que também usam o Trophy Mania. Ficam guardados no servidor do app só seu ID e avatar da PSN, suas curtidas e seus pedidos de boost.",
+            "Com os recursos online, suas curtidas chegam ao dono da conquista e os pedidos de boost vão direto para o app dos amigos que também usam o Plathunt. Ficam guardados no servidor do app só seu ID e avatar da PSN, suas curtidas e seus pedidos de boost.",
           )}{" "}
           <a href={PRIVACY_URL} target="_blank" rel="noreferrer" className="text-ps-blue-2 underline">
             {t("Política de privacidade")}

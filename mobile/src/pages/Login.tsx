@@ -89,8 +89,8 @@ export function LoginPage({
       {/* Bloco principal centralizado na vertical; o aviso de privacidade fica no rodapé. */}
       <div className="my-auto flex flex-col items-center pt-6 text-center">
         <img src="./icon.png" alt="" className="h-28 w-28 drop-shadow-[0_8px_24px_rgba(0,112,209,0.45)]" />
-        <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-ps-blue-2">PlayStation</p>
-        <h1 className="text-3xl font-bold tracking-tight">Trophy Mania</h1>
+        <h1 className="mt-6 text-3xl font-bold tracking-tight">Plathunt</h1>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-ps-blue-2">Trophy Tracker</p>
         <p className="mt-2 max-w-xs text-muted">
           {t("Seus troféus da PlayStation e as conquistas dos seus amigos, no celular.")}
         </p>
@@ -177,7 +177,7 @@ export function LoginPage({
           `${t(
             "🔒 Seus dados da PSN vão direto do celular para a Sony e ficam no aparelho. Curtidas e pedidos de boost usam o servidor do app, e você escolhe se quer usá-los depois de entrar.",
           )} `}
-        {t("O PlayStation Trophy Mania não é afiliado à Sony Interactive Entertainment.")}
+        {t("O Plathunt não é afiliado à Sony Interactive Entertainment.")}
       </p>
       <ExitToast show={exitWarning} />
     </div>

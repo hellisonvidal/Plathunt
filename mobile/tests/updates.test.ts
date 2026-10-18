@@ -13,7 +13,7 @@ describe("evaluateRelease", () => {
   const release = {
     tag_name: "build-12",
     body: "Novidades",
-    assets: [{ name: "PlayStation-Trophy-Mania.apk", browser_download_url: "https://x/app.apk" }],
+    assets: [{ name: "Plathunt.apk", browser_download_url: "https://x/app.apk" }],
   };
 
   it("avisa quando há build mais novo, com o link do APK", () => {

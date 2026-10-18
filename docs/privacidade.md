@@ -1,8 +1,8 @@
-# Política de privacidade — PlayStation Trophy Mania
+# Política de privacidade — Plathunt
 
 *Última atualização: 17 de outubro de 2026*
 
-O PlayStation Trophy Mania é um app independente, sem ligação com a Sony Interactive Entertainment. PlayStation é marca da Sony.
+O Plathunt é um app independente, sem ligação com a Sony Interactive Entertainment. PlayStation é marca da Sony.
 
 ## O que fica só no seu celular
 
@@ -13,7 +13,7 @@ O app não tem anúncios nem rastreadores, e não vende nem compartilha dados co
 
 ## Recursos online
 
-Os recursos online vêm ligados. Na primeira vez que você entra com a PSN, um aviso explica o que vai para o servidor e você escolhe entre **Manter ligados** ou **Desligar**; nada é enviado antes dessa escolha. Dá para mudar a qualquer momento em **Configurações → Recursos online**. Com eles, suas curtidas chegam ao dono da conquista e os pedidos de boost vão direto para o app dos amigos que também usam o Trophy Mania.
+Os recursos online vêm ligados. Na primeira vez que você entra com a PSN, um aviso explica o que vai para o servidor e você escolhe entre **Manter ligados** ou **Desligar**; nada é enviado antes dessa escolha. Dá para mudar a qualquer momento em **Configurações → Recursos online**. Com eles, suas curtidas chegam ao dono da conquista e os pedidos de boost vão direto para o app dos amigos que também usam o Plathunt.
 
 **Como sua identidade é confirmada:** ao ligar, o app envia o token da sua sessão PSN uma única vez para a função `psn-login` do servidor do app (Supabase). A função usa o token só para confirmar seu ID na PSN e não o guarda.
 

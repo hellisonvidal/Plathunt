@@ -212,6 +212,6 @@ async function checkUpdate(notified: number | null): Promise<number | null> {
   if (!Number.isFinite(current) || isPlayStoreBuild()) return notified;
   const result = await checkForUpdate();
   if (result.status !== "available" || result.latest === notified) return notified;
-  await notify("updates", `update:${result.latest}`, t("⬇️ Nova versão do Trophy Mania"), t("Toque em Configurações → Atualizações para instalar."));
+  await notify("updates", `update:${result.latest}`, t("⬇️ Nova versão do Plathunt"), t("Toque em Configurações → Atualizações para instalar."));
   return result.latest;
 }

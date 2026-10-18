@@ -1,4 +1,4 @@
-# PlayStation Trophy Mania
+# Plathunt
 
 Gerenciador de troféus da PlayStation: acompanhe seus troféus e veja as conquistas dos seus amigos da PSN.
 
@@ -63,7 +63,7 @@ No Android 15+ o app ocupa a tela toda, por baixo da barra de status e da barra 
 
 Vêm ligados para quem entra com a PSN: na primeira abertura, um aviso explica o que vai para o servidor e o jogador escolhe **Manter ligados** ou **Desligar** (nada é enviado antes da escolha). Depois, o app reconecta sozinho, a menos que tenham sido desligados; dá para mudar em Configurações → Recursos online. Com eles:
 - **Curtidas compartilhadas:** a curtida chega ao dono da conquista, que vê "curtido por…" em Atividades e recebe notificação;
-- **Pedidos de boost direto no app:** no card do pedido, "📲 Enviar direto no app" lista os amigos que também usam o Trophy Mania com recursos online; o pedido aparece em "Pedidos recebidos" deles, e a resposta (aceitou/recusou) volta para quem enviou.
+- **Pedidos de boost direto no app:** no card do pedido, "📲 Enviar direto no app" lista os amigos que também usam o Plathunt com recursos online; o pedido aparece em "Pedidos recebidos" deles, e a resposta (aceitou/recusou) volta para quem enviou.
 
 O servidor é um projeto Supabase (plano gratuito, região São Paulo). A função `supabase/functions/psn-login` confirma o ID da PSN com o token da própria sessão PSN (usado uma vez, não é guardado) e devolve a sessão do app; as tabelas (`supabase/migrations/`) têm regras de acesso (RLS) para que cada um só grave as próprias curtidas e pedidos. O app usa só a chave pública (publishable). Ficam guardados apenas ID e avatar da PSN, curtidas e pedidos de boost — veja a [política de privacidade](docs/privacidade.md).
 
@@ -75,7 +75,7 @@ O app é multilíngue: português (Brasil), inglês, espanhol, francês, alemão
 
 ### Instalar
 
-1. No GitHub, abra **Releases** e baixe `PlayStation-Trophy-Mania.apk` da versão mais recente. (Versões de branches que ainda não estão na `main` ficam em **Actions → Android APK → Artifacts**.)
+1. No GitHub, abra **Releases** e baixe `Plathunt.apk` da versão mais recente. (Versões de branches que ainda não estão na `main` ficam em **Actions → Android APK → Artifacts**.)
 2. No celular, abra o APK e permita "instalar apps de fontes desconhecidas".
 
 Cada mudança que chega na `main` gera uma Release `build-N` automaticamente. Todas as versões são assinadas com a mesma chave (`android/app/debug.keystore`), então uma versão nova instala por cima da anterior. O login, o modo, as configurações e as curtidas ficam também no armazenamento nativo do Android (`@capacitor/preferences`), então uma atualização não pede login de novo.
