@@ -5,6 +5,8 @@ import { t } from "./i18n";
 import { App as CapApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { importBoost } from "./lib/boostInbox";
+import { ALL_ID } from "./lib/store";
+import { storeCategory } from "./psn/store";
 import { runBackgroundChecks } from "./lib/checks";
 import { getSettings, updateSettings } from "./lib/settings";
 import { hasSession, signOut as clearSession } from "./psn/auth";
@@ -89,8 +91,10 @@ export function App() {
         <BackButton />
         <BoostLinks />
         <BackgroundChecks />
+        <StorePreload />
         {state.mode === "psn" && <CloudNotice />}
-        <div className="safe-top mx-auto min-h-[100dvh] max-w-2xl pb-24">
+        {/* Espaço no fim para o conteúdo não ficar atrás das abas e da barra de navegação do Android. */}
+        <div className="safe-top mx-auto min-h-[100dvh] max-w-2xl pb-[calc(6rem+var(--sab))]">
           {state.mode === "demo" && (
             <div className="bg-gold/15 px-4 py-2 text-center text-xs text-gold">
               {t("Modo demonstração")} ·{" "}
@@ -171,6 +175,23 @@ function BackgroundChecks() {
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [client, mode]);
+  return null;
+}
+
+/**
+ * Deixa a loja pronta: alguns segundos depois de abrir o app, carrega o
+ * catálogo em segundo plano e salva no celular, mas só se a cópia salva já
+ * venceu (intervalo escolhido em Configurações → Loja).
+ */
+function StorePreload() {
+  const { mode } = useApp();
+  useEffect(() => {
+    if (mode === "demo") return;
+    const timer = setTimeout(() => {
+      void storeCategory(ALL_ID, getSettings().storeRegion).catch(() => {});
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [mode]);
   return null;
 }
 

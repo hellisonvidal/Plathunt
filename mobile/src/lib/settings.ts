@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { deviceLanguage, LANGUAGES, setLanguage, t, type Language } from "../i18n";
 import { persistSet } from "./persist";
-import { deviceStoreRegion, STORE_REGIONS, type StoreRegion } from "./store";
+import { deviceStoreRegion, STORE_REFRESH, STORE_REGIONS, type StoreRefresh, type StoreRegion } from "./store";
 
 /** Preferências do app, salvas no celular. */
 export interface Settings {
@@ -19,6 +19,8 @@ export interface Settings {
   startTab: "/" | "/stats" | "/friends" | "/activity" | "/store";
   /** País da PlayStation Store (moeda e preços da aba Loja). */
   storeRegion: StoreRegion;
+  /** De quanto em quanto tempo a loja salva no celular é atualizada. */
+  storeRefresh: StoreRefresh;
   /** Notificações do app (chave geral) e cada tipo. */
   notifications: boolean;
   notifyMerits: boolean;
@@ -44,6 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   startTab: "/",
   // Na primeira abertura, o país do aparelho.
   storeRegion: deviceStoreRegion(),
+  storeRefresh: "6h",
   // Claro ou escuro, como o sistema do aparelho.
   theme: "auto",
   notifications: true,
@@ -75,6 +78,7 @@ export function getSettings(): Settings {
     const merged = { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) } as Settings;
     if (!LANGUAGES.some((l) => l.value === merged.language)) merged.language = DEFAULT_SETTINGS.language;
     if (!STORE_REGIONS.some((r) => r.value === merged.storeRegion)) merged.storeRegion = DEFAULT_SETTINGS.storeRegion;
+    if (!STORE_REFRESH.some((r) => r.value === merged.storeRefresh)) merged.storeRefresh = DEFAULT_SETTINGS.storeRefresh;
     return merged;
   } catch {
     return DEFAULT_SETTINGS;

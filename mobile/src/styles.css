@@ -262,15 +262,36 @@ body {
 
 /*
  * Áreas seguras (barra de status, recorte da câmera, barra de navegação).
- * O Capacitor 8 informa os valores pelo env() do WebView ou, em WebViews
- * antigos, pelas variáveis --safe-area-inset-*; usa o maior dos dois.
+ * No Android 15+ o app ocupa a tela toda, por baixo das barras do sistema.
+ * Os valores vêm do env() do WebView, das variáveis --safe-area-inset-* do
+ * Capacitor ou das --tm-inset-* medidas pelo próprio app (MainActivity);
+ * vale o maior.
  */
+:root {
+  --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px), var(--tm-inset-top, 0px));
+  --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px), var(--tm-inset-bottom, 0px));
+}
+
 .safe-top {
-  padding-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  padding-top: var(--sat);
 }
 
 .safe-bottom {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  padding-bottom: var(--sab);
+}
+
+/*
+ * Faixa da barra de status sempre com o fundo do tema: o conteúdo que rola
+ * para cima passa por baixo dela, não por baixo dos ícones do sistema.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--sat);
+  background: var(--color-bg);
+  z-index: 35;
+  pointer-events: none;
 }
 
 /* Vermelho de erro/sair mais escuro nos temas claros (contraste sobre fundo claro). */

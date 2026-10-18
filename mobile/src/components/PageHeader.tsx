@@ -34,7 +34,7 @@ export function PageHeader({
   return (
     <>
       <PullIndicator pull={pull} refreshing={fromPull && !!refreshing} />
-      <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-[var(--sat)] z-10 flex items-center gap-2 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur">
         {back && (
           <button onClick={() => navigate(-1)} className="-ml-1 px-1 text-xl text-muted" aria-label={t("Voltar")}>
             ←

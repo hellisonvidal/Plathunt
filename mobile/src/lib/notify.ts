@@ -58,7 +58,7 @@ export async function notify(kind: NotifyKind, key: string, title: string, body:
     if (native()) {
       if (!(await requestNotificationPermission())) return;
       await LocalNotifications.schedule({
-        notifications: [{ id: notificationId(key), title, body, ...(at ? { schedule: { at, allowWhileIdle: true } } : {}) }],
+        notifications: [{ id: notificationId(key), title, body, smallIcon: "ic_stat_trophy", iconColor: "#7fc4ec", ...(at ? { schedule: { at, allowWhileIdle: true } } : {}) }],
       });
       return;
     }

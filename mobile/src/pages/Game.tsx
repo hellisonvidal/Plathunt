@@ -16,10 +16,27 @@ interface GuideNames {
   trophies: Record<number, string>;
 }
 
-const GUIDE_SITES: { site: GuideSite; label: string }[] = [
-  { site: "pst", label: "PlayStationTrophies" },
-  { site: "psnp", label: "PSNProfiles" },
+const GUIDE_SITES: { site: GuideSite; label: string; domain: string }[] = [
+  { site: "pst", label: "PlayStationTrophies", domain: "playstationtrophies.org" },
+  { site: "psnp", label: "PSNProfiles", domain: "psnprofiles.com" },
 ];
+
+/** Ícone do site (favicon); sem internet para a imagem, a inicial do nome. */
+function SiteIcon({ domain, label, size }: { domain: string; label: string; size: "sm" | "lg" }) {
+  const box = size === "lg" ? "h-8 w-8 text-sm" : "h-4 w-4 text-[0.5625rem]";
+  return (
+    <RemoteImage
+      src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+      alt=""
+      className={`${box} shrink-0 rounded-md bg-white object-contain p-0.5`}
+      fallback={
+        <span className={`${box} flex shrink-0 items-center justify-center rounded-md bg-surface-2 font-bold`} aria-hidden>
+          {label[0]}
+        </span>
+      }
+    />
+  );
+}
 import { locale, t } from "../i18n";
 
 const TYPE_ORDER: Record<string, number> = { platinum: 0, gold: 1, silver: 2, bronze: 3 };
@@ -107,24 +124,29 @@ export function GamePage() {
                 <p className="mt-1 text-xs text-muted">
                   {t("{earned} de {total} troféus", { earned: earnedCount, total: all.length })}
                 </p>
-                {guide && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {GUIDE_SITES.map(({ site, label }) => (
-                      <a
-                        key={site}
-                        href={gameWrittenGuideUrl(site, guide.game)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
-                      >
-                        <span aria-hidden>📖</span>
-                        {t("Guia completo ({site})", { site: label })}
-                      </a>
-                    ))}
-                  </div>
-                )}
               </div>
             </header>
+
+            {/* Guias completos lado a lado, com o ícone de cada site. */}
+            {guide && (
+              <div className="grid grid-cols-2 gap-2">
+                {GUIDE_SITES.map(({ site, label, domain }) => (
+                  <a
+                    key={site}
+                    href={gameWrittenGuideUrl(site, guide.game)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex min-w-0 items-center gap-2.5 rounded-2xl border border-line bg-surface p-3 active:bg-surface-2"
+                  >
+                    <SiteIcon domain={domain} label={label} size="lg" />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold">{t("Guia completo")}</span>
+                      <span className="block truncate text-xs text-muted">{label}</span>
+                    </span>
+                  </a>
+                ))}
+              </div>
+            )}
 
             <div role="tablist" className="grid grid-cols-3 gap-1 rounded-full bg-surface p-1 text-sm">
               {FILTERS.map((f) => (
@@ -316,7 +338,7 @@ function TrophyItem({ trophy, gameName, guide }: { trophy: TrophyRow; gameName: 
         </a>
         {/* Guias escritos do PlayStationTrophies.org e do PSNProfiles, com os nomes em inglês. */}
         {guide &&
-          GUIDE_SITES.map(({ site, label }) => (
+          GUIDE_SITES.map(({ site, label, domain }) => (
             <a
               key={site}
               href={trophyWrittenGuideUrl(site, guide.game, guide.trophies[trophy.id] || trophy.originalName || trophy.name)}
@@ -324,7 +346,7 @@ function TrophyItem({ trophy, gameName, guide }: { trophy: TrophyRow; gameName: 
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
             >
-              <span aria-hidden>📖</span>
+              <SiteIcon domain={domain} label={label} size="sm" />
               {label}
             </a>
           ))}

@@ -4,6 +4,9 @@ import android.content.res.Configuration;
 import android.os.Bundle;
 import android.webkit.WebView;
 import androidx.annotation.NonNull;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import com.getcapacitor.WebViewListener;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
@@ -18,6 +21,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(PsnLoginPlugin.class);
         registerPlugin(AppUpdaterPlugin.class);
+        registerPlugin(ExternalBrowserPlugin.class);
         super.onCreate(savedInstanceState);
         applyTextZoom();
         disableForcedDarkening();
@@ -28,8 +32,15 @@ public class MainActivity extends BridgeActivity {
                     @Override
                     public void onPageLoaded(WebView webView) {
                         publishSystemTheme();
+                        lastInsets = null;
+                        publishInsets();
                     }
                 });
+                WebView webView = getBridge().getWebView();
+                if (webView != null) {
+                    // Barras do sistema mudam com rotação, tela dividida ou gestos/botões.
+                    webView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> publishInsets());
+                }
             }
         } catch (RuntimeException ignored) {
         }
@@ -38,8 +49,44 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        // O usuário trocou claro/escuro com o app aberto.
+        // O usuário trocou claro/escuro com o app aberto (ou girou a tela).
         publishSystemTheme();
+        publishInsets();
+    }
+
+    private String lastInsets = null;
+
+    /**
+     * No Android 15+ o app ocupa a tela toda, por baixo da barra de status e da
+     * barra de navegação. Alguns WebViews não informam essas áreas pelo CSS
+     * (env(safe-area-inset-*)), e os menus ficavam por cima do conteúdo e das
+     * barras. Aqui o app mede quanto das barras cobre o WebView e passa para
+     * a página em --tm-inset-top / --tm-inset-bottom (styles.css).
+     */
+    private void publishInsets() {
+        try {
+            if (getBridge() == null) return;
+            WebView webView = getBridge().getWebView();
+            if (webView == null) return;
+            WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(webView);
+            if (insets == null) return;
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            int[] location = new int[2];
+            webView.getLocationOnScreen(location);
+            int screenHeight = webView.getRootView().getHeight();
+            int top = Math.max(0, bars.top - location[1]);
+            int bottom = Math.max(0, location[1] + webView.getHeight() - (screenHeight - bars.bottom));
+            float density = getResources().getDisplayMetrics().density;
+            String css = Math.round(top / density) + "px," + Math.round(bottom / density) + "px";
+            if (css.equals(lastInsets)) return;
+            lastInsets = css;
+            String[] parts = css.split(",");
+            webView.post(() -> webView.evaluateJavascript(
+                "document.documentElement.style.setProperty('--tm-inset-top','" + parts[0] + "');"
+                    + "document.documentElement.style.setProperty('--tm-inset-bottom','" + parts[1] + "');",
+                null));
+        } catch (RuntimeException ignored) {
+        }
     }
 
     /**

@@ -32,12 +32,12 @@ export function CloudNotice() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" data-no-pull>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 px-4 pb-[calc(1rem+var(--sab))] pt-4 sm:items-center" data-no-pull>
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="cloud-notice-title"
-        className="safe-bottom w-full max-w-md space-y-3 rounded-3xl border border-line bg-surface p-5 shadow-2xl"
+        className="w-full max-w-md space-y-3 rounded-3xl border border-line bg-surface p-5 shadow-2xl"
       >
         <h2 id="cloud-notice-title" className="text-lg font-semibold">
           {t("🌐 Recursos online ativados")}

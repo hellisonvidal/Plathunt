@@ -22,7 +22,9 @@ import {
   type StoreRegion,
 } from "../lib/store";
 import { useData } from "../lib/useData";
-import { demoStoreCategory, storeCategory, type StoreProgress } from "../psn/store";
+import { openInBrowser } from "../psn/native";
+import { demoStoreCategory, storeCacheKey, storeCategory, type StoreProgress } from "../psn/store";
+import { peekCached } from "../lib/cache";
 
 /** Quantos jogos entram na tela de cada vez (mais aparecem sozinhos ao rolar). */
 const PAGE = 40;
@@ -71,9 +73,23 @@ export function StorePage() {
     },
     [mode, categoryId, region],
   );
+  // A lista salva no celular aparece na hora, mesmo vencida, enquanto a nova chega.
+  const [saved, setSaved] = useState<{ key: string; products: StoreProduct[] } | null>(null);
+  useEffect(() => {
+    if (mode === "demo") return;
+    let alive = true;
+    void peekCached<StoreProduct[]>(storeCacheKey(region, categoryId)).then((hit) => {
+      if (alive && hit && Array.isArray(hit.value)) setSaved({ key, products: hit.value });
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
   const current = catalog.data?.key === key ? catalog.data.products : null;
-  const streaming = !current && partial?.key === key ? partial : null;
-  const products = current ?? streaming?.products ?? null;
+  const stale = !current && saved?.key === key ? saved.products : null;
+  const streaming = !current && !stale && partial?.key === key ? partial : null;
+  const products = current ?? stale ?? streaming?.products ?? null;
   // Filtrar milhares de jogos fica em segundo plano: digitar e rolar seguem fluidos.
   const deferredFilters = useDeferredValue(filters);
   const deferredProducts = useDeferredValue(products);
@@ -119,6 +135,7 @@ export function StorePage() {
                   ? t("Carregando a loja… {n} de {total} jogos", { n: streaming.products.length, total: streaming.total })
                   : t("Carregando a loja… {n} jogos", { n: streaming.products.length })
                 : t("{n} de {total} jogos", { n: visible?.length ?? 0, total: products.length })}
+            {stale && catalog.loading && t(" · atualizando a lista salva…")}
           </p>
           {(!current || catalog.loading) && !catalog.error && (
             <div className="h-1 overflow-hidden rounded-full bg-surface-2">
@@ -469,6 +486,11 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
       href={storeProductUrl(p.id, region)}
       target="_blank"
       rel="noreferrer"
+      // Sempre na página do jogo escolhido (no navegador), nunca na tela inicial do app da PlayStation.
+      onClick={(e) => {
+        e.preventDefault();
+        void openInBrowser(storeProductUrl(p.id, region));
+      }}
       className="block overflow-hidden rounded-2xl border border-line bg-surface"
     >
       <div className="relative bg-surface-2">
