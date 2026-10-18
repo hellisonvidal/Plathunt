@@ -3,8 +3,8 @@ import { useId } from "react";
 /**
  * Ilustrações 2D dos controles de cada console para o menu "Plataformas
  * jogadas", fiéis aos originais: DualSense (PS5), DualShock 4 (PS4),
- * DualShock 3 (PS3), o PS Vita (que é o próprio controle) e o controle do
- * PlayStation original para "Todas". As
+ * DualShock 3 prata (PS3), o PS Vita (que é o próprio controle) e o PSone
+ * com o logo da PlayStation para "Todas". As
  * cores são as dos controles; o quadradinho tem fundo claro neutro, para
  * ficarem bonitos em qualquer tema.
  */
@@ -141,28 +141,30 @@ function Ps4() {
 }
 
 /**
- * DualShock 3 (PS3): preto brilhante no formato clássico, sem touchpad, com
- * SELECT, START, o botão PS redondo prateado e as luzes 1–4 no topo.
+ * DualShock 3 (PS3) na cor prata acetinado, para não confundir com o
+ * DualShock 4 preto: formato clássico, sem touchpad, com SELECT, START, o
+ * botão PS e as luzes 1–4 vermelhas no topo.
  */
 function Ps3() {
   const u = useUid();
   return (
     <svg viewBox="0 0 96 96" aria-hidden>
       <defs>
-        <linearGradient id={`${u}b`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#4a505c"/><stop offset="0.35" stopColor="#1c1f26"/><stop offset="1" stopColor="#08090c"/></linearGradient>
-        <radialGradient id={`${u}ps`} cx="0.4" cy="0.35" r="0.7"><stop offset="0" stopColor="#ffffff"/><stop offset="1" stopColor="#8d94a0"/></radialGradient>
+        <linearGradient id={`${u}b`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f4f6f9"/><stop offset="0.45" stopColor="#c9cfd8"/><stop offset="1" stopColor="#8e96a3"/></linearGradient>
+        <radialGradient id={`${u}ps`} cx="0.4" cy="0.35" r="0.7"><stop offset="0" stopColor="#3a404c"/><stop offset="1" stopColor="#0b0d12"/></radialGradient>
       </defs>
       <Shadow id={`${u}sh`} />
-      <path d="M19 35 C21 30, 27 29, 33 30 C40 32, 56 32, 63 30 C69 29, 75 30, 77 35 L88 66 C90 75, 84 81, 78 78 C73 76, 70 68, 66 62 L30 62 C26 68, 23 76, 18 78 C12 81, 6 75, 8 66 Z" fill={`url(#${u}b)`} stroke="#5a6170" strokeWidth="0.8"/>
-      <path d="M21 36 C31 33, 65 33, 75 36" fill="none" stroke="#ffffff" strokeWidth="1.3" opacity="0.35" strokeLinecap="round"/>
-      <g>{[42, 46, 50, 54].map((x, i) => <rect key={x} x={x - 1.2} y="32.6" width="2.4" height="1.1" rx="0.5" fill={i === 0 ? "#ff3b30" : "#3a2020"}/>)}</g>
-      <rect x="38" y="40" width="6" height="2.2" rx="1.1" fill="#5b6270"/>
-      <path d="M52 39.3 l5 1.8 l-5 1.8 Z" fill="#5b6270"/>
-      <circle cx="48" cy="47" r="3.2" fill={`url(#${u}ps)`} stroke="#2a2f3a" strokeWidth="0.5"/>
-      <DPad x={24} y={44} fill="#1b1e24" stroke="#5b6270"/>
-      <FaceButtons x={72} y={44} button="#111317" ring="#4a5160" symbols={["#22d38a", "#ff4b40", "#5b8cff", "#ff6fd8"]}/>
-      <Stick x={37} y={55} top="#1b1e24" rim="#3a404c"/>
-      <Stick x={59} y={55} top="#1b1e24" rim="#3a404c"/>
+      <path d="M19 35 C21 30, 27 29, 33 30 C40 32, 56 32, 63 30 C69 29, 75 30, 77 35 L88 66 C90 75, 84 81, 78 78 C73 76, 70 68, 66 62 L30 62 C26 68, 23 76, 18 78 C12 81, 6 75, 8 66 Z" fill={`url(#${u}b)`} stroke="#6b7384" strokeWidth="0.9"/>
+      <path d="M21 36 C31 33, 65 33, 75 36" fill="none" stroke="#ffffff" strokeWidth="1.6" opacity="0.9" strokeLinecap="round"/>
+      <rect x="38" y="31.6" width="20" height="3.2" rx="1.6" fill="#2a2f3a"/>
+      <g>{[42, 46, 50, 54].map((x, i) => <rect key={x} x={x - 1.1} y="32.6" width="2.2" height="1.2" rx="0.5" fill={i === 0 ? "#ff3b30" : "#5a2a2a"}/>)}</g>
+      <rect x="38" y="40" width="6" height="2.2" rx="1.1" fill="#2a2f3a"/>
+      <path d="M52 39.3 l5 1.8 l-5 1.8 Z" fill="#2a2f3a"/>
+      <circle cx="48" cy="47" r="3.4" fill={`url(#${u}ps)`} stroke="#6b7384" strokeWidth="0.5"/>
+      <DPad x={24} y={44} fill="#2a2f3a" stroke="#0b0d12"/>
+      <FaceButtons x={72} y={44} button="#1b1e24" ring="#0b0d12" symbols={["#22d38a", "#ff4b40", "#5b8cff", "#ff6fd8"]}/>
+      <Stick x={37} y={55} top="#1b1e24" rim="#0b0d12"/>
+      <Stick x={59} y={55} top="#1b1e24" rim="#0b0d12"/>
     </svg>
   );
 }
@@ -197,27 +199,43 @@ function Vita() {
   );
 }
 
-/** Controle do PlayStation original (todas as plataformas): cinza, sem analógicos, com o logo colorido. */
+/** Logo clássico colorido da PlayStation (P vermelho, S amarelo/verde/azul). */
+function PsLogo({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${scale})`}>
+      <path d="M-2 -6 v12 l-3 -1.2 v-10 Z" fill="#e60012"/>
+      <path d="M-2 -6 c5.5 0.4 6 5.2 0.4 5.6" fill="none" stroke="#e60012" strokeWidth="1.8"/>
+      <path d="M-6.5 3.2 l4.4 1.8" stroke="#f4b400" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M-6.5 3.2 c0.6 -1.6 3 -2.4 5 -1.6" fill="none" stroke="#00a651" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M0.4 4.6 c3 -1.4 6 -1.2 5.4 0.4 c-0.4 1 -2.6 1.6 -5.4 2.2" fill="none" stroke="#2e6bd6" strokeWidth="1.8" strokeLinecap="round"/>
+    </g>
+  );
+}
+
+/**
+ * Todas as plataformas: o PSone, o PlayStation original em versão compacta,
+ * cinza-claro com a tampa redonda do leitor de CD e o logo colorido.
+ */
 function AllConsoles() {
   const u = useUid();
   return (
     <svg viewBox="0 0 96 96" aria-hidden>
       <defs>
-        <linearGradient id={`${u}b`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#e6e8ec"/><stop offset="1" stopColor="#b6bbc3"/></linearGradient>
+        <linearGradient id={`${u}b`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f2f3f5"/><stop offset="1" stopColor="#c3c8cf"/></linearGradient>
+        <radialGradient id={`${u}lid`} cx="0.42" cy="0.38" r="0.65"><stop offset="0" stopColor="#f7f8fa"/><stop offset="1" stopColor="#c9ced5"/></radialGradient>
       </defs>
       <Shadow id={`${u}sh`} />
-      <path d="M19 37 C21 32, 27 31, 33 32 C40 34, 56 34, 63 32 C69 31, 75 32, 77 37 L87 66 C89 74, 84 79, 78 76 C74 74, 71 67, 67 61 L29 61 C25 67, 22 74, 18 76 C12 79, 7 74, 9 66 Z" fill={`url(#${u}b)`} stroke="#8a919c" strokeWidth="0.8"/>
-      <path d="M21 38 C31 35, 65 35, 75 38" fill="none" stroke="#ffffff" strokeWidth="1.3" opacity="0.8" strokeLinecap="round"/>
-      <rect x="39" y="47" width="6" height="2" rx="1" fill="#7d838d"/>
-      <rect x="51" y="47" width="6" height="2" rx="1" fill="#7d838d"/>
-      <g transform="translate(48 40.5)">
-        <path d="M-1.6 -4 v8 l-2 -0.8 v-6.4 Z" fill="#e0433b"/>
-        <path d="M-1.6 -4 c3.5 0 4 3.4 0 3.6" fill="none" stroke="#f2b632" strokeWidth="1.3"/>
-        <path d="M-4.2 2.4 l3 1.2" stroke="#2ea36b" strokeWidth="1.3"/>
-        <path d="M0.2 3 c2.5 -1 4.2 -0.6 3.6 0.4" fill="none" stroke="#3a6fd8" strokeWidth="1.3"/>
-      </g>
-      <DPad x={24} y={46} fill="#a7adb7" stroke="#6b727e"/>
-      <FaceButtons x={72} y={46} button="#9aa1ab" ring="#6b727e" symbols={["#1f9e6e", "#e0433b", "#3a6fd8", "#c561b8"]}/>
+      <rect x="10" y="24" width="76" height="54" rx="10" fill={`url(#${u}b)`} stroke="#8a919c" strokeWidth="0.9"/>
+      <path d="M14 30 Q48 25 82 30" fill="none" stroke="#ffffff" strokeWidth="1.4" opacity="0.9" strokeLinecap="round"/>
+      <circle cx="38" cy="49" r="19" fill="#b7bdc6" />
+      <circle cx="38" cy="49" r="17" fill={`url(#${u}lid)`} stroke="#9aa1ab" strokeWidth="0.7"/>
+      <circle cx="38" cy="49" r="4.5" fill="none" stroke="#b7bdc6" strokeWidth="0.8"/>
+      <circle cx="69" cy="37" r="4" fill="#d7dbe0" stroke="#8a919c" strokeWidth="0.7"/>
+      <circle cx="69" cy="48" r="4" fill="#d7dbe0" stroke="#8a919c" strokeWidth="0.7"/>
+      <circle cx="76.5" cy="37" r="1.1" fill="#2fd16b"/>
+      <PsLogo x={71} y={64} scale={0.8} />
+      <rect x="18" y="74" width="10" height="2.4" rx="1" fill="#6b727e"/>
+      <rect x="32" y="74" width="10" height="2.4" rx="1" fill="#6b727e"/>
     </svg>
   );
 }

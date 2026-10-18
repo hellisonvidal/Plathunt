@@ -11,7 +11,7 @@ const player: MuralPlayer = {
   name: "me",
   accountId: "me",
   titles: [
-    title("A", "PS5", 100, c(1, 3, 5, 10), 3),
+    { ...title("A", "PS5", 100, c(1, 3, 5, 10), 3), hasGroups: true },
     title("B", "PS4", 40, c(0, 1, 2, 30), 5),
     title("C", "PS5", 0, c(0, 0, 0, 0), 9),
   ],

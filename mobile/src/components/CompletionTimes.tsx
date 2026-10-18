@@ -5,7 +5,7 @@ import { mapLimit } from "../lib/cache";
 import { completionSpans, formatSpan, type CompletionSpan } from "../lib/stats";
 import { locale, t } from "../i18n";
 import type { Title } from "../psn/types";
-import { ProgressBar } from "./ui";
+import { GameIcon, ProgressBar } from "./ui";
 
 interface Row {
   title: Title;
@@ -148,18 +148,21 @@ export function CompletionTimes({ titles }: { titles: Title[] }) {
       <ul className="divide-y divide-line">
         {shown.map((r) => (
           <li key={r.title.id}>
-            <Link to={`/game/me/${r.title.id}?service=${r.title.service}`} className="block py-2.5">
-              <p className="truncate text-sm font-semibold">{r.title.name}</p>
-              <p className="mt-0.5 flex items-center gap-1.5 text-xs">
-                <span className="w-4 text-center">{kind === "platinum" ? "🏆" : "💯"}</span>
-                <WithTime
-                  text={kind === "platinum" ? t("Platina em {time}") : t("100% em {time}")}
-                  time={formatSpan(r.span.ms)}
-                />
-                <span className="ml-auto text-[0.6875rem] text-muted">
-                  {date(r.span.start)} → {date(r.span.end)}
-                </span>
-              </p>
+            <Link to={`/game/me/${r.title.id}?service=${r.title.service}`} className="flex items-center gap-3 py-2.5">
+              <GameIcon src={r.title.iconUrl} size={44} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">{r.title.name}</p>
+                <p className="mt-0.5 flex items-center gap-1.5 text-xs">
+                  <span className="w-4 text-center">{kind === "platinum" ? "🏆" : "💯"}</span>
+                  <WithTime
+                    text={kind === "platinum" ? t("Platina em {time}") : t("100% em {time}")}
+                    time={formatSpan(r.span.ms)}
+                  />
+                  <span className="ml-auto text-[0.6875rem] text-muted">
+                    {date(r.span.start)} → {date(r.span.end)}
+                  </span>
+                </p>
+              </div>
             </Link>
           </li>
         ))}

@@ -29,16 +29,21 @@ export function ActivityPage() {
   const { feedDays } = useSettings();
   const { data, error, loading, refresh } = useData((force) => client.feed(force), [client, feedDays]);
   const [filter, setFilter] = useState<FilterKey>("todos");
+  // Busca de amigos nas conquistas (pelo ID da PSN).
+  const [friendQuery, setFriendQuery] = useState("");
   // ?view=boost-inbox: aberto por um link de pedido de boost.
   const [params] = useSearchParams();
   const fromLink = params.get("view") === "boost-inbox";
-  const [view, setView] = useState<"feed" | "merits" | "boost" | "challenges">(fromLink ? "boost" : "feed");
+  const [view, setView] = useState<"feed" | "merits" | "boost" | "challenges">(
+    fromLink ? "boost" : params.get("view") === "challenges" ? "challenges" : "feed",
+  );
   // O catálogo do Boost e dos Desafios começa a carregar em segundo plano.
   usePrefetchGameCatalog();
 
+  const q = friendQuery.trim().toLowerCase();
   const items = (data ?? []).filter((i) => {
     const types = FILTERS[filter].types as readonly string[] | null;
-    return !types || types.includes(i.trophy.type);
+    return (!types || types.includes(i.trophy.type)) && (!q || i.owner.onlineId.toLowerCase().includes(q));
   });
   const groups = groupFeed(items);
   // Recursos online: curtidas de outros jogadores nestas conquistas (exceto as suas).
@@ -113,10 +118,35 @@ export function ActivityPage() {
               ))}
             </nav>
 
+            <div className="relative">
+              <input
+                value={friendQuery}
+                onChange={(e) => setFriendQuery(e.target.value)}
+                placeholder={t("Buscar amigo")}
+                aria-label={t("Buscar amigo nas conquistas")}
+                className="w-full rounded-full border border-line bg-surface-2 py-2 pl-4 pr-10 text-sm outline-none focus:border-ps-blue-2"
+              />
+              {friendQuery && (
+                <button
+                  onClick={() => setFriendQuery("")}
+                  aria-label={t("Limpar busca")}
+                  className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
             {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
             {loading && !data && <Spinner label={t("Buscando os troféus seus e dos seus amigos…")} />}
 
-            {data && items.length === 0 && (
+            {data && q && items.length === 0 && (
+              <p className="py-12 text-center text-sm text-muted">
+                {t("Nenhuma conquista de \"{name}\" nos últimos {n} dias.", { name: friendQuery.trim(), n: feedDays })}
+              </p>
+            )}
+
+            {data && !q && items.length === 0 && (
               <p className="py-12 text-center text-sm text-muted">
                 {t("Nenhum troféu nos últimos {n} dias por aqui. Bora jogar! 🎮", { n: feedDays })}
               </p>

@@ -9,6 +9,8 @@ import { gameWrittenGuideUrl, trophyGuideUrl, trophyWrittenGuideUrl, type GuideS
 import { formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import type { Title, TrophyRow } from "../psn/types";
+import { QuickChallenge } from "../components/QuickChallenge";
+import { platinumGoal, type Challenge } from "../lib/challenges";
 
 /** Nomes usados nos links de guias: os oficiais em inglês, como nos sites. */
 interface GuideNames {
@@ -85,6 +87,28 @@ export function GamePage() {
       }
     : null;
 
+  // Nos jogos de um amigo: desafio rápido num troféu que falta para os dois
+  // (quem já tem o troféu não conta no desafio). Sem o jogo, nada falta para você.
+  const [challenge, setChallenge] = useState<Challenge["trophy"] | null>(null);
+  const friend = accountId !== "me" ? (data?.owner ?? null) : null;
+  const mine = useData(
+    async () => (accountId === "me" ? null : await client.gameTrophies("me", { id: gameId, service }).catch(() => [])),
+    [client, accountId, gameId, service],
+  );
+  const iHave = new Set((mine.data ?? []).filter((r) => r.earned).map((r) => r.id));
+  const canChallenge = (row: TrophyRow) => !row.earned && !iHave.has(row.id);
+  const onChallenge =
+    friend && data?.title && mine.data
+      ? (row: TrophyRow) =>
+          setChallenge({ id: row.id, name: row.name, detail: row.detail, type: row.type, iconUrl: row.iconUrl, rate: row.rate })
+      : undefined;
+  const challengeable = onChallenge ? (data?.trophies ?? []).filter(canChallenge).length : 0;
+  const platinumRace =
+    !!data?.title &&
+    data.title.defined.platinum > 0 &&
+    data.title.earned.platinum === 0 &&
+    !(mine.data ?? []).some((r) => r.type === "platinum" && r.earned);
+
   const all = data?.trophies ?? [];
   const earnedCount = all.filter((t) => t.earned).length;
   const visible = all
@@ -127,6 +151,35 @@ export function GamePage() {
               </div>
             </header>
 
+            {friend && data.title && mine.data && (
+              <div className="flex items-center gap-3 rounded-2xl border border-ps-blue-2/40 bg-ps-blue-2/10 p-3">
+                <span className="text-2xl" aria-hidden>
+                  🏁
+                </span>
+                <p className="min-w-0 flex-1 text-xs text-muted">
+                  {challengeable > 0
+                    ? t("Desafie {name}: toque em ⚔️ Desafiar num troféu que falta para vocês dois (quem já tem não conta).", {
+                        name: friend.onlineId,
+                      })
+                    : t("Neste jogo não sobrou troféu que falte para vocês dois. Escolha outro jogo de {name} para desafiar.", {
+                        name: friend.onlineId,
+                      })}
+                </p>
+                {platinumRace && (
+                  <button
+                    onClick={() => setChallenge(platinumGoal())}
+                    className="shrink-0 rounded-full bg-ps-blue px-3 py-1.5 text-xs font-semibold"
+                  >
+                    {t("🏆 Platina")}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {friend && data.title && challenge && (
+              <QuickChallenge game={data.title} trophy={challenge} friend={friend} onClose={() => setChallenge(null)} />
+            )}
+
             {/* Guias completos lado a lado, com o ícone de cada site. */}
             {guide && (
               <div className="grid grid-cols-2 gap-2">
@@ -168,6 +221,8 @@ export function GamePage() {
                 section={section}
                 gameName={data.title?.name ?? ""}
                 guide={guide}
+                onChallenge={onChallenge}
+                canChallenge={canChallenge}
                 rows={visible.filter((t) => section.trophies.includes(t))}
                 filter={filter}
                 expanded={sections.length === 1 || open.has(section.group.id)}
@@ -186,6 +241,8 @@ function GroupList({
   section,
   gameName,
   guide,
+  onChallenge,
+  canChallenge,
   rows,
   filter,
   expanded,
@@ -194,6 +251,9 @@ function GroupList({
   section: GroupSection;
   gameName: string;
   guide: GuideNames | null;
+  /** Nos jogos de um amigo: abre o desafio rápido no troféu. */
+  onChallenge?: (row: TrophyRow) => void;
+  canChallenge: (row: TrophyRow) => boolean;
   rows: TrophyRow[];
   filter: Filter;
   expanded: boolean;
@@ -265,7 +325,13 @@ function GroupList({
           ) : (
             <ul className="space-y-2">
               {rows.map((t) => (
-                <TrophyItem key={t.id} trophy={t} gameName={gameName} guide={guide} />
+                <TrophyItem
+                  key={t.id}
+                  trophy={t}
+                  gameName={gameName}
+                  guide={guide}
+                  onChallenge={onChallenge && canChallenge(t) ? () => onChallenge(t) : undefined}
+                />
               ))}
             </ul>
           )}
@@ -275,7 +341,17 @@ function GroupList({
   );
 }
 
-function TrophyItem({ trophy, gameName, guide }: { trophy: TrophyRow; gameName: string; guide: GuideNames | null }) {
+function TrophyItem({
+  trophy,
+  gameName,
+  guide,
+  onChallenge,
+}: {
+  trophy: TrophyRow;
+  gameName: string;
+  guide: GuideNames | null;
+  onChallenge?: () => void;
+}) {
   const { revealSecrets, language } = useSettings();
   const locked = !trophy.earned;
   const secret = trophy.hidden && locked && !revealSecrets;
@@ -325,6 +401,15 @@ function TrophyItem({ trophy, gameName, guide }: { trophy: TrophyRow; gameName: 
       {/* Abre no app do YouTube (ou no navegador) a busca por um vídeo de dicas.
           Usa o nome original do troféu: a tradução automática acha menos vídeos. */}
       <div className="mt-2 flex flex-wrap gap-2">
+        {onChallenge && (
+          <button
+            onClick={onChallenge}
+            className="inline-flex items-center gap-1.5 rounded-full bg-ps-blue px-3 py-1 text-xs font-semibold"
+          >
+            <span aria-hidden>⚔️</span>
+            {t("Desafiar")}
+          </button>
+        )}
         <a
           href={trophyGuideUrl(gameName, trophy.originalName ?? trophy.name, language)}
           target="_blank"
