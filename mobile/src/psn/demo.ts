@@ -179,6 +179,14 @@ export function createDemoClient(): PsnClient {
     recentTitles: (accountId) => delay(titlesOf(keyOf(accountId))),
     playedGames: (accountId) => delay(playedOf(keyOf(accountId))),
     trophyGroups: (game) => delay(Object.values(GAMES).find((g) => g.id === game.id)?.groups ?? []),
+    englishNames: (game) => {
+      const g = Object.values(GAMES).find((x) => x.id === game.id);
+      return delay({
+        name: g?.name ?? "",
+        platform: g?.platform ?? "",
+        trophies: Object.fromEntries((TROPHIES[game.id] ?? []).map(([id, , name]) => [id, name])),
+      });
+    },
     gameTrophies: (accountId, game) => delay(trophiesOf(keyOf(accountId), game.id)),
     titleTrophies: (game) =>
       delay(trophiesOf("me", game.id).map((t) => ({ ...t, earned: false, earnedAt: null, rate: null }))),

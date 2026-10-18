@@ -25,18 +25,37 @@ export function trophyGuideUrl(gameName: string, trophyName: string, language: S
 const clean = (s: string) => s.replace(/[™®©]/g, "").replace(/\s+/g, " ").trim();
 
 /**
- * Guia escrito do troféu no PlayStationTrophies.org. O site usa ids próprios
- * nos endereços dos troféus, então a busca (restrita ao site) leva à página
- * certa pelo nome do jogo e do troféu, em inglês, como no site.
+ * Nome do jogo como nos sites de guias: sem ™/®, sem o "Trophies"/"Trophy Set"
+ * que algumas listas antigas da PSN trazem no fim.
  */
-export function trophyWrittenGuideUrl(gameName: string, trophyName: string): string {
-  // Só o jogo vai entre aspas: se a Sony traduziu o troféu, o nome não bate exato com o site.
-  const query = `site:playstationtrophies.org "${clean(gameName)}" ${clean(trophyName)} trophy`;
-  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+export const guideGameName = (name: string) => clean(name).replace(/\s+(trophies|trophy set)$/i, "");
+
+/** Plataforma principal da lista ("PS4,PSVITA" → "PS4"), para separar versões de PS4 e PS5. */
+const mainPlatform = (platform: string) => (platform.split(",")[0] ?? "").replace("PSVITA", "PS Vita").trim();
+
+const google = (query: string) => `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+
+export type GuideSite = "pst" | "psnp";
+
+/** Onde fica cada tipo de página nos sites: troféus e guias completos. */
+const SITES: Record<GuideSite, { trophy: string; guide: string }> = {
+  pst: { trophy: "playstationtrophies.org/game", guide: "playstationtrophies.org/game" },
+  psnp: { trophy: "psnprofiles.com/trophy", guide: "psnprofiles.com/guide" },
+};
+
+/**
+ * Guia escrito de um troféu. Os dois sites usam ids próprios nos endereços,
+ * então a busca é restrita às páginas de troféu do site e usa os nomes
+ * oficiais em inglês (como nos sites) do jogo e do troféu, entre aspas, para
+ * achar exatamente aquele troféu daquele jogo, mais a plataforma.
+ */
+export function trophyWrittenGuideUrl(site: GuideSite, game: { name: string; platform: string }, trophyName: string): string {
+  return google(
+    `site:${SITES[site].trophy} "${guideGameName(game.name)}" "${clean(trophyName)}" ${mainPlatform(game.platform)}`.trim(),
+  );
 }
 
-/** Guia completo do jogo (roteiro para a platina) no PlayStationTrophies.org. */
-export function gameWrittenGuideUrl(gameName: string): string {
-  const query = `site:playstationtrophies.org "${clean(gameName)}" trophy guide road map`;
-  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+/** Guia completo do jogo (roteiro para a platina) no site escolhido. */
+export function gameWrittenGuideUrl(site: GuideSite, game: { name: string; platform: string }): string {
+  return google(`site:${SITES[site].guide} "${guideGameName(game.name)} Trophy Guide" ${mainPlatform(game.platform)}`.trim());
 }

@@ -13,14 +13,24 @@ describe("trophyGuideUrl", () => {
   });
 });
 
-describe("guia escrito (PlayStationTrophies.org)", () => {
-  it("busca o troféu dentro do site, com o jogo entre aspas", () => {
-    const url = new URL(trophyWrittenGuideUrl("God of War Ragnarök™", "Collector"));
+describe("guias escritos (PlayStationTrophies e PSNProfiles)", () => {
+  const game = { name: "God of War Ragnarök™", platform: "PS5" };
+  const q = (url: string) => new URL(url).searchParams.get("q");
+
+  it("busca o troféu exato nas páginas de troféu de cada site", () => {
+    const url = new URL(trophyWrittenGuideUrl("pst", game, "Collector"));
     expect(url.origin + url.pathname).toBe("https://www.google.com/search");
-    expect(url.searchParams.get("q")).toBe('site:playstationtrophies.org "God of War Ragnarök" Collector trophy');
+    expect(url.searchParams.get("q")).toBe('site:playstationtrophies.org/game "God of War Ragnarök" "Collector" PS5');
+    expect(q(trophyWrittenGuideUrl("psnp", game, "Collector"))).toBe(
+      'site:psnprofiles.com/trophy "God of War Ragnarök" "Collector" PS5',
+    );
   });
-  it("guia do jogo aponta para o roteiro do site", () => {
-    const url = new URL(gameWrittenGuideUrl("Bloodborne"));
-    expect(url.searchParams.get("q")).toBe('site:playstationtrophies.org "Bloodborne" trophy guide road map');
+
+  it("guia completo do jogo em cada site, com a plataforma principal", () => {
+    const old = { name: "Uncharted 2: Among Thieves™ Trophies", platform: "PS3" };
+    expect(q(gameWrittenGuideUrl("psnp", old))).toBe('site:psnprofiles.com/guide "Uncharted 2: Among Thieves Trophy Guide" PS3');
+    expect(q(gameWrittenGuideUrl("pst", { name: "Gravity Rush", platform: "PS4,PSVITA" }))).toBe(
+      'site:playstationtrophies.org/game "Gravity Rush Trophy Guide" PS4',
+    );
   });
 });

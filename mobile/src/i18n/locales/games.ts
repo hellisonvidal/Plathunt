@@ -27,6 +27,7 @@ const translations: Translations = {
     "Desde {year}, ano do primeiro jogo da conta. Toque no ano para ver os jogos.": "Since {year}, the year of the account's first game. Tap a year to see its games.",
     "Ver os jogos de {year}": "See the games from {year}",
     "Jogos de {year}": "Games from {year}",
+    "Guia completo ({site})": "Full guide ({site})",
   },
   "es-ES": {
     "🏆 Platinas ({n})": "🏆 Platinos ({n})",
@@ -53,6 +54,7 @@ const translations: Translations = {
     "Desde {year}, ano do primeiro jogo da conta. Toque no ano para ver os jogos.": "Desde {year}, año del primer juego de la cuenta. Toca un año para ver sus juegos.",
     "Ver os jogos de {year}": "Ver los juegos de {year}",
     "Jogos de {year}": "Juegos de {year}",
+    "Guia completo ({site})": "Guía completa ({site})",
   },
   "fr-FR": {
     "🏆 Platinas ({n})": "🏆 Platines ({n})",
@@ -79,6 +81,7 @@ const translations: Translations = {
     "Desde {year}, ano do primeiro jogo da conta. Toque no ano para ver os jogos.": "Depuis {year}, année du premier jeu du compte. Touchez une année pour voir ses jeux.",
     "Ver os jogos de {year}": "Voir les jeux de {year}",
     "Jogos de {year}": "Jeux de {year}",
+    "Guia completo ({site})": "Guide complet ({site})",
   },
   "de-DE": {
     "🏆 Platinas ({n})": "🏆 Platin ({n})",
@@ -105,6 +108,7 @@ const translations: Translations = {
     "Desde {year}, ano do primeiro jogo da conta. Toque no ano para ver os jogos.": "Seit {year}, dem Jahr des ersten Spiels des Kontos. Tippe auf ein Jahr, um seine Spiele zu sehen.",
     "Ver os jogos de {year}": "Spiele aus {year} anzeigen",
     "Jogos de {year}": "Spiele aus {year}",
+    "Guia completo ({site})": "Kompletter Guide ({site})",
   },
   "it-IT": {
     "🏆 Platinas ({n})": "🏆 Platini ({n})",
@@ -131,6 +135,7 @@ const translations: Translations = {
     "Desde {year}, ano do primeiro jogo da conta. Toque no ano para ver os jogos.": "Dal {year}, anno del primo gioco dell'account. Tocca un anno per vederne i giochi.",
     "Ver os jogos de {year}": "Vedi i giochi del {year}",
     "Jogos de {year}": "Giochi del {year}",
+    "Guia completo ({site})": "Guida completa ({site})",
   },
   "ja-JP": {
     "🏆 Platinas ({n})": "🏆 プラチナ（{n}）",
@@ -157,6 +162,7 @@ const translations: Translations = {
     "Desde {year}, ano do primeiro jogo da conta. Toque no ano para ver os jogos.": "アカウント最初のゲームの年、{year} 年から。年をタップするとその年のゲームが見られます。",
     "Ver os jogos de {year}": "{year} 年のゲームを見る",
     "Jogos de {year}": "{year} 年のゲーム",
+    "Guia completo ({site})": "完全攻略（{site}）",
   },
 };
 export default translations;

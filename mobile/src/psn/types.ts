@@ -55,6 +55,13 @@ export interface Title {
   hasGroups: boolean;
 }
 
+/** Nomes em inglês de um jogo e dos troféus dele (por id do troféu). */
+export interface EnglishNames {
+  name: string;
+  platform: string;
+  trophies: Record<number, string>;
+}
+
 export interface TrophyRow {
   id: number;
   type: TrophyType;
@@ -106,6 +113,11 @@ export interface PsnClient {
   /** Jogos jogados com tempo de jogo; null se o perfil não permitir. */
   playedGames(accountId: string, force?: boolean): Promise<PlayedGame[] | null>;
   trophyGroups(game: { id: string; service: Title["service"] }): Promise<TrophyGroup[]>;
+  /**
+   * Nomes oficiais em inglês do jogo e dos troféus (como nos sites de guias),
+   * independentemente do idioma do app.
+   */
+  englishNames(game: { id: string; service: Title["service"] }): Promise<EnglishNames>;
   gameTrophies(accountId: string, game: { id: string; service: Title["service"] }, force?: boolean): Promise<TrophyRow[]>;
   /** Lista de troféus de um jogo, sem depender de quem jogou (todos como não conquistados). */
   titleTrophies(game: { id: string; service: Title["service"] }, raw?: boolean): Promise<TrophyRow[]>;
