@@ -10,9 +10,9 @@ export type UpdateResult =
   | { status: "available"; latest: number; apkUrl: string; notes: string | null }
   | { status: "unavailable"; reason: string };
 
-/** "build-42" → 42; outros formatos → null. */
+/** "v1.1.1-build-3" (ou o antigo "build-42") → número do build; outros formatos → null. */
 export function parseBuildTag(tag: string | undefined): number | null {
-  const m = tag?.match(/^build-(\d+)$/);
+  const m = tag?.match(/^(?:v\d+(?:\.\d+)*-)?build-(\d+)$/);
   return m ? Number(m[1]) : null;
 }
 

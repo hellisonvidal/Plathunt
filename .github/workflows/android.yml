@@ -20,12 +20,21 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    env:
-      # Vira o versionCode do Android e a versão mostrada em Configurações.
-      BUILD_NUMBER: ${{ github.run_number }}
-      VITE_BUILD_NUMBER: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
+
+      # Número do build: conta as versões publicadas desde a 1.1.1 (tags
+      # "v<versão>-build-N"), então a primeira é o build 1. Vira o versionCode
+      # do Android e aparece em Configurações.
+      - name: Número do build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          n=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName \
+            --jq '[.[] | select(.tagName | test("^v[0-9.]+-build-[0-9]+$"))] | length')
+          echo "BUILD_NUMBER=$((n + 1))" >> "$GITHUB_ENV"
+          echo "VITE_BUILD_NUMBER=$((n + 1))" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$(node -p "require('./mobile/package.json').version")" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
@@ -110,7 +119,7 @@ jobs:
 
           🔐 Assinado com a chave própria do Plathunt. Se a instalação falhar por conflito de assinatura, desinstale uma vez a versão anterior (assinada com a chave de testes) e instale esta."
           fi
-          gh release create "build-$BUILD_NUMBER" Plathunt.apk \
-            --title "Plathunt 1.2 (build $BUILD_NUMBER)" \
+          gh release create "v$APP_VERSION-build-$BUILD_NUMBER" Plathunt.apk \
+            --title "Plathunt $APP_VERSION (build $BUILD_NUMBER)" \
             --notes "${NOTES:-Nova versão}" \
             --target "$GITHUB_SHA"

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { Avatar, ErrorBox, Spinner } from "../components/ui";
 import { locale, t } from "../i18n";
+import { untilRefresh } from "../lib/cache";
 import { useData } from "../lib/useData";
 import type { Profile } from "../psn/types";
 
@@ -20,7 +21,12 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 /** Dados do ranking (você e os amigos). Fica em Estatísticas → Ranking. */
 export function useRanking() {
   const { client } = useApp();
-  return useData(async (force) => ({ me: await client.me(force), friends: await client.friends(force) }), [client]);
+  // Fica salvo até o usuário puxar a tela para atualizar.
+  return useData(
+    (force) =>
+      untilRefresh("stats:ranking", async () => ({ me: await client.me(force), friends: await client.friends(force) }), force),
+    [client],
+  );
 }
 
 /** Ranking de platinas, nível ou troféus entre você e os amigos (sem cabeçalho). */

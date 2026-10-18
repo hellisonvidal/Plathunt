@@ -1,4 +1,4 @@
-# Publicar na Play Store (versão 1.2)
+# Publicar na Play Store (versão 1.1.1)
 
 O app tem duas versões, geradas juntas pelo GitHub Actions (Actions → Android APK):
 

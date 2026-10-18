@@ -14,7 +14,7 @@ globalThis.localStorage = {
   length: 0,
 } as Storage;
 
-const { cached, peekCached } = await import("../src/lib/cache");
+const { cached, peekCached, untilRefresh } = await import("../src/lib/cache");
 const { storeRefreshMs } = await import("../src/lib/store");
 
 describe("cache", () => {
@@ -45,5 +45,22 @@ describe("storeRefreshMs", () => {
   it("converte a escolha das Configurações", () => {
     expect(storeRefreshMs("6h")).toBe(6 * 3_600_000);
     expect(storeRefreshMs("manual")).toBe(Number.POSITIVE_INFINITY);
+  });
+});
+
+describe("estatísticas guardadas até puxar a tela", () => {
+  it("não busca de novo sozinho, só ao atualizar", async () => {
+    let calls = 0;
+    const load = async () => ++calls;
+    expect(await untilRefresh("stats:teste", load, false)).toBe(1);
+    // Mesmo muito tempo depois, continua com o que foi carregado.
+    const realNow = Date.now;
+    Date.now = () => realNow() + 365 * 24 * 3_600_000;
+    try {
+      expect(await untilRefresh("stats:teste", load, false)).toBe(1);
+    } finally {
+      Date.now = realNow;
+    }
+    expect(await untilRefresh("stats:teste", load, true)).toBe(2);
   });
 });

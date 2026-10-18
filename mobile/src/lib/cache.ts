@@ -84,6 +84,15 @@ export async function cached<T>(key: string, ttlMs: number, load: () => Promise<
   return p;
 }
 
+/**
+ * Guarda sem prazo de validade: a tela mostra o que já foi carregado e só
+ * busca de novo quando o usuário puxa a tela para atualizar (`force`).
+ * Sair da conta apaga tudo (clearCache).
+ */
+export function untilRefresh<T>(key: string, load: () => Promise<T>, force: boolean): Promise<T> {
+  return cached(key, Infinity, load, force);
+}
+
 /** O que estiver salvo para a chave, mesmo vencido (para mostrar na hora enquanto atualiza). */
 export async function peekCached<T>(key: string): Promise<{ at: number; value: T } | undefined> {
   return (await read(key)) as { at: number; value: T } | undefined;
