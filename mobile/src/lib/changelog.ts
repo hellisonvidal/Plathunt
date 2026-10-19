@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 3,
+    items: [
+      "🌐 Recursos online em um servidor novo, mais rápido e sempre no ar, e agora dá para apagar seus dados do servidor em Configurações → Recursos online.",
+    ],
+  },
+  {
     id: 2,
     items: [
       "🛒 Loja: filtros com várias opções ao mesmo tempo e tipos mais precisos (edição premium, pacote, avaliação), com os preços alinhados nos cartões.",

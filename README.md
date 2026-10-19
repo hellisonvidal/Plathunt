@@ -63,13 +63,13 @@ No perfil de um amigo, ao abrir um jogo dele, **cada troféu** tem o botão **�
 
 No Android 15+ o app ocupa a tela toda, por baixo da barra de status e da barra de navegação. O cabeçalho de cada tela fica logo abaixo da barra de status (que mantém o fundo do tema), e o fim da lista sobra acima das abas e da barra de navegação. As medidas vêm do WebView ou, quando ele não informa, do próprio app (`MainActivity`, variáveis `--tm-inset-*`). As notificações usam um troféu de platina como ícone.
 
-## Recursos online (Supabase gratuito)
+## Recursos online (Cloudflare gratuito)
 
 Vêm ligados para quem entra com a PSN: na primeira abertura, um aviso explica o que vai para o servidor e o jogador escolhe **Manter ligados** ou **Desligar** (nada é enviado antes da escolha). Depois, o app reconecta sozinho, a menos que tenham sido desligados; dá para mudar em Configurações → Recursos online. Com eles:
 - **Curtidas compartilhadas:** a curtida chega ao dono da conquista, que vê "curtido por…" em Atividades e recebe notificação;
 - **Pedidos de boost direto no app:** no card do pedido, "📲 Enviar direto no app" lista os amigos que também usam o Plathunt com recursos online; o pedido aparece em "Pedidos recebidos" deles, e a resposta (aceitou/recusou) volta para quem enviou.
 
-O servidor é um projeto Supabase (plano gratuito, região São Paulo). A função `supabase/functions/psn-login` confirma o ID da PSN com o token da própria sessão PSN (usado uma vez, não é guardado) e devolve a sessão do app; as tabelas (`supabase/migrations/`) têm regras de acesso (RLS) para que cada um só grave as próprias curtidas e pedidos. O app usa só a chave pública (publishable). Ficam guardados apenas ID e avatar da PSN, curtidas e pedidos de boost — veja a [política de privacidade](docs/privacidade.md).
+O servidor é um Cloudflare Worker com banco D1 (plano gratuito, pasta `cloudflare/`), publicado pelo GitHub Actions. O login confirma o ID da PSN com o token da própria sessão PSN (usado uma vez, não é guardado) e devolve uma sessão assinada; cada rota só lê e grava os dados de quem está logado. Em Configurações → Recursos online dá para apagar todos os seus dados do servidor. Configuração e regras em [docs/cloudflare.md](docs/cloudflare.md). Ficam guardados apenas ID e avatar da PSN, curtidas e pedidos de boost — veja a [política de privacidade](docs/privacidade.md).
 
 ## Idiomas
 
@@ -187,7 +187,7 @@ src/app/                  páginas: feed, /trophies, /games/[id], /u/[onlineId],
 
 ## Próximos passos sugeridos
 
-- Reações e parabéns no app Android, com um backend gratuito (ex.: Supabase).
+- Reações e parabéns no app Android, com um backend gratuito (feito: Cloudflare).
 - Notificações quando um amigo platinar.
 - APK assinado para publicar na Google Play.
 - Comparar o progresso com um amigo jogo a jogo.

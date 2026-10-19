@@ -6,7 +6,7 @@ import { WhatsNewDialog } from "../components/WhatsNew";
 import { Avatar, ProgressBar } from "../components/ui";
 import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
-import { connectCloud, disconnectCloud, PRIVACY_URL, useCloud } from "../lib/cloud";
+import { cloudAvailable, connectCloud, deleteCloudData, disconnectCloud, PRIVACY_URL, useCloud } from "../lib/cloud";
 import { cancelAllNotifications, requestNotificationPermission } from "../lib/notify";
 import { appVersion, updateSettings, useSettings, type Settings } from "../lib/settings";
 import { STORE_REFRESH, STORE_REGIONS } from "../lib/store";
@@ -656,17 +656,34 @@ function CloudSettings({ demo, onMessage }: { demo: boolean; onMessage: (m: stri
       </p>
       {demo ? (
         <p className="text-xs text-muted">{t("Disponível ao entrar com a PSN (não funciona no modo demonstração).")}</p>
+      ) : !cloudAvailable() ? (
+        <p className="text-xs text-muted">{t("Recursos online indisponíveis nesta versão.")}</p>
       ) : identity ? (
-        <button
-          disabled={busy}
-          onClick={() => run(async () => {
-            await disconnectCloud();
-            updateSettings({ cloudOff: true, cloudNoticeSeen: true });
-          }, t("Recursos online desligados neste celular."))}
-          className="w-full rounded-xl border border-line py-2.5 text-sm font-semibold disabled:opacity-50"
-        >
-          {t("Desligar recursos online")}
-        </button>
+        <>
+          <button
+            disabled={busy}
+            onClick={() => run(async () => {
+              await disconnectCloud();
+              updateSettings({ cloudOff: true, cloudNoticeSeen: true });
+            }, t("Recursos online desligados neste celular."))}
+            className="w-full rounded-xl border border-line py-2.5 text-sm font-semibold disabled:opacity-50"
+          >
+            {t("Desligar recursos online")}
+          </button>
+          <button
+            disabled={busy}
+            onClick={() => {
+              if (!window.confirm(t("Apagar seus dados online? Seu perfil, suas curtidas e seus pedidos de boost saem do servidor e os recursos online são desligados."))) return;
+              void run(async () => {
+                await deleteCloudData();
+                updateSettings({ cloudOff: true, cloudNoticeSeen: true });
+              }, t("Seus dados foram apagados do servidor."));
+            }}
+            className="w-full py-1 text-xs font-semibold text-red-400 disabled:opacity-50"
+          >
+            {t("Apagar meus dados do servidor")}
+          </button>
+        </>
       ) : (
         <button
           disabled={busy || !ready}

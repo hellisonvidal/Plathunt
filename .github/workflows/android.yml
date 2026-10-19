@@ -36,6 +36,27 @@ jobs:
           echo "VITE_BUILD_NUMBER=$((n + 1))" >> "$GITHUB_ENV"
           echo "APP_VERSION=$(node -p "require('./mobile/package.json').version")" >> "$GITHUB_ENV"
 
+      # Endereço do servidor dos recursos online (Cloudflare Worker), gravado no
+      # app. Vem da variável PLATHUNT_API_URL ou, com os segredos da Cloudflare,
+      # do subdomínio workers.dev da conta. Sem nenhum dos dois, o app sai com
+      # os recursos online indisponíveis (o resto funciona normalmente).
+      - name: Endereço do servidor
+        env:
+          API_URL: ${{ vars.PLATHUNT_API_URL }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          url="$API_URL"
+          if [ -z "$url" ] && [ -n "$CF_TOKEN" ] && [ -n "$CF_ACCOUNT" ]; then
+            sub=$(curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/subdomain" | jq -r '.result.subdomain // empty' || true)
+            if [ -n "$sub" ]; then url="https://plathunt-api.$sub.workers.dev"; fi
+          fi
+          if [ -z "$url" ]; then
+            echo "::warning::Sem o endereço do servidor (docs/cloudflare.md): os recursos online ficam indisponíveis neste build."
+          fi
+          echo "VITE_CLOUD_URL=$url" >> "$GITHUB_ENV"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22

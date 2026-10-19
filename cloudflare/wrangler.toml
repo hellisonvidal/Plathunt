@@ -1,0 +1,16 @@
+# Servidor dos recursos online do Plathunt (Cloudflare Workers + D1).
+# O deploy é feito pelo GitHub Actions (.github/workflows/cloudflare.yml), que
+# cria o banco na primeira vez e troca o database_id abaixo pelo real.
+name = "plathunt-api"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "plathunt"
+database_id = "__D1_DATABASE_ID__"
+migrations_dir = "migrations"
+
+[observability]
+enabled = true
