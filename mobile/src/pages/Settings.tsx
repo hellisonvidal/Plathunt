@@ -507,7 +507,7 @@ function UpdateStatus({ result }: { result: UpdateResult }) {
     return (
       <div className="space-y-2 border-t border-line px-4 py-3">
         <p className="text-sm font-semibold">
-          {t("Nova versão disponível: {version}", { version: `build ${result.latest}` })}
+          {t("Nova versão disponível: {version}", { version: result.label })}
         </p>
         {result.notes && <p className="whitespace-pre-line text-xs text-muted">{result.notes}</p>}
         <InstallButton url={result.apkUrl} />

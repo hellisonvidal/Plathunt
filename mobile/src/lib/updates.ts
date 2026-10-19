@@ -1,5 +1,5 @@
 import { t } from "../i18n";
-import { BUILD_NUMBER } from "./settings";
+import { VERSION_CODE } from "./settings";
 
 /** Repositório onde o GitHub Actions publica cada versão do APK (Releases). */
 export const REPO = "hellisonvidal/Trophy-Mania";
@@ -7,7 +7,7 @@ export const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
 
 export type UpdateResult =
   | { status: "up-to-date"; latest: number }
-  | { status: "available"; latest: number; apkUrl: string; notes: string | null }
+  | { status: "available"; latest: number; apkUrl: string; notes: string | null; label: string }
   | { status: "unavailable"; reason: string };
 
 /** "v1.1.1-build-3" (ou o antigo "build-42") → número do build; outros formatos → null. */
@@ -18,6 +18,8 @@ export function parseBuildTag(tag: string | undefined): number | null {
 
 interface ReleaseJson {
   tag_name?: string;
+  /** Ex.: "Plathunt 1.1.1 (build 4)". */
+  name?: string | null;
   body?: string | null;
   html_url?: string;
   assets?: { name: string; browser_download_url: string }[];
@@ -35,6 +37,8 @@ export function evaluateRelease(release: ReleaseJson, current: string): UpdateRe
     latest,
     apkUrl: apk?.browser_download_url ?? release.html_url ?? RELEASES_PAGE,
     notes: release.body?.trim() || null,
+    // Nome da versão para mostrar ("Plathunt 1.1.1 (build 4)"), não o código interno.
+    label: release.name?.replace(/^Plathunt\s*/, "").trim() || `build ${latest}`,
   };
 }
 
@@ -54,7 +58,7 @@ export async function checkForUpdate(): Promise<UpdateResult> {
       };
     }
     if (!res.ok) return { status: "unavailable", reason: t("O GitHub respondeu {status}.", { status: String(res.status) }) };
-    return evaluateRelease((await res.json()) as ReleaseJson, BUILD_NUMBER);
+    return evaluateRelease((await res.json()) as ReleaseJson, VERSION_CODE);
   } catch {
     return { status: "unavailable", reason: t("Sem conexão com o GitHub agora.") };
   }

@@ -23,17 +23,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Número do build: conta as versões publicadas desde a 1.1.1 (tags
-      # "v<versão>-build-N"), então a primeira é o build 1. Vira o versionCode
-      # do Android e aparece em Configurações.
+      # Número do build: conta as versões publicadas desde a 1.1.1, então a
+      # primeira é o build 1; é o que aparece em Configurações.
+      # versionCode do Android = 10000 + build: sempre maior que o dos APKs
+      # antigos (até 147), então a versão nova instala por cima. A Release usa
+      # a tag "build-<versionCode>", formato que o "Verificar atualizações" de
+      # todas as versões do app entende.
       - name: Número do build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           n=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName \
-            --jq '[.[] | select(.tagName | test("^v[0-9.]+-build-[0-9]+$"))] | length')
+            --jq '[.[] | select(.tagName | test("^(v[0-9.]+-build-[0-9]+|build-1[0-9]{4})$"))] | length')
           echo "BUILD_NUMBER=$((n + 1))" >> "$GITHUB_ENV"
           echo "VITE_BUILD_NUMBER=$((n + 1))" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$((10000 + n + 1))" >> "$GITHUB_ENV"
+          echo "VITE_VERSION_CODE=$((10000 + n + 1))" >> "$GITHUB_ENV"
           echo "APP_VERSION=$(node -p "require('./mobile/package.json').version")" >> "$GITHUB_ENV"
 
       # Endereço do servidor dos recursos online (Cloudflare Worker), gravado no
@@ -140,7 +145,7 @@ jobs:
 
           🔐 Assinado com a chave própria do Plathunt. Se a instalação falhar por conflito de assinatura, desinstale uma vez a versão anterior (assinada com a chave de testes) e instale esta."
           fi
-          gh release create "v$APP_VERSION-build-$BUILD_NUMBER" Plathunt.apk \
+          gh release create "build-$VERSION_CODE" Plathunt.apk \
             --title "Plathunt $APP_VERSION (build $BUILD_NUMBER)" \
             --notes "${NOTES:-Nova versão}" \
             --target "$GITHUB_SHA"

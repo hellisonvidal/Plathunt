@@ -10,7 +10,8 @@ android {
         applicationId "com.hellisonvidal.perseus"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode buildNumber
+        // 10000 + build (VERSION_CODE do GitHub Actions): sempre acima dos APKs antigos.
+        versionCode((System.getenv("VERSION_CODE") ?: String.valueOf(buildNumber)) as Integer)
         versionName "1.1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
