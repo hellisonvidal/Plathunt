@@ -16,7 +16,7 @@ import { evaluateMerits, meritName } from "./merits";
 import { getMeritDates, recordMeritDates } from "./meritDates";
 import { notificationsEnabled, notify } from "./notify";
 import { countReactedItems } from "./reactions";
-import { BUILD_NUMBER, getSettings } from "./settings";
+import { getSettings, VERSION_CODE } from "./settings";
 import { matchPlayed } from "./stats";
 import { checkForUpdate } from "./updates";
 import { isPlayStoreBuild } from "../psn/native";
@@ -207,7 +207,7 @@ async function checkSocial(since: string | null, now: number): Promise<string | 
 }
 
 async function checkUpdate(notified: number | null): Promise<number | null> {
-  const current = Number(BUILD_NUMBER);
+  const current = Number(VERSION_CODE);
   // Na versão da Play Store, a própria loja avisa e instala as atualizações.
   if (!Number.isFinite(current) || isPlayStoreBuild()) return notified;
   const result = await checkForUpdate();

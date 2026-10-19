@@ -125,6 +125,11 @@ export function useSettings(): Settings {
 
 /** Número do build (definido pelo GitHub Actions); "dev" em builds locais. */
 export const BUILD_NUMBER: string = import.meta.env.VITE_BUILD_NUMBER ?? "dev";
+/**
+ * Código da versão no Android (10000 + build), usado para saber se há
+ * atualização: sempre maior que o dos APKs antigos (até o build 147).
+ */
+export const VERSION_CODE: string = import.meta.env.VITE_VERSION_CODE ?? BUILD_NUMBER;
 /** Versão do app; o número do build vai junto para identificar o APK. */
 export const VERSION = "1.1.1";
 const DEV_VERSION = "1.1.1 (desenvolvimento)";

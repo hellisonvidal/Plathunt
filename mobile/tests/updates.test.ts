@@ -23,6 +23,7 @@ describe("evaluateRelease", () => {
       latest: 12,
       apkUrl: "https://x/app.apk",
       notes: "Novidades",
+      label: "build 12",
     });
   });
 
@@ -41,5 +42,21 @@ describe("evaluateRelease", () => {
 
   it("tag desconhecida não quebra", () => {
     expect(evaluateRelease({ tag_name: "v2" }, "1").status).toBe("unavailable");
+  });
+});
+
+describe("numeração 1.1.1 (versionCode = 10000 + build)", () => {
+  const release = {
+    tag_name: "build-10004",
+    name: "Plathunt 1.1.1 (build 4)",
+    assets: [{ name: "Plathunt.apk", browser_download_url: "https://x/app.apk" }],
+  };
+
+  it("o app antigo (build 147) enxerga a versão nova e instala por cima", () => {
+    expect(evaluateRelease(release, "147")).toMatchObject({ status: "available", latest: 10004, label: "1.1.1 (build 4)" });
+  });
+
+  it("a versão nova não se oferece para si mesma", () => {
+    expect(evaluateRelease(release, "10004").status).toBe("up-to-date");
   });
 });
