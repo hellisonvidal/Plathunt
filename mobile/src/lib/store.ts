@@ -54,87 +54,146 @@ const kindName = (name: string) =>
   name
     .toLowerCase()
     .replace(/[™®©]/g, "")
-    .replace(/[–—:()[\]]/g, " ")
+    .replace(/[–—:()[\]|_（）]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-const EDITION_WORDS =
-  "deluxe|digital deluxe|super deluxe|ultimate|premium|gold|definitive|complete|collector'?s|special|vault|legendary|platinum|champions|anniversary|game of the year|goty|cross-gen|ultra|royal|year \\d+";
+/** Plataformas no nome ("PS4 & PS5", "para PS5", "(PlayStation 5)", "PS5+PSVR2"): não dizem nada do tipo. */
+const PLATFORM = "(?:ps4|ps5|psvr2|psvr|ps vr2|playstation\\s?[45]|playstation vr2?)";
+const PLATFORMS_IN_NAME = new RegExp(
+  `(?:\\b(?:para|for|pour|für|per|en)\\s+)?\\b${PLATFORM}\\b(?:\\s*(?:&|e|y|et|and|und|\\+|/|,|-)\\s*\\b${PLATFORM}\\b)*`,
+  "g",
+);
+const withoutPlatforms = (n: string) =>
+  n.replace(/\bvr \+ non-vr\b/g, " ").replace(PLATFORMS_IN_NAME, " ").replace(/\s+/g, " ").trim();
+
+/** Edição padrão ("Standard Edition", "Edição Padrão"...): é o próprio jogo, não edição premium. */
+const STANDARD_NAME =
+  /\b(standard|padr[ãa]o|est[áa]ndar|standardedition|base edition|edi[çc][ãa]o base|edici[óo]n base|normale|cross-gen(\s+digital)?(\s+(edition|bundle))?)\b/;
 
 /**
  * Edições especiais de um jogo (Deluxe, Ultimate, Gold, Definitiva, Jogo do
  * Ano, "Jogo + Passe de Temporada"...). A palavra precisa vir como edição
  * ("Deluxe Edition", "Edição Deluxe" ou no fim do nome), para não confundir
- * jogos como "Marvel Ultimate Alliance" ou "Ultimate Chicken Horse".
+ * jogos como "Marvel Ultimate Alliance" ou "Ultimate Chicken Horse". Vale
+ * para produtos sem a classificação da loja (listas salvas antigas).
  */
+const EDITION_WORDS =
+  "deluxe|digital deluxe|super deluxe|ultimate|premium|gold|definitive|complete|collector'?s|special|vault|legendary|platinum|champions|anniversary|game of the year|goty|cross-gen|ultra|royal|year \\d+";
 const PREMIUM_NAME = new RegExp(
   [
     `\\b(${EDITION_WORDS})\\s+(edition|edi[çc][ãa]o)\\b`,
     "\\bedi[çc][ãa]o\\s+(digital\\s+)?(deluxe|definitiva|completa|especial|de luxo|ouro|suprema|premium|ultimate|gold|lend[áa]ria|do colecionador|de colecionador|jogo do ano|platina|aniversário|campe[õo]es)\\b",
     "\\b(goty|game of the year|jogo do ano)\\b",
     "\\b(deluxe|ultimate|premium|gold|definitive|complete)$",
-    "\\s\\+\\s.*\\b(season pass|passe de temporada|passe do ano|year pass|expans[ãa]o|expansion|dlc|add-ons?|complementos?|conte[úu]do adicional)\\b",
   ].join("|"),
 );
 
 /**
- * Pacotes de jogos (Bundle, Pacote, Coleção, Trilogia, "2 em 1", "Jogo A + Jogo B"...):
- * vários jogos vendidos juntos. Um "+" com passe de temporada ou DLC é edição premium.
+ * Edição que só existe para ser vendida acima do jogo: Deluxe, Ultimate,
+ * Gold, Premium... Num "jogo completo" da loja só ela conta: "Definitive",
+ * "Complete", "Collector's", "Anniversary", "Remastered" e "Jogo do Ano"
+ * costumam ser a única versão do jogo à venda (e há jogos chamados "... Gold"
+ * ou "... Deluxe"), então ficam como jogo completo.
  */
-const BUNDLE_NAME =
-  /\b(bundle|pacote|combo|double pack|triple pack|dual pack|pack duplo|pacote duplo|pacote triplo|collection|cole[çc][ãa]o|trilogy|trilogia|anthology|antologia|duologia|duology|quadrilogy|saga completa|\d\s?(em|in)\s?1|party pack)\b|\s\+\s/;
+const UPSELL_EDITION = new RegExp(
+  [
+    "\\b(digital deluxe|super deluxe|deluxe|ultimate|gold|premium|vault|champions|legendary|royal|ultra)\\s+(edition|edi[çc][ãa]o|edici[óo]n|[ée]dition)\\b",
+    "\\b(edition|edi[çc][ãa]o|edici[óo]n|[ée]dition)\\s+(digital\\s+)?(deluxe|de luxo|ultimate|suprema|ouro|gold|premium|lend[áa]ria|legendaria|l[ée]gendaire|campe[õo]es|cofre)\\b",
+  ].join("|"),
+);
 
-/**
- * A Sony marca como "Pacote do jogo" (GAME_BUNDLE) tanto pacotes de vários
- * jogos quanto edições especiais e até o jogo com bônus de pré-venda. Nesses,
- * o nome decide: vários jogos ("Trilogia", "Coleção", "Double Pack", "4 in 1",
- * "A x B"), edição ("... Edition", "Edição ...", Deluxe, Upgrade...), pacote
- * ("Bundle", "Jogo A + Jogo B") ou, sem nada disso, o próprio jogo.
- */
+/** Qualquer edição ou versão especial (num "Pacote do jogo", que já é mais que o jogo). */
+const ANY_EDITION =
+  /\b(edition|edi[çc][ãa]o|edici[óo]n|[ée]dition|deluxe|de luxo|ultimate|premium|gold|definitive|definitiva|complete|completa|completo|goty|game of the year|jogo do ano|upgrade|atualiza[çc][ãa]o para|vault|cofre|director'?s cut|vers[ãa]o do diretor|enhanced)\b/;
+
+/** O jogo com extras (passe, DLC, pacote de fundador, avatares...): edição premium, não pacote de jogos. */
+const WITH_EXTRAS =
+  /\b(season pass|passe de temporada|passe do ano|year pass|expansion pass|content pass|expans[ãa]o|expansion|dlcs?|add-ons?|complementos?|conte[úu]do adicional|supporter|apoiador|founder'?s|fundador(es)?|starter|iniciante|avatar|avatares|temas?|themes?|soundtrack|trilha sonora|costumes?|trajes?|skins?|bonus|b[ôo]nus|shark card|cash card|coins|moedas|points)\b/;
+
+/** Vários jogos juntos, sem dúvida: coleção, trilogia, "2 em 1", "Double Pack", "Pacote de 5 jogos"... */
 const SEVERAL_GAMES_NAME =
-  /\b(collection|cole[çc][ãa]o|trilogy|trilogia|anthology|antologia|duologia|duology|quadrilogy|saga completa|double pack|triple pack|dual pack|pack duplo|pacote duplo|pacote triplo|\d\s?(em|in)\s?1|editions|edi[çc][õo]es)\b|\s[x×]\s/;
-const EDITION_IN_BUNDLE =
-  /\b(edition|edi[çc][ãa]o|deluxe|ultimate|premium|gold|definitive|definitiva|complete|completa|goty|game of the year|jogo do ano|upgrade|vault|cofre|version|vers[ãa]o)\b/;
+  /\b(collection|cole[çc][ãa]o|colecci[óo]n|trilogy|trilogia|anthology|antologia|duologia|duology|quadrilogy|saga completa|double pack|triple pack|dual pack|duo pack|pack duplo|pacote duplo|pacote triplo|quintpack|party pack|\d+\s?(em|in|en)\s?1|\d+-in-1|pacote de \d+ jogos|editions|edi[çc][õo]es|essentials)\b|\b\d+\b.*\b(t[íi]tulos|titles|jogos|games)\b/;
+/** "Collection" como parte do nome de um só jogo: "Master Collection Version", "The Dark Pictures Anthology: Little Hope". */
+const SINGLE_FROM_SERIES = /\bcollection version\b|\banthology\s*:(?!\s*vol)/;
 
-function bundleKind(n: string): StoreKind {
-  if (SEVERAL_GAMES_NAME.test(n)) return "pacote";
-  if (PREMIUM_NAME.test(n) || EDITION_IN_BUNDLE.test(n)) return "premium";
-  if (BUNDLE_NAME.test(n)) return "pacote";
+/** Palavras de pacote (num "Pacote do jogo" ou num jogo completo com nome de pacote). */
+const BUNDLE_WORDS = /\b(bundle|pacote|pack|combo|conjunto|set|series|vol\.?\s?\d+|volume \d+)\b/;
+/** Dois nomes juntos: "A & B", "A + B", "A x B", "A / B", "A e B" (só num "Pacote do jogo"). */
+const JOINED = /\s(&|\+|x|×|\/|and|e|y|et|und)\s/;
+
+/** O tipo dentro de um "Pacote do jogo" (GAME_BUNDLE), que a Sony usa para quase tudo acima do jogo. */
+/** "Jogo & Jogo - Expansão": o segundo nome é um complemento do primeiro. */
+function joinedWithOwnDlc(n: string): boolean {
+  const m = n.match(JOINED);
+  if (!m || m.index === undefined) return false;
+  const left = n.slice(0, m.index).trim();
+  return left.length > 3 && n.slice(m.index + m[0].length).startsWith(`${left} - `);
+}
+
+/** `raw`: o nome em minúsculas com a pontuação (para "Anthology: Título"). */
+function bundleKind(n: string, raw: string): StoreKind {
+  if (SEVERAL_GAMES_NAME.test(n) && !SINGLE_FROM_SERIES.test(raw)) return "pacote";
+  if (joinedWithOwnDlc(n)) return "premium";
+  if (WITH_EXTRAS.test(n) || /\bupgrade\b/.test(n.replace(/\bfree upgrade\b/, ""))) return "premium";
+  if (STANDARD_NAME.test(n)) return BUNDLE_WORDS.test(n) || JOINED.test(n) ? "pacote" : "jogo";
+  if (ANY_EDITION.test(n)) return "premium";
+  if (BUNDLE_WORDS.test(n) || JOINED.test(n)) return "pacote";
+  // Sem sinal de vários jogos nem de edição: é o próprio jogo (às vezes com bônus de pré-venda).
+  return "jogo";
+}
+
+/** O tipo de um "Jogo completo" (FULL_GAME): só muda com sinais fortes no nome. */
+function fullGameKind(n: string, raw: string): StoreKind {
+  const twoGames = / \+ /.test(n);
+  const bundle = /\bbundle\b/.test(n);
+  // "Jogo + Tema", "Game and Theme Bundle": o jogo com extras.
+  if ((twoGames || bundle) && WITH_EXTRAS.test(twoGames ? n.slice(n.indexOf(" + ")) : n)) return "premium";
+  if (STANDARD_NAME.test(n)) return "jogo";
+  if ((SEVERAL_GAMES_NAME.test(n) && !SINGLE_FROM_SERIES.test(raw)) || bundle || twoGames) return "pacote";
+  if (UPSELL_EDITION.test(n)) return "premium";
   return "jogo";
 }
 
 /** Avaliações de jogos (PS Plus Premium e versões de teste). */
 const TRIAL_NAME =
-  /\b(trial|game trial|free trial|trial version|avalia[çc][ãa]o|avalia[çc][ãa]o (do|de) jogo|vers[ãa]o de (teste|avalia[çc][ãa]o)|teste gratuito|teste do jogo)\b/;
+  /\b(trial|game trial|free trial|trial version|avalia[çc][ãa]o|avalia[çc][ãa]o (do|de) jogo|avalia[çc][ãa]o gratuita|vers[ãa]o de (teste|avalia[çc][ãa]o)|teste gratuito|teste do jogo|prueba)\b/;
 const DEMO_NAME = /\b(demo|demonstra[çc][ãa]o|vers[ãa]o demo|prologue demo)\b/;
 const DLC_NAME =
   /\b(season pass|passe de temporada|expans[ãa]o|expansion|dlc|add-on|complemento|pacote de (trajes|personagens|itens|mapas|fases|conte[úu]do)|soundtrack|trilha sonora|costume|traje)\b/;
 const CURRENCY_NAME = /\b(v-bucks|moedas|coins|points pack|cr[ée]ditos|shark cash|cash card|cart[ãa]o de dinheiro|vc|cod points|apex coins)\b/;
+/** Pacotes de jogos pelo nome, para produtos sem a classificação da loja. */
+const BUNDLE_NAME =
+  /\b(bundle|pacote|combo|double pack|triple pack|dual pack|pack duplo|pacote duplo|pacote triplo|collection|cole[çc][ãa]o|trilogy|trilogia|anthology|antologia|duologia|duology|quadrilogy|saga completa|\d\s?(em|in)\s?1|party pack)\b|\s\+\s/;
 
 /**
  * Tipo do produto. A classificação da própria loja vem primeiro
  * (storeDisplayClassification: FULL_GAME, PREMIUM_EDITION, GAME_BUNDLE,
  * BUNDLE, ADD-ON_PACK, DEMO, TRIAL, VIRTUAL_CURRENCY..., e o rótulo traduzido
- * "Edição premium", "Pacote de jogos", "Avaliação de jogo"...). Quando ela
- * diz só "jogo completo" ou não vem, o nome decide: avaliação, demo, pacote
- * (vários jogos), edição premium (o jogo com extras) ou jogo completo.
+ * "Edição premium", "Pacote do jogo", "Avaliação de jogo"...). Avaliações,
+ * demos e edições padrão são reconhecidas pelo nome em qualquer classificação.
+ * No "Pacote do jogo" e no "Jogo completo" o nome separa jogo, edição premium
+ * e pacote (as regras foram conferidas com o catálogo inteiro da loja).
  */
 export function productKind(classification: string | null | undefined, name: string): StoreKind {
   const c = (classification ?? "").toUpperCase();
-  const n = kindName(name);
+  const n = withoutPlatforms(kindName(name));
+  const raw = name.toLowerCase();
   if (/TRIAL|AVALIA|TESTE/.test(c)) return "avaliacao";
   if (/DEMO/.test(c)) return "demo";
   if (/CURRENCY|MOEDA/.test(c)) return "moeda";
-  if (/PREMIUM|EDI[ÇC][ÃA]O/.test(c)) return "premium";
-  if (/BUNDLE|PACOTE D[EO] JOGO/.test(c)) return /ADD|COMPLEMENTO/.test(c) ? "dlc" : bundleKind(n);
-  if (/ADD|SEASON|LEVEL|CHARACTER|COSTUME|MAP|VEHICLE|ITEM|EXPANSION|DLC|PACK|COMPLEMENTO|PASSE|EXPANS/.test(c)) return "dlc";
+  if (/ADD|SEASON|LEVEL|CHARACTER|COSTUME|MAP|VEHICLE|ITEM|EXPANSION|DLC|COMPLEMENTO|PASSE|EXPANS/.test(c)) return "dlc";
   if (/APP|THEME|AVATAR|SOUNDTRACK|VIDEO|MUSIC|TEMA|APLICATIVO/.test(c)) return "outro";
-  const unknown = !/FULL_GAME|^GAME$|JOGO COMPLETO|FULL GAME/.test(c);
   if (TRIAL_NAME.test(n)) return "avaliacao";
   if (DEMO_NAME.test(n)) return "demo";
-  if (unknown && CURRENCY_NAME.test(n)) return "moeda";
-  if (PREMIUM_NAME.test(n)) return "premium";
-  if (unknown && DLC_NAME.test(n)) return "dlc";
+  if (/PREMIUM|EDI[ÇC][ÃA]O/.test(c)) return STANDARD_NAME.test(n) ? "jogo" : "premium";
+  if (/BUNDLE|PACOTE D[EO] JOGO|PACK/.test(c)) return bundleKind(n, raw);
+  if (/FULL_GAME|^GAME$|JOGO COMPLETO|FULL GAME/.test(c)) return fullGameKind(n, raw);
+  // Sem classificação (listas salvas antigas): só o nome.
+  if (CURRENCY_NAME.test(n)) return "moeda";
+  if (STANDARD_NAME.test(n)) return "jogo";
+  if (PREMIUM_NAME.test(n) || / \+ .*\b(season pass|passe de temporada|expans[ãa]o|expansion|dlc)\b/.test(n)) return "premium";
+  if (DLC_NAME.test(n)) return "dlc";
   if (BUNDLE_NAME.test(n)) return "pacote";
   return "jogo";
 }
