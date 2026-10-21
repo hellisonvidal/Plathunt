@@ -15,6 +15,9 @@ import {
   PS5_ID,
   storeRefreshMs,
   kindOf,
+  parsePlusTrials,
+  plusTrialProducts,
+  type PlusTrial,
   toStoreProduct,
   type StoreProduct,
   type StoreRegion,
@@ -95,9 +98,32 @@ async function fetchAll(
  * jogos que se encaixam, monta a lista a partir do catálogo completo de PS5 e
  * PS4 (o mesmo do app, em cache) filtrando os jogos que se encaixam.
  */
-/** Todos: PS5 e PS4 juntos (jogos das duas plataformas aparecem uma vez), mais as demos. */
+/** Todos: PS5 e PS4 juntos (jogos das duas plataformas aparecem uma vez), mais as demos e as avaliações da PS Plus. */
 async function fetchEverything(region: StoreRegion, force: boolean, onProgress?: StoreProgress) {
-  return fetchDerived([], () => true, region, force, onProgress, [PS5_ID, PS4_ID, DEMOS_ID]);
+  const all = await fetchDerived([], () => true, region, force, onProgress, [PS5_ID, PS4_ID, DEMOS_ID]);
+  const trials = await plusTrials(region, force).catch(() => [] as PlusTrial[]);
+  return [...all, ...plusTrialProducts(trials, all)];
+}
+
+/**
+ * Avaliações da PS Plus, da página oficial de jogos da PS Plus no país. Alguns
+ * países (como o Brasil) deixam a lista vazia na página; aí vale a lista dos
+ * EUA, que tem as mesmas avaliações da PS Plus Premium/Deluxe.
+ */
+async function plusTrials(region: StoreRegion, force: boolean): Promise<PlusTrial[]> {
+  return cached(
+    `store:${region}:avaliacoes-ps-plus`,
+    storeRefreshMs(getSettings().storeUpdate),
+    async () => {
+      for (const locale of [region.toLowerCase(), "en-us"]) {
+        const res = await fetch(`https://www.playstation.com/${locale}/ps-plus/games/`).catch(() => null);
+        const list = res?.ok ? parsePlusTrials(await res.text()) : [];
+        if (list.length > 0) return list;
+      }
+      return [];
+    },
+    force,
+  );
 }
 
 async function fetchDerived(
@@ -136,9 +162,9 @@ const DERIVED: Record<string, [string[], (p: StoreProduct) => boolean]> = {
   [PLUS_ID]: [PLUS_CATEGORY_IDS, (p) => p.plus],
 };
 
-// "Todos" passou a incluir as demos: a chave nova faz a lista salva antes ser buscada de novo.
+// "Todos" passou a incluir as demos e as avaliações: a chave nova faz a lista salva antes ser buscada de novo.
 export const storeCacheKey = (region: StoreRegion, categoryId: string) =>
-  `store:${region}:${categoryId === ALL_ID ? "todos-com-demos" : categoryId}`;
+  `store:${region}:${categoryId === ALL_ID ? "todos-com-demos-e-avaliacoes" : categoryId}`;
 
 /**
  * Jogos de uma categoria da loja (todos os que a loja tiver), na ordem de mais

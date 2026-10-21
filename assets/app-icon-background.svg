@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Camada de fundo do ícone adaptativo. -->
+  <defs><linearGradient id="metal" x1="0" x2="1"><stop offset="0" stop-color="#9fadbf"/><stop offset=".5" stop-color="#f4f7fb"/><stop offset="1" stop-color="#9fadbf"/></linearGradient><linearGradient id="arm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f7fb"/><stop offset="1" stop-color="#b8c4d3"/></linearGradient><radialGradient id="orb" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#7fb6ff"/><stop offset=".55" stop-color="#2f7bf0"/><stop offset="1" stop-color="#1546a8"/></radialGradient><radialGradient id="bgA" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#173a7a"/><stop offset="1" stop-color="#070d1f"/></radialGradient><radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#5aa2ff" stop-opacity=".55"/><stop offset="1" stop-color="#5aa2ff" stop-opacity="0"/></radialGradient></defs>
+  <rect width="1024" height="1024" fill="url(#bgA)"/>
+</svg>

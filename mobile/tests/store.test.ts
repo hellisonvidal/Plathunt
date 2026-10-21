@@ -286,6 +286,37 @@ describe("avaliações, demos e complementos", () => {
   });
 });
 
+describe("avaliações da PS Plus", () => {
+  const html = `<section><div id="trials"><h3>Game trials</h3></div><div class="autogameslist">
+    <p><a href="https://store.playstation.com/en-us/concept/10003817" target="_blank" module-name="PS Plus Games List">Absolute Tactics: Daughters of Mercy</a></p>
+    <p><a href="https://store.playstation.com/en-us/concept/10001234" target="_blank" module-name="PS Plus Games List">CATAN&reg; - Console Edition PS4&trade; &amp; PS5&reg;</a></p>
+  </div></section><section id="catalog"><a href="https://store.playstation.com/en-us/concept/999">Outro</a></section>`;
+
+  it("lê a lista da página de jogos da PS Plus, só da seção de avaliações", async () => {
+    const { parsePlusTrials } = await import("../src/lib/store");
+    const list = parsePlusTrials(html);
+    expect(list.map((x) => x.conceptId)).toEqual(["10003817", "10001234"]);
+    expect(list[0].name).toBe("Absolute Tactics: Daughters of Mercy");
+    // Página sem a seção (ou com a lista vazia, como a do Brasil).
+    expect(parsePlusTrials("<section id='x'></section>")).toEqual([]);
+  });
+
+  it("vira cartão de avaliação com a imagem do jogo e o link da página do jogo no país", async () => {
+    const { parsePlusTrials, plusTrialProducts, toStoreProduct, kindOf, productLink } = await import("../src/lib/store");
+    const game = toStoreProduct({
+      id: "UP1-ABS", name: "Absolute Tactics: Daughters of Mercy", storeDisplayClassification: "FULL_GAME", platforms: ["PS5"],
+      media: [{ role: "MASTER", type: "IMAGE", url: "https://img/abs.png" }],
+    });
+    const [trial] = plusTrialProducts(parsePlusTrials(html), [game]);
+    expect(kindOf(trial)).toBe("avaliacao");
+    expect(trial.imageUrl).toBe("https://img/abs.png");
+    expect(trial.platforms).toEqual(["PS5"]);
+    expect(trial.plus).toBe(true);
+    expect(productLink(trial, "pt-BR")).toBe("https://store.playstation.com/pt-br/concept/10003817");
+    expect(productLink(game, "pt-BR")).toBe("https://store.playstation.com/pt-br/product/UP1-ABS");
+  });
+});
+
 describe("pacotes e contagem dos filtros", () => {
   it("reconhece pacotes de jogos pelo nome", async () => {
     const { productKind } = await import("../src/lib/store");

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Camada da frente do ícone adaptativo (fundo transparente). -->
+  <defs><linearGradient id="metal" x1="0" x2="1"><stop offset="0" stop-color="#9fadbf"/><stop offset=".5" stop-color="#f4f7fb"/><stop offset="1" stop-color="#9fadbf"/></linearGradient><linearGradient id="arm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f7fb"/><stop offset="1" stop-color="#b8c4d3"/></linearGradient><radialGradient id="orb" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#7fb6ff"/><stop offset=".55" stop-color="#2f7bf0"/><stop offset="1" stop-color="#1546a8"/></radialGradient><radialGradient id="bgA" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#173a7a"/><stop offset="1" stop-color="#070d1f"/></radialGradient><radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#5aa2ff" stop-opacity=".55"/><stop offset="1" stop-color="#5aa2ff" stop-opacity="0"/></radialGradient></defs>
+  <circle cx="512" cy="512" r="260" fill="url(#glow)"/>
+<g fill="none" stroke-linecap="round">
+ <circle cx="512" cy="512" r="262" stroke="#2f7bf0" stroke-width="32"/>
+ <path d="M512 222 V286 M512 738 V802 M222 512 H286 M738 512 H802" stroke="#ff3b4a" stroke-width="30"/>
+</g>
+<g transform="translate(512 506) scale(0.98)"><g id="trophy">
+  <path d="M-120 -150 C-170 -100 -170 10 -40 60 L-30 40 C-120 0 -125 -80 -95 -140 Z" fill="url(#arm)"/>
+  <path d="M120 -150 C170 -100 170 10 40 60 L30 40 C120 0 125 -80 95 -140 Z" fill="url(#arm)"/>
+  <path d="M-46 -20 L-18 -20 L46 100 L18 100 Z" fill="#c9d3e0"/>
+  <path d="M46 -20 L18 -20 L-46 100 L-18 100 Z" fill="#f4f7fb"/>
+  <circle cx="0" cy="-78" r="92" fill="url(#orb)"/>
+  <ellipse cx="-34" cy="-118" rx="34" ry="20" fill="#ffffff" opacity=".55" transform="rotate(-30 -34 -118)"/>
+  <rect x="-78" y="92" width="156" height="18" rx="8" fill="#4d9bff"/>
+  <path d="M-70 110 L70 110 L92 160 L-92 160 Z" fill="url(#metal)"/>
+  <rect x="-122" y="160" width="244" height="36" rx="14" fill="url(#metal)"/>
+</g></g>
+</svg>

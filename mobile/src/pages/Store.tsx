@@ -23,7 +23,7 @@ import {
   STORE_CATEGORIES,
   STORE_KINDS,
   STORE_SORTS,
-  storeProductUrl,
+  productLink,
   type StoreFilters,
   type StoreKind,
   type StorePlatform,
@@ -553,7 +553,11 @@ function PriceInfo({ product: p, region }: { product: StoreProduct; region: Stor
       )}
       {atLowest && <p className="text-[0.6875rem] font-semibold leading-tight text-ps-blue-2">{t("🔥 Menor preço já visto pelo app")}</p>}
       <div className="flex items-baseline gap-x-1.5 overflow-hidden whitespace-nowrap">
-        <span className="shrink-0 text-sm font-bold">{p.isFree ? t("Grátis") : (p.priceText ?? "—")}</span>
+        <span className="shrink-0 text-sm font-bold">
+          {p.isFree
+            ? t("Grátis")
+            : (p.priceText ?? (kindOf(p) === "avaliacao" && p.plus ? t("Na PS Plus Premium") : "—"))}
+        </span>
         {p.discount > 0 && p.basePriceText && (
           <span className="truncate text-[0.6875rem] text-muted line-through">{p.basePriceText}</span>
         )}
@@ -567,13 +571,13 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
   const [loaded, setLoaded] = useState(false);
   return (
     <a
-      href={storeProductUrl(p.id, region)}
+      href={productLink(p, region)}
       target="_blank"
       rel="noreferrer"
       // Sempre na página do jogo escolhido (no navegador), nunca na tela inicial do app da PlayStation.
       onClick={(e) => {
         e.preventDefault();
-        void openInBrowser(storeProductUrl(p.id, region));
+        void openInBrowser(productLink(p, region));
       }}
       className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface"
     >

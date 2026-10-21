@@ -33,6 +33,8 @@ export interface StoreProduct {
    * serve para intercalar as listas de lançamentos de PS5 e PS4.
    */
   imageDate?: string | null;
+  /** Página na loja quando não é a do produto (as avaliações abrem a página do jogo). */
+  url?: string | null;
 }
 
 /** Tipos de produto da loja, para o selo no cartão e o filtro "Tipo". */
@@ -671,4 +673,87 @@ export function priceHistory(region: StoreRegion, id: string): PriceRecord | nul
 /** Endereço do produto na PlayStation Store (abre no navegador ou no app da loja). */
 export function storeProductUrl(id: string, region: StoreRegion): string {
   return `https://store.playstation.com/${region.toLowerCase()}/product/${id}`;
+}
+
+/** Página do produto na loja, no país escolhido (as avaliações levam à página do jogo). */
+export function productLink(p: StoreProduct, region: StoreRegion): string {
+  return p.url
+    ? p.url.replace(/store\.playstation\.com\/[a-z]{2}-[a-z]{2}\//, `store.playstation.com/${region.toLowerCase()}/`)
+    : storeProductUrl(p.id, region);
+}
+
+/**
+ * Avaliações da PS Plus Premium/Deluxe ("Game Trials"). A loja não tem uma
+ * categoria pública com elas; a lista oficial fica na página de jogos da PS
+ * Plus (playstation.com/…/ps-plus/games/), na seção "trials", com o link de
+ * cada jogo na loja.
+ */
+export interface PlusTrial {
+  conceptId: string;
+  name: string;
+  url: string;
+}
+
+const decodeEntities = (s: string) =>
+  s
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+
+/** Lê as avaliações da página de jogos da PS Plus (vazia quando o país não lista nenhuma). */
+export function parsePlusTrials(html: string): PlusTrial[] {
+  const start = html.indexOf('id="trials"');
+  if (start < 0) return [];
+  const end = html.indexOf("</section>", start);
+  const block = html.slice(start, end > 0 ? end : undefined);
+  const out = new Map<string, PlusTrial>();
+  for (const m of block.matchAll(/<a\s[^>]*href="(https:\/\/store\.playstation\.com\/[a-z-]+\/concept\/(\d+))"[^>]*>([^<]+)<\/a>/g)) {
+    const name = decodeEntities(m[3]).trim();
+    if (name && !out.has(m[2])) out.set(m[2], { conceptId: m[2], name, url: m[1] });
+  }
+  return [...out.values()];
+}
+
+/** Nome comparável entre a página da PS Plus e a loja ("CATAN® - Console Edition PS4™ & PS5®" = "CATAN Console Edition"). */
+const trialKey = (name: string) =>
+  withoutPlatforms(kindName(name))
+    .replace(/[^\p{L}\p{N} ]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/**
+ * Cartões das avaliações: cada uma usa a imagem e as plataformas do jogo na
+ * loja (quando o catálogo tem), não tem preço (vem com a assinatura) e abre a
+ * página do jogo.
+ */
+export function plusTrialProducts(trials: PlusTrial[], catalog: StoreProduct[]): StoreProduct[] {
+  const byName = new Map<string, StoreProduct>();
+  for (const p of catalog) {
+    const k = trialKey(p.name);
+    const prev = byName.get(k);
+    // O jogo completo vale mais que edições e pacotes de mesmo nome.
+    if (!prev || (kindOf(prev) !== "jogo" && kindOf(p) === "jogo")) byName.set(k, p);
+  }
+  return trials.map((tr) => {
+    const game = byName.get(trialKey(tr.name));
+    return {
+      id: `trial-${tr.conceptId}`,
+      name: tr.name,
+      imageUrl: game?.imageUrl ?? null,
+      platforms: game?.platforms ?? [],
+      basePriceText: null,
+      priceText: null,
+      basePrice: null,
+      price: null,
+      isFree: false,
+      discount: 0,
+      plus: true,
+      classification: "TRIAL · Avaliação de jogo",
+      kind: "avaliacao" as const,
+      imageDate: game?.imageDate ?? null,
+      url: tr.url,
+    };
+  });
 }
