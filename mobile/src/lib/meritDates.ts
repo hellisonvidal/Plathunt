@@ -16,6 +16,12 @@ export interface MeritDate {
 
 type Book = Record<string, Record<string, MeritDate>>;
 const KEY = "tm.merits" as const;
+/**
+ * Jogadores guardados (você e os amigos vistos por último). Com milhares de
+ * méritos por jogador, guardar todos os amigos enchia o armazenamento do
+ * celular; aí a gravação falhava e os mesmos méritos voltavam a ser avisados.
+ */
+const MAX_ACCOUNTS = 12;
 
 function read(): Book {
   try {
@@ -43,7 +49,12 @@ export function recordMeritDates(accountId: string, doneIds: string[], now = new
     dates[id] = { at, before: first };
     changed = true;
   }
-  if (changed) persistSet(KEY, JSON.stringify({ ...book, [accountId]: dates }));
+  if (changed) {
+    // O jogador atual vai para o fim; os vistos há mais tempo saem primeiro.
+    const { [accountId]: _, ...others } = book;
+    const kept = Object.entries(others).slice(-(MAX_ACCOUNTS - 1));
+    persistSet(KEY, JSON.stringify({ ...Object.fromEntries(kept), [accountId]: dates }));
+  }
   return dates;
 }
 

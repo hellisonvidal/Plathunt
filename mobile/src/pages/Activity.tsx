@@ -9,7 +9,7 @@ import { PageHeader } from "../components/PageHeader";
 import { ReactionBar, type OtherLike } from "../components/Reactions";
 import { appUsers, likesFor, useCloud } from "../lib/cloud";
 import { Avatar, ErrorBox, GameIcon, RemoteImage, Spinner, TrophyBadge, rarityLabel, timeAgo } from "../components/ui";
-import { t } from "../i18n";
+import { locale, t } from "../i18n";
 import { groupFeed, type FeedGroup } from "../lib/feed";
 import { useSettings } from "../lib/settings";
 import { useData } from "../lib/useData";
@@ -30,8 +30,9 @@ export function ActivityPage() {
   const { feedDays } = useSettings();
   const { data, error, loading, refresh } = useData((force) => client.feed(force), [client, feedDays]);
   const [filter, setFilter] = useState<FilterKey>("todos");
-  // Busca de amigos nas conquistas (pelo ID da PSN).
-  const [friendQuery, setFriendQuery] = useState("");
+  // Conquistas de quem: todos, você ou um amigo (a mesma caixa de seleção dos Méritos).
+  const [who, setWho] = useState("todos");
+  const friends = useData((force) => client.friends(force), [client]);
   // ?view=boost-inbox: aberto por um link de pedido de boost.
   const [params] = useSearchParams();
   const fromLink = params.get("view") === "boost-inbox";
@@ -48,11 +49,16 @@ export function ActivityPage() {
   // O catálogo do Boost e dos Desafios começa a carregar em segundo plano.
   usePrefetchGameCatalog();
 
-  const q = friendQuery.trim().toLowerCase();
+  const ofWho = (i: FeedItem) => who === "todos" || (who === "me" ? i.owner.isMe : !i.owner.isMe && i.owner.accountId === who);
   const items = (data ?? []).filter((i) => {
     const types = FILTERS[filter].types as readonly string[] | null;
-    return (!types || types.includes(i.trophy.type)) && (!q || i.owner.onlineId.toLowerCase().includes(q));
+    return (!types || types.includes(i.trophy.type)) && ofWho(i);
   });
+  // Amigos da lista da PSN; quem aparece nas conquistas e ainda não carregou na lista também entra.
+  const people = new Map<string, string>();
+  for (const f of friends.data ?? []) people.set(f.accountId, f.onlineId);
+  for (const i of data ?? []) if (!i.owner.isMe && !people.has(i.owner.accountId)) people.set(i.owner.accountId, i.owner.onlineId);
+  const whoName = who === "todos" || who === "me" ? null : (people.get(who) ?? null);
   const groups = groupFeed(items);
   // Recursos online: curtidas de outros jogadores nestas conquistas (exceto as suas).
   const cloudState = useCloud();
@@ -126,35 +132,35 @@ export function ActivityPage() {
               ))}
             </nav>
 
-            <div className="relative">
-              <input
-                value={friendQuery}
-                onChange={(e) => setFriendQuery(e.target.value)}
-                placeholder={t("Buscar amigo")}
-                aria-label={t("Buscar amigo nas conquistas")}
-                className="w-full rounded-full border border-line bg-surface-2 py-2 pl-4 pr-10 text-sm outline-none focus:border-ps-blue-2"
-              />
-              {friendQuery && (
-                <button
-                  onClick={() => setFriendQuery("")}
-                  aria-label={t("Limpar busca")}
-                  className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+            <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2 text-sm">
+              <span className="text-muted">{t("Conquistas de")}</span>
+              <select
+                value={who}
+                onChange={(e) => setWho(e.target.value)}
+                className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
+              >
+                <option value="todos">{t("Todos")}</option>
+                <option value="me">{t("Você")}</option>
+                {[...people]
+                  .sort((a, b) => a[1].localeCompare(b[1], locale(), { sensitivity: "base" }))
+                  .map(([id, name]) => (
+                    <option key={id} value={id}>
+                      {name}
+                    </option>
+                  ))}
+              </select>
+            </label>
 
             {error ? <ErrorBox error={error} onRetry={refresh} /> : null}
             {loading && !data && <Spinner label={t("Buscando os troféus seus e dos seus amigos…")} />}
 
-            {data && q && items.length === 0 && (
+            {data && whoName && items.length === 0 && (
               <p className="py-12 text-center text-sm text-muted">
-                {t("Nenhuma conquista de \"{name}\" nos últimos {n} dias.", { name: friendQuery.trim(), n: feedDays })}
+                {t("Nenhuma conquista de \"{name}\" nos últimos {n} dias.", { name: whoName, n: feedDays })}
               </p>
             )}
 
-            {data && !q && items.length === 0 && (
+            {data && !whoName && items.length === 0 && (
               <p className="py-12 text-center text-sm text-muted">
                 {t("Nenhum troféu nos últimos {n} dias por aqui. Bora jogar! 🎮", { n: feedDays })}
               </p>

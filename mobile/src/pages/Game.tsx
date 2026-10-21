@@ -41,8 +41,9 @@ function SiteIcon({ domain, label, size }: { domain: string; label: string; size
 }
 import { locale, t } from "../i18n";
 
-const TYPE_ORDER: Record<string, number> = { platinum: 0, gold: 1, silver: 2, bronze: 3 };
 type Filter = "todos" | "conquistados" | "bloqueados";
+/** Nos jogos de um amigo: os troféus que você tem ou não. */
+type MineFilter = "todos" | "tenho" | "naoTenho";
 
 export function GamePage() {
   const { client } = useApp();
@@ -50,6 +51,7 @@ export function GamePage() {
   const [params] = useSearchParams();
   const service: Title["service"] = params.get("service") === "trophy" ? "trophy" : "trophy2";
   const [filter, setFilter] = useState<Filter>("todos");
+  const [mineFilter, setMineFilter] = useState<MineFilter>("todos");
   // Listas abertas (jogo base / DLCs). Fechadas por padrão; com uma lista só, ela já vem aberta.
   const [open, setOpen] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
@@ -111,9 +113,11 @@ export function GamePage() {
 
   const all = data?.trophies ?? [];
   const earnedCount = all.filter((t) => t.earned).length;
+  // Ordem original da PlayStation (a do jogo), conquistados ou não.
   const visible = all
     .filter((t) => (filter === "conquistados" ? t.earned : filter === "bloqueados" ? !t.earned : true))
-    .sort((a, b) => Number(b.earned) - Number(a.earned) || TYPE_ORDER[a.type] - TYPE_ORDER[b.type] || a.id - b.id);
+    .filter((t) => (mineFilter === "tenho" ? iHave.has(t.id) : mineFilter === "naoTenho" ? !iHave.has(t.id) : true))
+    .sort((a, b) => a.id - b.id);
   // As seções contam sempre todos os troféus do grupo; o filtro só esconde linhas.
   const sections = data ? groupTrophies(all, data.groups) : [];
 
@@ -122,6 +126,14 @@ export function GamePage() {
     { key: "conquistados", label: t("Conquistados"), count: earnedCount },
     { key: "bloqueados", label: t("Bloqueados"), count: all.length - earnedCount },
   ];
+  const myCount = all.filter((t) => iHave.has(t.id)).length;
+  const MINE_FILTERS: { key: MineFilter; label: string; count: number }[] = [
+    { key: "todos", label: t("Todos"), count: all.length },
+    { key: "tenho", label: t("Você tem"), count: myCount },
+    { key: "naoTenho", label: t("Você não tem"), count: all.length - myCount },
+  ];
+  const platinumBoth =
+    !!data?.title && data.title.earned.platinum > 0 && (mine.data ?? []).some((r) => r.type === "platinum" && r.earned);
 
   return (
     <>
@@ -163,6 +175,8 @@ export function GamePage() {
                 </p>
                 {platinumRace && (
                   <button
+                    disabled={platinumBoth}
+                    title={platinumBoth ? t("Vocês dois já têm a platina") : undefined}
                     onClick={() =>
                       setChallenge({
                         trophy: platinumGoal(),
@@ -170,7 +184,7 @@ export function GamePage() {
                         iHave: (mine.data ?? []).some((r) => r.type === "platinum" && r.earned),
                       })
                     }
-                    className="shrink-0 rounded-full bg-ps-blue px-3 py-1.5 text-xs font-semibold"
+                    className="shrink-0 rounded-full bg-ps-blue px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
                   >
                     {t("🏆 Platina")}
                   </button>
@@ -210,19 +224,42 @@ export function GamePage() {
               </div>
             )}
 
-            <div role="tablist" className="grid grid-cols-3 gap-1 rounded-full bg-surface p-1 text-sm">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.key}
-                  role="tab"
-                  aria-selected={filter === f.key}
-                  onClick={() => setFilter(f.key)}
-                  className={`rounded-full py-1.5 ${filter === f.key ? "bg-ps-blue font-semibold" : "text-muted"}`}
-                >
-                  {f.label} <span className="opacity-70">{f.count}</span>
-                </button>
-              ))}
+            <div className="space-y-1">
+              {friend && <p className="px-1 text-xs text-muted">{t("Troféus de {name}", { name: friend.onlineId })}</p>}
+              <div role="tablist" className="grid grid-cols-3 gap-1 rounded-full bg-surface p-1 text-sm">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f.key}
+                    role="tab"
+                    aria-selected={filter === f.key}
+                    onClick={() => setFilter(f.key)}
+                    className={`rounded-full py-1.5 ${filter === f.key ? "bg-ps-blue font-semibold" : "text-muted"}`}
+                  >
+                    {f.label} <span className="opacity-70">{f.count}</span>
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Jogo de um amigo: filtra também pelos troféus que você tem. */}
+            {friend && mine.data && (
+              <div className="space-y-1">
+                <p className="px-1 text-xs text-muted">{t("Seus troféus neste jogo")}</p>
+                <div role="tablist" className="grid grid-cols-3 gap-1 rounded-full bg-surface p-1 text-sm">
+                  {MINE_FILTERS.map((f) => (
+                    <button
+                      key={f.key}
+                      role="tab"
+                      aria-selected={mineFilter === f.key}
+                      onClick={() => setMineFilter(f.key)}
+                      className={`truncate rounded-full px-1 py-1.5 ${mineFilter === f.key ? "bg-ps-blue font-semibold" : "text-muted"}`}
+                    >
+                      {f.label} <span className="opacity-70">{f.count}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {sections.map((section) => (
               <GroupList
@@ -231,6 +268,7 @@ export function GamePage() {
                 gameName={data.title?.name ?? ""}
                 guide={guide}
                 onChallenge={onChallenge}
+                mine={friend && mine.data ? iHave : null}
                 rows={visible.filter((t) => section.trophies.includes(t))}
                 filter={filter}
                 expanded={sections.length === 1 || open.has(section.group.id)}
@@ -250,6 +288,7 @@ function GroupList({
   gameName,
   guide,
   onChallenge,
+  mine,
   rows,
   filter,
   expanded,
@@ -260,6 +299,8 @@ function GroupList({
   guide: GuideNames | null;
   /** Nos jogos de um amigo: abre o desafio rápido no troféu. */
   onChallenge?: (row: TrophyRow) => void;
+  /** Nos jogos de um amigo: os troféus que você tem. */
+  mine: Set<number> | null;
   rows: TrophyRow[];
   filter: Filter;
   expanded: boolean;
@@ -337,6 +378,7 @@ function GroupList({
                   gameName={gameName}
                   guide={guide}
                   onChallenge={onChallenge ? () => onChallenge(t) : undefined}
+                  iHave={mine ? mine.has(t.id) : null}
                 />
               ))}
             </ul>
@@ -352,11 +394,14 @@ function TrophyItem({
   gameName,
   guide,
   onChallenge,
+  iHave,
 }: {
   trophy: TrophyRow;
   gameName: string;
   guide: GuideNames | null;
   onChallenge?: () => void;
+  /** Nos jogos de um amigo: se você também tem o troféu (null fora disso). */
+  iHave: boolean | null;
 }) {
   const { revealSecrets, language } = useSettings();
   const locked = !trophy.earned;
@@ -389,6 +434,11 @@ function TrophyItem({
               {rarity}
             </p>
           )}
+          {iHave !== null && (
+            <p className={`mt-1 text-xs font-semibold ${iHave ? "text-online" : "text-muted"}`}>
+              {iHave ? t("✓ Você tem") : t("Você ainda não tem")}
+            </p>
+          )}
         </div>
       </div>
       {trophy.progress && !trophy.earned && !secret && (
@@ -407,15 +457,22 @@ function TrophyItem({
       {/* Abre no app do YouTube (ou no navegador) a busca por um vídeo de dicas.
           Usa o nome original do troféu: a tradução automática acha menos vídeos. */}
       <div className="mt-2 flex flex-wrap gap-2">
-        {onChallenge && (
-          <button
-            onClick={onChallenge}
-            className="inline-flex items-center gap-1.5 rounded-full bg-ps-blue px-3 py-1 text-xs font-semibold"
-          >
-            <span aria-hidden>⚔️</span>
-            {t("Desafiar")}
-          </button>
-        )}
+        {/* Se vocês dois já têm o troféu, não há o que disputar: o desafio fica bloqueado. */}
+        {onChallenge &&
+          (trophy.earned && iHave ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-muted">
+              <span aria-hidden>🔒</span>
+              {t("Vocês dois já têm")}
+            </span>
+          ) : (
+            <button
+              onClick={onChallenge}
+              className="inline-flex items-center gap-1.5 rounded-full bg-ps-blue px-3 py-1 text-xs font-semibold"
+            >
+              <span aria-hidden>⚔️</span>
+              {t("Desafiar")}
+            </button>
+          ))}
         <a
           href={trophyGuideUrl(gameName, trophy.originalName ?? trophy.name, language)}
           target="_blank"

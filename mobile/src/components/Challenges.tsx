@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { sameGame, shareLinks, type BoostCandidate } from "../lib/boost";
@@ -16,7 +16,7 @@ import {
   type Challenge,
   type ChallengePlayer,
 } from "../lib/challenges";
-import { rankChallengeNow } from "../lib/checks";
+import { challengeTrophyOf, rankChallengeNow } from "../lib/checks";
 import { notify } from "../lib/notify";
 import { useData } from "../lib/useData";
 import type { Title } from "../psn/types";
@@ -109,6 +109,24 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
     },
     [client, game?.key],
   );
+  // Quem já tem o troféu escolhido (você e os amigos que têm o jogo): se vocês
+  // dois já têm, não há o que disputar e o amigo não pode ser escolhido.
+  const owners = useData(
+    async () => {
+      if (!game || !trophy || !friends.data) return null;
+      const target = { id: game.title?.id ?? game.key, name: game.name };
+      const ids = ["me", ...friends.data.filter((f) => f.hasGame).map((f) => f.accountId)];
+      const checks = await mapLimit(ids, 3, (id) => challengeTrophyOf(client, id, target, trophy).catch(() => null));
+      return new Set(ids.filter((_, i) => typeof checks[i] === "object" && checks[i] !== null && checks[i].earned));
+    },
+    [client, game?.key, trophy?.id, friends.data],
+  );
+  const iHave = owners.data?.has("me") ?? false;
+  const blocked = (accountId: string) => iHave && !!owners.data?.has(accountId);
+  useEffect(() => {
+    if (iHave) setRivals((list) => list.filter((id) => !owners.data?.has(id)));
+  }, [iHave, owners.data]);
+
   const shownFriends = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (friends.data ?? []).filter((f) => !q || f.onlineId.toLowerCase().includes(q));
@@ -248,25 +266,36 @@ function ChallengeForm({ onClose }: { onClose: () => void }) {
                 />
                 {friends.error ? <ErrorBox error={friends.error} onRetry={friends.refresh} /> : null}
                 {friends.loading && !friends.data && <Spinner label={t("Vendo quais amigos têm o jogo…")} />}
+                {iHave && (
+                  <p className="rounded-xl bg-gold/10 p-3 text-xs text-gold">
+                    {t("Você já tem este troféu: amigos que também têm não podem ser desafiados nele.")}
+                  </p>
+                )}
                 <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
                   {shownFriends.map((f) => {
                     const on = rivals.includes(f.accountId);
+                    const both = blocked(f.accountId);
                     return (
                       <li key={f.accountId}>
                         <button
                           aria-pressed={on}
+                          disabled={both}
                           onClick={() =>
                             setRivals((list) => (on ? list.filter((id) => id !== f.accountId) : [...list, f.accountId]))
                           }
-                          className={`flex w-full items-center gap-3 rounded-xl border p-2 text-left ${
+                          className={`flex w-full items-center gap-3 rounded-xl border p-2 text-left disabled:opacity-50 ${
                             on ? "border-ps-blue-2 bg-surface-2" : "border-line"
                           }`}
                         >
                           <Avatar src={f.avatarUrl} name={f.onlineId} size={36} />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold">{f.onlineId}</span>
-                            <span className={`text-[0.6875rem] ${f.hasGame ? "text-online" : "text-muted"}`}>
-                              {f.hasGame ? t("Tem o jogo") : t("Sem o jogo na lista recente")}
+                            <span className={`text-[0.6875rem] ${both ? "text-gold" : f.hasGame ? "text-online" : "text-muted"}`}>
+                              {both
+                                ? t("Vocês dois já têm este troféu")
+                                : f.hasGame
+                                  ? t("Tem o jogo")
+                                  : t("Sem o jogo na lista recente")}
                             </span>
                           </span>
                           <span
