@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../app";
 import { browseCatalog, buildBoostCatalog, catalogPlatforms, myGames, type BoostCandidate } from "../lib/boost";
-import { catalogProgress, loadCatalog, useCatalog, type CatalogLoaders } from "../lib/gameCatalog";
+import { catalogProgress, useCatalog, type CatalogLoaders } from "../lib/gameCatalog";
 import { knownMultiplayer, scanMultiplayer, useMultiplayerScan } from "../lib/multiplayer";
 import { t } from "../i18n";
 import { useSettings } from "../lib/settings";
@@ -30,15 +30,6 @@ function useCatalogLoaders(): { key: string; loaders: () => CatalogLoaders } {
         mode === "demo" ? demoStoreCategory(ALL_ID) : storeCategory(ALL_ID, storeRegion, false, onProgress),
     }),
   };
-}
-
-/** Começa a carregar o catálogo em segundo plano (ao abrir as Atividades). */
-export function usePrefetchGameCatalog() {
-  const { key, loaders } = useCatalogLoaders();
-  useEffect(() => {
-    const timer = setTimeout(() => loadCatalog(key, loaders()), 1500);
-    return () => clearTimeout(timer);
-  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /**

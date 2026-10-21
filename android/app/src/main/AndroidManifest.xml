@@ -56,6 +56,12 @@
 
     <!-- Para achar o navegador do aparelho (links da loja abrem nele, não no app da PlayStation). -->
     <queries>
+        <!-- App PlayStation: a Loja tenta abrir o jogo escolhido nele. -->
+        <package android:name="com.scee.psxandroid" />
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.BROWSABLE" />

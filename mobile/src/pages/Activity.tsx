@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { BoostView } from "../components/Boost";
 import { ChallengesView } from "../components/Challenges";
-import { usePrefetchGameCatalog } from "../components/GamePicker";
 import { MeritsView } from "../components/Merits";
 import { PageHeader } from "../components/PageHeader";
 import { ReactionBar, type OtherLike } from "../components/Reactions";
@@ -46,8 +45,6 @@ export function ActivityPage() {
     if (params.get("view")) setView(viewFromLink());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
-  // O catálogo do Boost e dos Desafios começa a carregar em segundo plano.
-  usePrefetchGameCatalog();
 
   const ofWho = (i: FeedItem) => who === "todos" || (who === "me" ? i.owner.isMe : !i.owner.isMe && i.owner.accountId === who);
   const items = (data ?? []).filter((i) => {
@@ -113,7 +110,11 @@ export function ActivityPage() {
         {view === "merits" ? (
           <MeritsView />
         ) : view === "boost" ? (
-          <BoostView key={String(fromLink)} initialTab={fromLink ? "recebidos" : "meus"} />
+          <BoostView
+            key={`${fromLink}:${params.get("pedido") ?? ""}`}
+            initialTab={fromLink ? "recebidos" : "meus"}
+            focus={params.get("pedido")}
+          />
         ) : view === "challenges" ? (
           <ChallengesView />
         ) : (

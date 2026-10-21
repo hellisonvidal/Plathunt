@@ -4,7 +4,7 @@ import { FilterIcon, PsPlusIcon } from "../components/icons";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, RemoteImage } from "../components/ui";
 import { locale, t } from "../i18n";
-import { useSettings } from "../lib/settings";
+import { getSettings, useSettings } from "../lib/settings";
 import {
   filterCounts,
   filterProducts,
@@ -31,7 +31,7 @@ import {
   type StoreRegion,
 } from "../lib/store";
 import { useData } from "../lib/useData";
-import { openInBrowser } from "../psn/native";
+import { openInBrowser, openInPlayStationApp } from "../psn/native";
 import { demoStoreCategory, storeCacheKey, storeCategory, storeReleaseOrder, type StoreProgress } from "../psn/store";
 import { peekCached } from "../lib/cache";
 
@@ -574,10 +574,11 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
       href={productLink(p, region)}
       target="_blank"
       rel="noreferrer"
-      // Sempre na página do jogo escolhido (no navegador), nunca na tela inicial do app da PlayStation.
       onClick={(e) => {
         e.preventDefault();
-        void openInBrowser(productLink(p, region));
+        // No app PlayStation (dá para comprar e mandar baixar no console); sem ele, no navegador.
+        const url = productLink(p, region);
+        void (getSettings().storeInPsApp ? openInPlayStationApp(url) : openInBrowser(url));
       }}
       className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface"
     >

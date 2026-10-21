@@ -50,6 +50,10 @@ export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com
 interface ExternalBrowserPlugin {
   /** Abre o endereço no navegador, sem deixar outro app (ex.: o da PlayStation) capturar o link. */
   open(options: { url: string }): Promise<void>;
+  /** Abre o endereço da loja no app PlayStation; opened=false se ele não estiver instalado. */
+  openInPlayStationApp(options: { url: string }): Promise<{ opened: boolean }>;
+  /** Tela de compartilhar do Android com o texto. */
+  share(options: { text: string; title?: string }): Promise<void>;
 }
 
 const ExternalBrowser = registerPlugin<ExternalBrowserPlugin>("ExternalBrowser");
@@ -69,4 +73,44 @@ export async function openInBrowser(url: string): Promise<void> {
     }
   }
   window.open(url, "_blank", "noopener");
+}
+
+/**
+ * Abre um jogo da loja no app PlayStation (é onde dá para comprar e mandar
+ * baixar no console). Sem o app instalado, ou fora do Android, abre no navegador.
+ */
+export async function openInPlayStationApp(url: string): Promise<void> {
+  if (isNativeApp()) {
+    try {
+      if ((await ExternalBrowser.openInPlayStationApp({ url })).opened) return;
+    } catch {
+      // Versão antiga do app sem o método: segue para o navegador.
+    }
+  }
+  await openInBrowser(url);
+}
+
+/**
+ * Compartilha um texto pela tela do sistema (WhatsApp, Telegram, Discord...).
+ * Devolve false quando não há tela de compartilhar (aí a tela oferece copiar).
+ */
+export async function shareText(text: string, title?: string): Promise<boolean> {
+  if (isNativeApp()) {
+    try {
+      await ExternalBrowser.share({ text, title });
+      return true;
+    } catch {
+      // Sem o método nativo: tenta o do navegador.
+    }
+  }
+  if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+    try {
+      await navigator.share({ text });
+      return true;
+    } catch (e) {
+      // Fechar a tela de compartilhar também conta como "compartilhou".
+      return (e as Error)?.name === "AbortError";
+    }
+  }
+  return false;
 }

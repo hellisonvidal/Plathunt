@@ -10,6 +10,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 7,
+    items: [
+      "🔔 Com o app aberto, as notificações aparecem dentro do app e levam direto à tela certa, como o pedido de boost recebido.",
+      "📣 Boost: o botão Novo boost abre a convocação em uma janela, e o catálogo de jogos só carrega nessa hora. Seus pedidos e as respostas podem ser compartilhados no WhatsApp, Telegram, Discord e outros apps.",
+      "📥 Pedidos recebidos com novo visual: quem pediu, o jogo, os troféus e o que falta, com aceitar e recusar à mão.",
+      "🛒 Loja: tocar num jogo abre no app PlayStation, quando ele está instalado (dá para desligar em Configurações → Loja).",
+    ],
+  },
+  {
     id: 6,
     items: [
       "🎨 Ícone novo: o troféu de platina dentro da mira, maior e com fundo próprio, nítido em qualquer tela inicial.",
