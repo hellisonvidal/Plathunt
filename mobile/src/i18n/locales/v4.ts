@@ -3,6 +3,9 @@ import type { Translations } from "../index";
 /** Traduções das novidades 4: desafios bloqueados, troféus na ordem da PlayStation, Conquistas e Loja. */
 const translations: Translations = {
   "en-US": {
+    "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
+      "🎮 Store: new Demos category with the store's free demos (also in All), and add-ons on sale now in the DLC filter.",
+    "Demos": "Demos",
     "🛒 Loja: tipos revisados com o catálogo inteiro da PlayStation Store. Edições Standard e Padrão aparecem como jogo completo, e edições premium, pacotes de jogos, avaliações e demos ficam cada um no seu filtro.":
       "🛒 Store: product types reviewed against the whole PlayStation Store catalog. Standard editions show as full games, and premium editions, game bundles, trials and demos each stay in their own filter.",
     "Você já tem este troféu: amigos que também têm não podem ser desafiados nele.":
@@ -31,6 +34,9 @@ const translations: Translations = {
       "🛒 Store: sort by release (newest or oldest), and premium editions, bundles and full games no longer get mixed up.",
   },
   "es-ES": {
+    "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
+      "🎮 Tienda: nueva categoría Demos, con las demos gratuitas de la tienda (también en Todos), y complementos en oferta en el filtro DLC.",
+    "Demos": "Demos",
     "🛒 Loja: tipos revisados com o catálogo inteiro da PlayStation Store. Edições Standard e Padrão aparecem como jogo completo, e edições premium, pacotes de jogos, avaliações e demos ficam cada um no seu filtro.":
       "🛒 Tienda: tipos revisados con todo el catálogo de PlayStation Store. Las ediciones estándar aparecen como juego completo, y las ediciones premium, packs de juegos, pruebas y demos quedan cada uno en su filtro.",
     "Você já tem este troféu: amigos que também têm não podem ser desafiados nele.":
@@ -59,6 +65,9 @@ const translations: Translations = {
       "🛒 Tienda: ordenar por lanzamiento (más recientes o más antiguos), y las ediciones premium, los packs y los juegos completos ya no se mezclan.",
   },
   "fr-FR": {
+    "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
+      "🎮 Boutique : nouvelle catégorie Démos, avec les démos gratuites de la boutique (aussi dans Tous), et extensions en promo dans le filtre DLC.",
+    "Demos": "Démos",
     "🛒 Loja: tipos revisados com o catálogo inteiro da PlayStation Store. Edições Standard e Padrão aparecem como jogo completo, e edições premium, pacotes de jogos, avaliações e demos ficam cada um no seu filtro.":
       "🛒 Boutique : types revus avec tout le catalogue du PlayStation Store. Les éditions standard apparaissent comme jeu complet, et les éditions premium, packs de jeux, essais et démos restent chacun dans leur filtre.",
     "Você já tem este troféu: amigos que também têm não podem ser desafiados nele.":
@@ -87,6 +96,9 @@ const translations: Translations = {
       "🛒 Boutique : tri par date de sortie (plus récents ou plus anciens), et les éditions premium, packs et jeux complets ne se mélangent plus.",
   },
   "de-DE": {
+    "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
+      "🎮 Store: neue Kategorie Demos mit den kostenlosen Demos des Stores (auch unter Alle), und Add-ons im Angebot im DLC-Filter.",
+    "Demos": "Demos",
     "🛒 Loja: tipos revisados com o catálogo inteiro da PlayStation Store. Edições Standard e Padrão aparecem como jogo completo, e edições premium, pacotes de jogos, avaliações e demos ficam cada um no seu filtro.":
       "🛒 Store: Produkttypen mit dem gesamten PlayStation Store-Katalog überprüft. Standard-Editionen erscheinen als Vollversion, und Premium-Editionen, Spiele-Bundles, Testversionen und Demos bleiben jeweils in ihrem Filter.",
     "Você já tem este troféu: amigos que também têm não podem ser desafiados nele.":
@@ -115,6 +127,9 @@ const translations: Translations = {
       "🛒 Store: Sortieren nach Erscheinung (neueste oder älteste), und Premium-Editionen, Bundles und Vollversionen werden nicht mehr vermischt.",
   },
   "it-IT": {
+    "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
+      "🎮 Store: nuova categoria Demo, con le demo gratuite dello store (anche in Tutti), e contenuti aggiuntivi in offerta nel filtro DLC.",
+    "Demos": "Demo",
     "🛒 Loja: tipos revisados com o catálogo inteiro da PlayStation Store. Edições Standard e Padrão aparecem como jogo completo, e edições premium, pacotes de jogos, avaliações e demos ficam cada um no seu filtro.":
       "🛒 Store: tipi rivisti con l'intero catalogo del PlayStation Store. Le edizioni standard compaiono come gioco completo, e edizioni premium, bundle di giochi, prove e demo restano ognuno nel proprio filtro.",
     "Você já tem este troféu: amigos que também têm não podem ser desafiados nele.":
@@ -143,6 +158,9 @@ const translations: Translations = {
       "🛒 Store: ordina per uscita (più recenti o meno recenti), e edizioni premium, bundle e giochi completi non si mescolano più.",
   },
   "ja-JP": {
+    "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
+      "🎮 ストア：ストアの無料体験版をまとめた「体験版」カテゴリーを追加（「すべて」にも表示）。セール中の追加コンテンツはDLCフィルターに入ります。",
+    "Demos": "体験版",
     "🛒 Loja: tipos revisados com o catálogo inteiro da PlayStation Store. Edições Standard e Padrão aparecem como jogo completo, e edições premium, pacotes de jogos, avaliações e demos ficam cada um no seu filtro.":
       "🛒 ストア：PlayStation Storeの全カタログで種類を見直しました。スタンダードエディションは通常版として表示され、プレミアムエディション・ゲームバンドル・体験版・デモはそれぞれのフィルターに分かれます。",
     "Você já tem este troféu: amigos que também têm não podem ser desafiados nele.":

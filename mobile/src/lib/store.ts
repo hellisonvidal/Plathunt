@@ -156,8 +156,13 @@ function fullGameKind(n: string, raw: string): StoreKind {
 }
 
 /** Avaliações de jogos (PS Plus Premium e versões de teste). */
+/**
+ * Avaliações de jogos (PS Plus Premium e versões de teste). "Trial" sozinho só
+ * no fim de um nome comprido ("Rainbow Six Extraction Trial"): há jogos
+ * chamados "Taboo Trial", "Trial of Greed" ou "Urban Trial Tricky".
+ */
 const TRIAL_NAME =
-  /\b(trial|game trial|free trial|trial version|avalia[çc][ãa]o|avalia[çc][ãa]o (do|de) jogo|avalia[çc][ãa]o gratuita|vers[ãa]o de (teste|avalia[çc][ãa]o)|teste gratuito|teste do jogo|prueba)\b/;
+  /\b(game trial|free trial|trial version|trial edition|avalia[çc][ãa]o|avalia[çc][ãa]o (do|de) jogo|avalia[çc][ãa]o gratuita|vers[ãa]o de (teste|avalia[çc][ãa]o)|teste gratuito|teste do jogo|prueba gratuita|versi[óo]n de prueba)\b|\s-\s*trial$|(\S+\s+){3,}trial$/;
 const DEMO_NAME = /\b(demo|demonstra[çc][ãa]o|vers[ãa]o demo|prologue demo)\b/;
 const DLC_NAME =
   /\b(season pass|passe de temporada|expans[ãa]o|expansion|dlc|add-on|complemento|pacote de (trajes|personagens|itens|mapas|fases|conte[úu]do)|soundtrack|trilha sonora|costume|traje)\b/;
@@ -182,7 +187,8 @@ export function productKind(classification: string | null | undefined, name: str
   if (/TRIAL|AVALIA|TESTE/.test(c)) return "avaliacao";
   if (/DEMO/.test(c)) return "demo";
   if (/CURRENCY|MOEDA/.test(c)) return "moeda";
-  if (/ADD|SEASON|LEVEL|CHARACTER|COSTUME|MAP|VEHICLE|ITEM|EXPANSION|DLC|COMPLEMENTO|PASSE|EXPANS/.test(c)) return "dlc";
+  // Complementos: a loja usa várias classificações (roupas, nível, episódio, armas, ingresso, faixa, "outro"...).
+  if (/ADD|SEASON|LEVEL|CHARACTER|COSTUME|MAP|VEHICLE|ITEM|EXPANSION|DLC|COMPLEMENTO|PASSE|EXPANS|EPISOD|WEAPON|TICKET|TRACK|^OTHER/.test(c)) return "dlc";
   if (/APP|THEME|AVATAR|SOUNDTRACK|VIDEO|MUSIC|TEMA|APLICATIVO/.test(c)) return "outro";
   if (TRIAL_NAME.test(n)) return "avaliacao";
   if (DEMO_NAME.test(n)) return "demo";
@@ -237,13 +243,19 @@ export const FREE_ID = "gratis";
 export const PLUS_ID = "psplus";
 export const FREE_CATEGORY_IDS = ["d9930400-c5c7-4a06-a28d-cc74888426dc"];
 export const PLUS_CATEGORY_IDS = ["038b4df3-bb4c-48f8-8290-3feb35f0f0fd"];
+/**
+ * Demos gratuitas (PS5 e PS4). As categorias de PS5 e PS4 da loja só trazem
+ * jogos completos, pacotes e edições premium; as demos ficam nesta.
+ */
+export const DEMOS_ID = "95601a70-7564-4771-b305-0283fe3593e4";
 export const STORE_CATEGORIES = [
-  /** Todos os jogos da loja: catálogo completo de PS5 e PS4 juntos. */
+  /** Todos os jogos da loja: catálogo completo de PS5 e PS4 juntos, com as demos. */
   { id: ALL_ID, label: "Todos" },
   { id: OFFERS_ID, label: "Ofertas" },
   { id: PS5_ID, label: "PS5" },
   { id: PS4_ID, label: "PS4" },
   { id: FREE_ID, label: "Grátis" },
+  { id: DEMOS_ID, label: "Demos" },
   { id: PLUS_ID, label: "PS Plus" },
 ] as const;
 
