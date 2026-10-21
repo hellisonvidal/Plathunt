@@ -57,8 +57,26 @@ export function notificationId(key: string): number {
   return Math.abs(h) % 2_000_000_000;
 }
 
+/** Aviso mostrado dentro do app (o app está aberto na tela). */
+export interface InAppNotice {
+  kind: NotifyKind;
+  key: string;
+  title: string;
+  body: string;
+  route: string;
+}
+
+const inAppListeners = new Set<(n: InAppNotice) => void>();
+
+/** A tela do app que mostra os avisos se inscreve aqui; enquanto houver inscrito, os avisos imediatos vão para ela. */
+export function onInAppNotice(listener: (n: InAppNotice) => void): () => void {
+  inAppListeners.add(listener);
+  return () => void inAppListeners.delete(listener);
+}
+
 /**
  * Mostra (ou agenda, com `at`) uma notificação, se o tipo estiver ligado.
+ * Com o app aberto, os avisos imediatos aparecem dentro do app.
  * `key` identifica a notificação: a mesma chave substitui a anterior.
  */
 export async function notify(
@@ -72,6 +90,11 @@ export async function notify(
 ): Promise<void> {
   if (!notificationsEnabled(kind)) return;
   if (at && at.getTime() <= Date.now()) return;
+  // Com o app aberto na tela, o aviso aparece dentro do app (e leva à tela dele ao tocar).
+  if (!at && inAppListeners.size > 0 && typeof document !== "undefined" && document.visibilityState === "visible") {
+    for (const listener of inAppListeners) listener({ kind, key, title, body, route });
+    return;
+  }
   try {
     if (native()) {
       if (!(await requestNotificationPermission())) return;

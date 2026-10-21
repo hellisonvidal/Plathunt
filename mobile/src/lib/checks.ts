@@ -207,7 +207,7 @@ async function checkSocial(since: string | null, now: number): Promise<string | 
       t("📥 Pedido de boost de {from}", { from: r.from }),
       r.game.name,
       undefined,
-      "/activity?view=boost-inbox",
+      `/activity?view=boost-inbox&pedido=${encodeURIComponent(r.id)}`,
     );
   }
   if (!since) return stamp;

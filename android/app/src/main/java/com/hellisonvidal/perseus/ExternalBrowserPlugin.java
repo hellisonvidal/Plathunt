@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -44,6 +45,55 @@ public class ExternalBrowserPlugin extends Plugin {
             } catch (ActivityNotFoundException again) {
                 call.reject("Nenhum navegador encontrado.");
             }
+        }
+    }
+
+    /** Pacote do app PlayStation (Android). */
+    private static final String PS_APP = "com.scee.psxandroid";
+
+    /**
+     * Tenta abrir o endereço da loja no app PlayStation. Devolve opened=false
+     * quando o app não está instalado (aí o app abre no navegador).
+     */
+    @PluginMethod
+    public void openInPlayStationApp(PluginCall call) {
+        String url = call.getString("url");
+        if (url == null || !url.startsWith("https://")) {
+            call.reject("Endereço inválido.");
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        intent.addCategory(Intent.CATEGORY_BROWSABLE);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setPackage(PS_APP);
+        JSObject result = new JSObject();
+        try {
+            getActivity().startActivity(intent);
+            result.put("opened", true);
+        } catch (ActivityNotFoundException e) {
+            result.put("opened", false);
+        }
+        call.resolve(result);
+    }
+
+    /** Tela de compartilhar do Android (WhatsApp, Telegram, Discord, e-mail...) com o texto. */
+    @PluginMethod
+    public void share(PluginCall call) {
+        String text = call.getString("text");
+        if (text == null || text.isEmpty()) {
+            call.reject("Texto vazio.");
+            return;
+        }
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_TEXT, text);
+        Intent chooser = Intent.createChooser(send, call.getString("title", "Compartilhar"));
+        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            getActivity().startActivity(chooser);
+            call.resolve();
+        } catch (ActivityNotFoundException e) {
+            call.reject("Nenhum app para compartilhar.");
         }
     }
 

@@ -8,7 +8,7 @@ import { importBoost } from "./lib/boostInbox";
 import { ALL_ID } from "./lib/store";
 import { storeCategory } from "./psn/store";
 import { runBackgroundChecks } from "./lib/checks";
-import { onNotificationTap } from "./lib/notify";
+import { onInAppNotice, onNotificationTap, type InAppNotice } from "./lib/notify";
 import { getSettings, updateSettings } from "./lib/settings";
 import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
@@ -105,6 +105,7 @@ export function App() {
         <BackgroundChecks />
         <StorePreload />
         <NotificationLinks />
+        <InAppNotices />
         <WhatsNewOnUpdate updated={hadSession} waitCloudNotice={state.mode === "psn"} />
         {state.mode === "psn" && <CloudNotice />}
         {/* Espaço no fim para o conteúdo não ficar atrás das abas e da barra de navegação do Android. */}
@@ -162,8 +163,8 @@ function BoostLinks() {
     const open = async (url: string | undefined) => {
       if (!url?.startsWith("trophymania://boost")) return;
       const me = await client.me().catch(() => null);
-      importBoost(url, me?.onlineId ?? null);
-      navigate("/activity?view=boost-inbox");
+      const result = importBoost(url, me?.onlineId ?? null);
+      navigate(`/activity?view=boost-inbox${result.ok ? `&pedido=${encodeURIComponent(result.request.id)}` : ""}`);
     };
     let remove: (() => void) | undefined;
     if (Capacitor.isNativePlatform()) {
@@ -186,6 +187,45 @@ function NotificationLinks() {
   const navigate = useNavigate();
   useEffect(() => onNotificationTap((route) => navigate(route)), [navigate]);
   return null;
+}
+
+/**
+ * Avisos dentro do app: com o app aberto, as notificações aparecem no topo da
+ * tela; tocar leva à tela do aviso (pedido de boost, desafio, mérito...).
+ */
+function InAppNotices() {
+  const navigate = useNavigate();
+  const [notice, setNotice] = useState<InAppNotice | null>(null);
+  useEffect(() => onInAppNotice(setNotice), []);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 7000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+  if (!notice) return null;
+  return (
+    <div className="safe-top safe-x pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-2">
+      <div
+        role="status"
+        className="pointer-events-auto flex w-full max-w-xl animate-[sheet-up_200ms_ease-out] items-center gap-3 rounded-2xl border border-ps-blue-2/40 bg-surface p-3 shadow-2xl"
+      >
+        <button
+          onClick={() => {
+            setNotice(null);
+            navigate(notice.route);
+          }}
+          className="min-w-0 flex-1 text-left"
+        >
+          <span className="block truncate text-sm font-semibold">{notice.title}</span>
+          <span className="block truncate text-xs text-muted">{notice.body}</span>
+          <span className="mt-0.5 block text-[0.6875rem] font-semibold text-ps-blue-2">{t("Toque para abrir")}</span>
+        </button>
+        <button onClick={() => setNotice(null)} aria-label={t("Fechar")} className="shrink-0 px-1 text-muted">
+          ✕
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /** Verificações para as notificações: ao abrir o app e ao voltar para ele. */

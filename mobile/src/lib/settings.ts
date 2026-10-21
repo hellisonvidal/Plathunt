@@ -21,6 +21,8 @@ export interface Settings {
   storeRegion: StoreRegion;
   /** De quanto em quanto tempo a loja salva no celular é atualizada. */
   storeUpdate: StoreRefresh;
+  /** Tocar num jogo da Loja abre no app PlayStation (se instalado) em vez do navegador. */
+  storeInPsApp: boolean;
   /** Notificações do app (chave geral) e cada tipo. */
   notifications: boolean;
   notifyMerits: boolean;
@@ -52,6 +54,7 @@ export const DEFAULT_SETTINGS: Settings = {
   storeRegion: deviceStoreRegion(),
   // Padrão: a loja salva só é atualizada quando o usuário puxa a tela da loja.
   storeUpdate: "manual",
+  storeInPsApp: true,
   // Claro ou escuro, como o sistema do aparelho.
   theme: "auto",
   notifications: true,

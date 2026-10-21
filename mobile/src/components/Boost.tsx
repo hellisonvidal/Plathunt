@@ -17,7 +17,6 @@ import { t } from "../i18n";
 import {
   boostLink,
   cloudPayload,
-  importBoost,
   removeFromInbox,
   setInboxStatus,
   syncCloudInbox,
@@ -28,7 +27,9 @@ import { appUsers, myBoostRequests, sendBoostRequests, useCloud } from "../lib/c
 import { cancelNotification, notify } from "../lib/notify";
 import { mapLimit } from "../lib/cache";
 import { presenceRank, presenceText } from "../lib/presence";
+import { useBackInterceptor } from "../lib/backButton";
 import { useData } from "../lib/useData";
+import { shareText } from "../psn/native";
 import type { Title } from "../psn/types";
 import { GamePicker, TrophyPicker } from "./GamePicker";
 import { StatusDot } from "./StatusDot";
@@ -39,11 +40,19 @@ import { Avatar, ErrorBox, GameIcon, Spinner, timeAgo } from "./ui";
  * jogo escolhido. Mostra quais amigos têm o jogo (e quem está online agora) e
  * gera o convite para mandar em qualquer conversa.
  */
-export function BoostView({ initialTab = "meus" }: { initialTab?: "meus" | "recebidos" }) {
+export function BoostView({
+  initialTab = "meus",
+  focus = null,
+}: {
+  initialTab?: "meus" | "recebidos";
+  /** Pedido recebido em destaque (aberto por uma notificação ou link). */
+  focus?: string | null;
+}) {
   const boosts = useBoosts();
   const inbox = useInbox();
   const [tab, setTab] = useState<"meus" | "recebidos">(initialTab);
-  const [creating, setCreating] = useState(boosts.length === 0);
+  // O catálogo de jogos só carrega quando o formulário abre (botão "Novo boost").
+  const [creating, setCreating] = useState(false);
   const open = boosts.filter((b) => !b.done);
   const done = boosts.filter((b) => b.done);
   const fresh = inbox.filter((r) => r.status === "novo").length;
@@ -70,20 +79,25 @@ export function BoostView({ initialTab = "meus" }: { initialTab?: "meus" | "rece
       </div>
 
       {tab === "recebidos" ? (
-        <BoostInbox />
-      ) : creating ? (
-        <BoostForm onClose={() => setCreating(false)} />
+        <BoostInbox focus={focus} />
       ) : (
-        <button onClick={() => setCreating(true)} className="w-full rounded-2xl bg-ps-blue py-3 font-semibold">
-          {t("📣 Nova convocação de boost")}
-        </button>
+        <>
+          <button onClick={() => setCreating(true)} className="w-full rounded-2xl bg-ps-blue py-3 font-semibold">
+            {t("➕ Novo boost")}
+          </button>
+          {creating && <BoostSheet onClose={() => setCreating(false)} />}
+          {open.length === 0 && done.length === 0 && (
+            <p className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">
+              {t("Nenhum pedido de boost ainda. Toque em Novo boost para chamar a galera.")}
+            </p>
+          )}
+          {open.map((b) => (
+            <BoostCard key={b.id} boost={b} />
+          ))}
+        </>
       )}
 
-      {open.map((b) => (
-        <BoostCard key={b.id} boost={b} />
-      ))}
-
-      {done.length > 0 && (
+      {tab === "meus" && done.length > 0 && (
         <details className="rounded-2xl border border-line bg-surface p-3 text-sm">
           <summary className="font-semibold">{t("Concluídas ({n})", { n: done.length })}</summary>
           <div className="mt-3 space-y-3">
@@ -103,6 +117,24 @@ export function BoostView({ initialTab = "meus" }: { initialTab?: "meus" | "rece
   );
 }
 
+/** "Convocar boost" em popup, subindo da parte de baixo da tela (fecha no ✕, tocando fora ou no voltar). */
+function BoostSheet({ onClose }: { onClose: () => void }) {
+  useBackInterceptor(true, onClose);
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center" data-no-pull>
+      <button aria-label={t("Fechar")} onClick={onClose} className="absolute inset-0 bg-black/60" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="safe-bottom relative max-h-[92dvh] w-full max-w-2xl animate-[sheet-up_200ms_ease-out] overflow-y-auto overscroll-contain rounded-t-3xl border border-line bg-surface shadow-2xl"
+      >
+        <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-line" aria-hidden />
+        <BoostForm onClose={onClose} />
+      </div>
+    </div>
+  );
+}
+
 function BoostForm({ onClose }: { onClose: () => void }) {
   const [game, setGame] = useState<BoostCandidate | null>(null);
   const [players, setPlayers] = useState(1);
@@ -115,7 +147,7 @@ function BoostForm({ onClose }: { onClose: () => void }) {
     `rounded-full px-3 py-1 text-sm ${active ? "bg-ps-blue font-semibold" : "border border-line text-muted"}`;
 
   return (
-    <section className="space-y-4 rounded-2xl border border-line bg-surface p-4" aria-label={t("Nova convocação")}>
+    <section className="space-y-4 p-4 pb-6" aria-label={t("Nova convocação")}>
       <div className="flex items-center justify-between">
         <h2 className="font-bold">{t("📣 Convocar boost")}</h2>
         <button onClick={onClose} className="text-sm text-muted" aria-label={t("Fechar")}>
@@ -238,7 +270,6 @@ function BoostCard({ boost: b }: { boost: Boost }) {
     boostMessage(b, myId) +
     (b.kind === "ajuda" ? "" : `\n🔗 ${t("Abrir no Plathunt")}: ${boostLink(b, myId)}`);
   const links = shareLinks(text);
-  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   const copy = async () => {
     try {
@@ -252,7 +283,6 @@ function BoostCard({ boost: b }: { boost: Boost }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const btn = "rounded-full border border-line px-3 py-1.5 text-xs font-semibold";
   return (
     <article className={`space-y-3 rounded-2xl border border-line bg-surface p-4 ${b.done ? "opacity-70" : ""}`}>
       <div className="flex items-center gap-3">
@@ -280,22 +310,7 @@ function BoostCard({ boost: b }: { boost: Boost }) {
         {text}
       </pre>
 
-      <div className="flex flex-wrap gap-2">
-        {canShare && (
-          <button onClick={() => navigator.share({ text }).catch(() => {})} className={`${btn} bg-ps-blue`}>
-            {t("Compartilhar")}
-          </button>
-        )}
-        <a href={links.whatsapp} target="_blank" rel="noreferrer" className={btn}>
-          WhatsApp
-        </a>
-        <a href={links.telegram} target="_blank" rel="noreferrer" className={btn}>
-          Telegram
-        </a>
-        <button onClick={copy} className={btn}>
-          {copied ? t("Copiado ✔") : t("Copiar texto")}
-        </button>
-      </div>
+      <ShareButtons text={text} links={links} copied={copied} onCopy={copy} />
 
       <button
         onClick={() => setShowFriends((s) => !s)}
@@ -426,11 +441,50 @@ function scheduleBoostReminder(b: Boost) {
 }
 
 /**
- * Pedidos recebidos: só pedidos de outros jogadores, que chegam pelo link da
- * mensagem (abre o app) ou colando a mensagem aqui. Ao aceitar, o app monta a
- * resposta oferecendo ajuda, pronta para enviar.
+ * Compartilhar o texto: a tela de compartilhar do celular (WhatsApp, Telegram,
+ * Discord, mensagens...), atalhos para WhatsApp e Telegram e copiar.
  */
-function BoostInbox() {
+function ShareButtons({
+  text,
+  links,
+  copied,
+  onCopy,
+}: {
+  text: string;
+  links: { whatsapp: string; telegram: string };
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  const btn = "rounded-full border border-line px-3 py-1.5 text-xs font-semibold";
+  return (
+    <div className="flex flex-wrap gap-2">
+      <button
+        onClick={async () => {
+          if (!(await shareText(text, t("Compartilhar pedido de boost")))) onCopy();
+        }}
+        className={`${btn} border-ps-blue bg-ps-blue`}
+      >
+        {t("📤 Compartilhar")}
+      </button>
+      <a href={links.whatsapp} target="_blank" rel="noreferrer" className={btn}>
+        WhatsApp
+      </a>
+      <a href={links.telegram} target="_blank" rel="noreferrer" className={btn}>
+        Telegram
+      </a>
+      <button onClick={onCopy} className={btn}>
+        {copied ? t("Copiado ✔") : t("Copiar texto")}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Pedidos recebidos: só pedidos de outros jogadores, que chegam pelo link da
+ * mensagem (abre o app) ou direto no app (recursos online). Ao aceitar, o app
+ * monta a resposta oferecendo ajuda, pronta para enviar.
+ */
+function BoostInbox({ focus }: { focus: string | null }) {
   const { client } = useApp();
   const me = useData((force) => client.me(force), [client]);
   const inbox = useInbox();
@@ -439,79 +493,46 @@ function BoostInbox() {
   useEffect(() => {
     if (identity) void syncCloudInbox().catch(() => {});
   }, [identity]);
-  const [text, setText] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-
-  const add = (value: string) => {
-    const result = importBoost(value, me.data?.onlineId ?? null);
-    if (!result.ok) {
-      setMessage(
-        result.reason === "meu"
-          ? t("Esse pedido é seu. Aqui aparecem só os pedidos de outros jogadores.")
-          : t("Não encontrei um pedido de boost nessa mensagem."),
-      );
-      return;
-    }
-    setMessage(result.duplicate ? t("Esse pedido já estava na lista.") : t("Pedido de {from} adicionado.", { from: result.request.from }));
-    setText("");
-  };
-  const paste = async () => {
-    try {
-      const clip = await navigator.clipboard.readText();
-      setText(clip);
-      add(clip);
-    } catch {
-      setMessage(t("Não deu para ler a área de transferência. Cole a mensagem no campo abaixo."));
-    }
-  };
+  // Aberto por uma notificação ou link: rola até o pedido e o destaca.
+  const [highlight, setHighlight] = useState<string | null>(focus);
+  useEffect(() => {
+    setHighlight(focus);
+    if (!focus) return;
+    const timer = setTimeout(() => setHighlight(null), 4000);
+    return () => clearTimeout(timer);
+  }, [focus]);
+  useEffect(() => {
+    if (!highlight) return;
+    document.getElementById(`pedido-${highlight}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlight, inbox.length]);
 
   const fresh = inbox.filter((r) => r.status === "novo");
   const accepted = inbox.filter((r) => r.status === "aceito");
+  const name = me.data?.onlineId ?? t("eu");
   return (
-    <div className="space-y-4">
-      <section className="space-y-2 rounded-2xl border border-line bg-surface p-4">
-        <h2 className="font-bold">{t("📥 Receber um pedido")}</h2>
-        <p className="text-xs text-muted">
-          {t("Toque no link do pedido que um amigo mandou (WhatsApp, Telegram…) ou cole a mensagem aqui.")}
-        </p>
-        <button onClick={paste} className="w-full rounded-xl bg-ps-blue py-2.5 text-sm font-semibold">
-          {t("📋 Colar pedido copiado")}
-        </button>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={3}
-          placeholder={t("Cole aqui a mensagem do pedido")}
-          className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-ps-blue-2"
-        />
-        <button
-          onClick={() => add(text)}
-          disabled={!text.trim()}
-          className="w-full rounded-xl border border-line py-2 text-sm font-semibold disabled:opacity-50"
-        >
-          {t("Adicionar pedido")}
-        </button>
-        {message && <p className="text-xs text-ps-blue-2" aria-live="polite">{message}</p>}
-      </section>
-
+    <div className="space-y-3">
       {inbox.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">
-          {t("Nenhum pedido recebido ainda.")}
-        </p>
+        <div className="space-y-1 rounded-2xl border border-dashed border-line p-6 text-center">
+          <p className="text-sm text-muted">{t("Nenhum pedido recebido ainda.")}</p>
+          <p className="text-xs text-muted">
+            {t("Os pedidos chegam quando um amigo manda o link do Plathunt (WhatsApp, Telegram…) ou direto no app, com os recursos online ligados.")}
+          </p>
+        </div>
       )}
       {fresh.length > 0 && <h3 className="text-sm font-semibold text-muted">{t("Novos ({n})", { n: fresh.length })}</h3>}
       {fresh.map((r) => (
-        <ReceivedCard key={r.id} request={r} me={me.data?.onlineId ?? t("eu")} />
+        <ReceivedCard key={r.id} request={r} me={name} highlight={highlight === r.id} />
       ))}
       {accepted.length > 0 && <h3 className="text-sm font-semibold text-muted">{t("Aceitos ({n})", { n: accepted.length })}</h3>}
       {accepted.map((r) => (
-        <ReceivedCard key={r.id} request={r} me={me.data?.onlineId ?? t("eu")} />
+        <ReceivedCard key={r.id} request={r} me={name} highlight={highlight === r.id} />
       ))}
     </div>
   );
 }
 
-function ReceivedCard({ request: r, me }: { request: ReceivedBoost; me: string }) {
+/** Pedido recebido: quem pediu, o jogo, os troféus e o que falta, com aceitar/recusar e a resposta pronta. */
+function ReceivedCard({ request: r, me, highlight }: { request: ReceivedBoost; me: string; highlight: boolean }) {
   const [copied, setCopied] = useState(false);
   const reply = boostMessage({ ...r, kind: "ajuda" }, me);
   const copy = async () => {
@@ -521,63 +542,78 @@ function ReceivedCard({ request: r, me }: { request: ReceivedBoost; me: string }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-  const btn = "rounded-full border border-line px-3 py-1.5 text-xs font-semibold";
+  const chip = "rounded-full bg-surface-2 px-2 py-0.5";
   return (
-    <article className="space-y-3 rounded-2xl border border-line bg-surface p-4">
-      <div className="flex items-center gap-3">
-        <GameIcon src={r.game.iconUrl} size={48} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{r.game.name}</p>
-          <p className="text-xs text-muted">
-            {t("Pedido de {from}", { from: r.from })} · {r.game.platform} · {timeAgo(r.receivedAt)}
-          </p>
-          <p className="text-xs text-muted">
-            {r.players === 1 ? t("👥 {n} jogador", { n: r.players }) : t("👥 {n} jogadores", { n: r.players })} · 🕒{" "}
-            {t(r.when)}
-          </p>
-        </div>
+    <article
+      id={`pedido-${r.id}`}
+      className={`overflow-hidden rounded-2xl border bg-surface transition-shadow ${
+        highlight ? "border-ps-blue-2 shadow-[0_0_0_3px_var(--color-ps-blue-2)]" : r.status === "novo" ? "border-ps-blue-2/60" : "border-line"
+      }`}
+    >
+      {/* Quem pediu e quando */}
+      <div className="flex items-center gap-2.5 border-b border-line bg-surface-2 px-4 py-2.5">
+        <Avatar src={null} name={r.from} size={32} />
+        <p className="min-w-0 flex-1 text-sm">
+          <span className="font-semibold">{r.from}</span> <span className="text-muted">{t("pediu boost")}</span>
+        </p>
+        <span className="shrink-0 text-[0.6875rem] text-muted">{timeAgo(r.receivedAt)}</span>
+        {r.status === "novo" && (
+          <span className="shrink-0 rounded-full bg-ps-blue px-2 py-0.5 text-[0.625rem] font-bold uppercase">{t("Novo")}</span>
+        )}
       </div>
-      {r.trophies.length > 0 && (
-        <ul className="space-y-1 rounded-xl bg-surface-2 p-2.5 text-xs">
-          {r.trophies.map((name) => (
-            <li key={name}>🏆 {name}</li>
-          ))}
-        </ul>
-      )}
-      {r.note && <p className="text-xs">📝 {r.note}</p>}
 
-      {r.status === "novo" ? (
-        <div className="flex gap-2">
-          <button
-            onClick={() => setInboxStatus(r.id, "aceito")}
-            className="flex-1 rounded-xl bg-ps-blue py-2 text-sm font-semibold"
-          >
-            {t("🤝 Aceitar e ajudar")}
-          </button>
-          <button onClick={() => removeFromInbox(r.id)} className="rounded-xl border border-line px-3 py-2 text-sm text-muted">
-            {t("Recusar")}
-          </button>
+      <div className="space-y-3 p-4">
+        <div className="flex items-center gap-3">
+          <GameIcon src={r.game.iconUrl} size={52} />
+          <div className="min-w-0 flex-1">
+            <p className="line-clamp-2 font-semibold leading-snug">{r.game.name}</p>
+            <div className="mt-1 flex flex-wrap gap-1.5 text-[0.6875rem] text-muted">
+              {r.game.platform && <span className={chip}>{r.game.platform}</span>}
+              <span className={chip}>
+                {r.players === 1 ? t("👥 {n} jogador", { n: r.players }) : t("👥 {n} jogadores", { n: r.players })}
+              </span>
+              {r.when && <span className={chip}>🕒 {t(r.when)}</span>}
+            </div>
+          </div>
         </div>
-      ) : (
-        <>
-          <p className="text-xs font-semibold text-online">{t("✔ Você aceitou. Envie a resposta para {from}:", { from: r.from })}</p>
-          <pre className="whitespace-pre-wrap rounded-xl bg-surface-2 p-3 font-sans text-xs leading-relaxed">{reply}</pre>
-          <div className="flex flex-wrap gap-2">
-            <a href={shareLinks(reply).whatsapp} target="_blank" rel="noreferrer" className={btn}>
-              WhatsApp
-            </a>
-            <a href={shareLinks(reply).telegram} target="_blank" rel="noreferrer" className={btn}>
-              Telegram
-            </a>
-            <button onClick={copy} className={btn}>
-              {copied ? t("Copiado ✔") : t("Copiar texto")}
+
+        {r.trophies.length > 0 && (
+          <div>
+            <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted">{t("Troféus")}</p>
+            <ul className="flex flex-wrap gap-1.5 text-xs">
+              {r.trophies.map((name) => (
+                <li key={name} className="rounded-lg border border-line px-2 py-1">
+                  🏆 {name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {r.note && <p className="rounded-xl bg-surface-2 p-2.5 text-xs">📝 {r.note}</p>}
+
+        {r.status === "novo" ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setInboxStatus(r.id, "aceito")}
+              className="flex-1 rounded-xl bg-ps-blue py-2.5 text-sm font-semibold"
+            >
+              {t("🤝 Aceitar e ajudar")}
             </button>
-            <button onClick={() => removeFromInbox(r.id)} className={`${btn} text-muted`}>
+            <button onClick={() => removeFromInbox(r.id)} className="rounded-xl border border-line px-4 py-2.5 text-sm text-muted">
+              {t("Recusar")}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-online">{t("✔ Você aceitou. Envie a resposta para {from}:", { from: r.from })}</p>
+            <pre className="whitespace-pre-wrap rounded-xl bg-surface-2 p-3 font-sans text-xs leading-relaxed">{reply}</pre>
+            <ShareButtons text={reply} links={shareLinks(reply)} copied={copied} onCopy={copy} />
+            <button onClick={() => removeFromInbox(r.id)} className="text-xs text-muted underline">
               {t("Apagar")}
             </button>
           </div>
-        </>
-      )}
+        )}
+      </div>
     </article>
   );
 }

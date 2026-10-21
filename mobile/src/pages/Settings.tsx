@@ -132,6 +132,12 @@ export function SettingsPage() {
             value={settings.storeUpdate}
             onChange={(storeUpdate) => updateSettings({ storeUpdate })}
           />
+          <Toggle
+            label={t("Abrir jogos no app PlayStation")}
+            hint={t("Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado; desligado, abre no navegador")}
+            checked={settings.storeInPsApp}
+            onChange={(storeInPsApp) => updateSettings({ storeInPsApp })}
+          />
           <p className="px-4 pb-4 text-xs text-muted">
             {t("A loja fica salva no celular e abre na hora. Puxe a tela da loja para baixo para atualizar quando quiser.")}
           </p>
