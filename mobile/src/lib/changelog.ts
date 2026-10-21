@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 5,
+    items: [
+      "🛒 Loja: tipos revisados com o catálogo inteiro da PlayStation Store. Edições Standard e Padrão aparecem como jogo completo, e edições premium, pacotes de jogos, avaliações e demos ficam cada um no seu filtro.",
+    ],
+  },
+  {
     id: 4,
     items: [
       "🏁 Desafios: quando você e o amigo já têm o mesmo troféu, o desafio fica bloqueado.",

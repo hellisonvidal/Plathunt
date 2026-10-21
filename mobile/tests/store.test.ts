@@ -211,6 +211,61 @@ describe("pacote do jogo (GAME_BUNDLE) da loja", () => {
   });
 });
 
+describe("edição padrão e tipos conferidos com o catálogo da loja", () => {
+  it("edição Standard/Padrão é jogo completo, nunca edição premium", async () => {
+    const { productKind } = await import("../src/lib/store");
+    const bundle = (name: string) => productKind("GAME_BUNDLE · Pacote do jogo", name);
+    expect(bundle("Edição Standard do EA SPORTS FC™ 27 para PS4 e PS5")).toBe("jogo");
+    expect(bundle("Diablo® IV - Edição Padrão")).toBe("jogo");
+    expect(bundle("Microsoft Flight Simulator 2024- Standard Edition")).toBe("jogo");
+    expect(bundle("Age of Empires II: Definitive Edition - Standard Edition")).toBe("jogo");
+    expect(bundle("John Carpenter’s Toxic Commando - Standard Ed. (WWZ Loyalty)")).toBe("jogo");
+    expect(bundle("TopSpin 2K25 Cross-Gen Digital Edition")).toBe("jogo");
+    expect(productKind("PREMIUM_EDITION", "Jogo X Standard Edition")).toBe("jogo");
+    expect(productKind("FULL_GAME", "Call of Duty®: Black Ops Cold War - Cross-Gen Bundle PS4® & PS5®")).toBe("jogo");
+    // Dois jogos na edição padrão continuam sendo pacote.
+    expect(bundle("Tails of Iron & Tails of Iron 2 - Standard Bundle")).toBe("pacote");
+    expect(bundle("SILENT HILL 2 & SILENT HILL f Standard Dual Pack")).toBe("pacote");
+  });
+
+  it("jogo completo só vira edição premium com Deluxe/Ultimate/Gold... Edition", async () => {
+    const { productKind } = await import("../src/lib/store");
+    const full = (name: string) => productKind("FULL_GAME · Jogo completo", name);
+    expect(full("Divinity: Original Sin 2 - Definitive Edition PS4 & PS5")).toBe("jogo");
+    expect(full("DYNASTY WARRIORS 8: Xtreme Legends Complete Edition")).toBe("jogo");
+    expect(full("Just Find It 2 Collector's Edition")).toBe("jogo");
+    expect(full("Bard's Gold")).toBe("jogo");
+    expect(full("Spelunker HD Deluxe")).toBe("jogo");
+    expect(full("Green Hell PS4 + PS5 Free Upgrade")).toBe("jogo");
+    expect(full("The Dark Pictures Anthology: Little Hope PS4 & PS5")).toBe("jogo");
+    expect(full("Cave Digger 2 Dig Harder (VR + non-VR)")).toBe("jogo");
+    expect(full("Metro Exodus Gold Edition")).toBe("premium");
+    expect(full("DRAGON BALL XENOVERSE 2 Deluxe Edition")).toBe("premium");
+    expect(full("KINGDOM HEARTS III + Re Mind (DLC)")).toBe("premium");
+    expect(full("KOI: GAME AND EXCLUSIVE THEME BUNDLE")).toBe("premium");
+    expect(full("Capcom Beat 'Em Up Bundle")).toBe("pacote");
+    expect(full("DOOM + DOOM II")).toBe("pacote");
+    expect(full("8-bit Adventure Anthology: Volume I")).toBe("pacote");
+  });
+
+  it("pacote do jogo: dois jogos, jogo com extras, avaliação e demo", async () => {
+    const { productKind } = await import("../src/lib/store");
+    const bundle = (name: string) => productKind("GAME_BUNDLE · Pacote do jogo", name);
+    expect(bundle("Junkyard Simulator & Crime Scene Cleaner")).toBe("pacote");
+    expect(bundle("Prince of Persia™ - Conjunto Nova Era")).toBe("pacote");
+    expect(bundle("Os 3 principais títulos da equipe de desenvolvimento")).toBe("pacote");
+    expect(bundle("Gunsmith Simulator & Gunsmith Simulator - Flint & Powder")).toBe("premium");
+    expect(bundle("Soulstone Survivors & Supporter Pack")).toBe("premium");
+    expect(bundle("Grand Theft Auto V and Great White Shark Card Bundle")).toBe("premium");
+    expect(bundle("Path of Titans - Pacote dos Fundadores Padrão")).toBe("premium");
+    expect(bundle("WormWar Greengrocer PS5 Avatar_Bundle")).toBe("premium");
+    expect(bundle("Ghost of Tsushima VERSÃO DO DIRETOR")).toBe("premium");
+    expect(bundle("Ratchet & Clank: Rift Apart Digital Deluxe Edition")).toBe("premium");
+    expect(bundle("FINAL FANTASY® XIV Online - Avaliação gratuita")).toBe("avaliacao");
+    expect(bundle("Demo de Resident Evil Requiem")).toBe("demo");
+  });
+});
+
 describe("pacotes e contagem dos filtros", () => {
   it("reconhece pacotes de jogos pelo nome", async () => {
     const { productKind } = await import("../src/lib/store");
@@ -229,7 +284,8 @@ describe("pacotes e contagem dos filtros", () => {
     // Palavras de edição só contam como edição, não no meio do título.
     expect(productKind(null, "Marvel Ultimate Alliance")).toBe("jogo");
     expect(productKind(null, "Ultimate Chicken Horse")).toBe("jogo");
-    expect(productKind("FULL_GAME", "Mortal Kombat 11 Ultimate")).toBe("premium");
+    // Num jogo completo, "Ultimate" sem "Edition" é o nome do jogo (há jogos chamados "... Ultimate").
+    expect(productKind("FULL_GAME", "Mortal Kombat 11 Ultimate")).toBe("jogo");
     expect(productKind("FULL_GAME", "EA SPORTS FC 25 Edição Ultimate")).toBe("premium");
     expect(productKind(null, "The Witcher 3 – Edição Jogo do Ano")).toBe("premium");
     // Jogo + passe/DLC é edição premium; vários jogos juntos são pacote.
