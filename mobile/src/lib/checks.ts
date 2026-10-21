@@ -12,7 +12,7 @@ import {
   type Challenge,
   type PlayerResult,
 } from "./challenges";
-import { evaluateMerits, meritName } from "./merits";
+import { evaluateMerits, meritName, MERITS } from "./merits";
 import { getMeritDates, recordMeritDates } from "./meritDates";
 import { notificationsEnabled, notify } from "./notify";
 import { countReactedItems } from "./reactions";
@@ -23,20 +23,31 @@ import { isPlayStoreBuild } from "../psn/native";
 import { syncCloudInbox } from "./boostInbox";
 import { cloudIdentity, likesOnMine } from "./cloud";
 
+type TrophyCheck = { earned: boolean; earnedAt: string | null } | "sem-jogo" | "privado";
+
+/** O troféu do desafio na PSN de um jogador: quando conquistou (ou null), ou por que não dá para saber. */
+export async function challengeTrophyOf(
+  client: PsnClient,
+  accountId: string,
+  game: { id: string; name: string },
+  trophy: Challenge["trophy"],
+  force = false,
+): Promise<TrophyCheck> {
+  const titles = await client.titles(accountId, force).catch(() => null);
+  if (!titles) return "privado";
+  const title = titles.find((x) => x.id === game.id) ?? titles.find((x) => sameGame(x, game));
+  if (!title) return "sem-jogo";
+  const trophies = await client.gameTrophies(accountId, title, force).catch(() => null);
+  if (!trophies) return "privado";
+  const row = findTrophy(trophies, trophy, title.id === game.id);
+  return { earned: !!row?.earned, earnedAt: row?.earned ? row.earnedAt : null };
+}
+
 /** Posições de um desafio agora, pelas datas de conquista na PSN de cada jogador. */
 export async function rankChallengeNow(client: PsnClient, c: Challenge, force = false): Promise<Record<string, PlayerResult>> {
   const game = { id: c.game.titleId, name: c.game.name };
   const raw = Object.fromEntries(
-    await mapLimit(c.players, 3, async (p) => {
-      const titles = await client.titles(p.accountId, force).catch(() => null);
-      if (!titles) return [p.accountId, "privado"] as const;
-      const title = titles.find((x) => x.id === game.id) ?? titles.find((x) => sameGame(x, game));
-      if (!title) return [p.accountId, "sem-jogo"] as const;
-      const trophies = await client.gameTrophies(p.accountId, title, force).catch(() => null);
-      if (!trophies) return [p.accountId, "privado"] as const;
-      const row = findTrophy(trophies, c.trophy, title.id === game.id);
-      return [p.accountId, { earnedAt: row?.earned ? row.earnedAt : null }] as const;
-    }),
+    await mapLimit(c.players, 3, async (p) => [p.accountId, await challengeTrophyOf(client, p.accountId, game, c.trophy, force)] as const),
   );
   const results = rankChallenge(c, raw);
   if (JSON.stringify(results) !== JSON.stringify(c.results)) saveResults(c.id, results);
@@ -49,6 +60,8 @@ interface CheckState {
   feedSince: string | null;
   updateNotified: number | null;
   likesSince: string | null;
+  /** Quantos méritos o app tinha na última verificação (méritos novos de uma atualização não são avisados). */
+  meritCatalog: number | null;
 }
 const KEY = "tm.checks";
 /** Intervalo mínimo entre verificações (para não gastar chamadas à PSN). */
@@ -63,9 +76,10 @@ function readState(): CheckState {
       feedSince: s.feedSince ?? null,
       updateNotified: s.updateNotified ?? null,
       likesSince: s.likesSince ?? null,
+      meritCatalog: Number(s.meritCatalog) || null,
     };
   } catch {
-    return { at: 0, feedSince: null, updateNotified: null, likesSince: null };
+    return { at: 0, feedSince: null, updateNotified: null, likesSince: null, meritCatalog: null };
   }
 }
 
@@ -90,7 +104,7 @@ export async function runBackgroundChecks(client: PsnClient, now = Date.now()): 
     writeState(state);
 
     if (notificationsEnabled("challenges", settings)) await checkChallenges(client);
-    if (notificationsEnabled("merits", settings)) await checkMerits(client);
+    if (notificationsEnabled("merits", settings)) state.meritCatalog = await checkMerits(client, state.meritCatalog);
     if (notificationsEnabled("friends", settings)) state.feedSince = await checkFriends(client, state.feedSince, now);
     if (notificationsEnabled("updates", settings)) state.updateNotified = await checkUpdate(state.updateNotified);
     if (notificationsEnabled("social", settings)) state.likesSince = await checkSocial(state.likesSince, now);
@@ -117,7 +131,7 @@ async function checkChallenges(client: PsnClient) {
   }
 }
 
-async function checkMerits(client: PsnClient) {
+async function checkMerits(client: PsnClient, catalog: number | null): Promise<number> {
   const [profile, titles, played, friendIds] = await Promise.all([
     client.me(),
     client.titles("me"),
@@ -136,21 +150,27 @@ async function checkMerits(client: PsnClient) {
     now: Date.now(),
   });
   const known = getMeritDates(profile.accountId);
-  const firstTime = Object.keys(known).length === 0;
   const done = results.filter((r) => r.done);
   recordMeritDates(profile.accountId, done.map((r) => r.merit.id));
-  if (firstTime) return;
-  const fresh = done.filter((r) => !known[r.merit.id]);
+  // Sem aviso: na primeira vez, quando uma atualização trouxe méritos novos (os
+  // que você já tinha entram sem notificação) e quando o celular não conseguiu
+  // guardar os méritos vistos (senão os mesmos voltariam a cada verificação).
+  const quiet = Object.keys(known).length === 0 || catalog !== MERITS.length;
+  const stored = getMeritDates(profile.accountId);
+  const fresh = done.filter((r) => !known[r.merit.id] && stored[r.merit.id]);
+  if (quiet || fresh.length === 0) return MERITS.length;
+  // A mesma chave: um aviso novo substitui o anterior em vez de empilhar.
   if (fresh.length === 1) {
-    await notify("merits", `merit:${fresh[0].merit.id}`, t("🏅 Novo mérito!"), meritName(fresh[0].merit));
-  } else if (fresh.length > 1) {
+    await notify("merits", "merits:new", t("🏅 Novo mérito!"), meritName(fresh[0].merit));
+  } else {
     await notify(
       "merits",
-      `merits:${Date.now()}`,
+      "merits:new",
       t("🏅 {n} novos méritos!", { n: fresh.length }),
       fresh.slice(0, 3).map((r) => meritName(r.merit)).join(" · "),
     );
   }
+  return MERITS.length;
 }
 
 async function checkFriends(client: PsnClient, since: string | null, now: number): Promise<string> {

@@ -27,6 +27,12 @@ export interface StoreProduct {
   kind?: StoreKind;
   /** Classificação da loja e o rótulo traduzido (ex.: "PREMIUM_EDITION · Edição premium"). */
   classification?: string | null;
+  /**
+   * Quando a Sony publicou as imagens do produto ("AAAAMMDDhh", do endereço
+   * delas). A loja não informa a data de lançamento de cada jogo; isso só
+   * serve para intercalar as listas de lançamentos de PS5 e PS4.
+   */
+  imageDate?: string | null;
 }
 
 /** Tipos de produto da loja, para o selo no cartão e o filtro "Tipo". */
@@ -78,6 +84,25 @@ const PREMIUM_NAME = new RegExp(
 const BUNDLE_NAME =
   /\b(bundle|pacote|combo|double pack|triple pack|dual pack|pack duplo|pacote duplo|pacote triplo|collection|cole[çc][ãa]o|trilogy|trilogia|anthology|antologia|duologia|duology|quadrilogy|saga completa|\d\s?(em|in)\s?1|party pack)\b|\s\+\s/;
 
+/**
+ * A Sony marca como "Pacote do jogo" (GAME_BUNDLE) tanto pacotes de vários
+ * jogos quanto edições especiais e até o jogo com bônus de pré-venda. Nesses,
+ * o nome decide: vários jogos ("Trilogia", "Coleção", "Double Pack", "4 in 1",
+ * "A x B"), edição ("... Edition", "Edição ...", Deluxe, Upgrade...), pacote
+ * ("Bundle", "Jogo A + Jogo B") ou, sem nada disso, o próprio jogo.
+ */
+const SEVERAL_GAMES_NAME =
+  /\b(collection|cole[çc][ãa]o|trilogy|trilogia|anthology|antologia|duologia|duology|quadrilogy|saga completa|double pack|triple pack|dual pack|pack duplo|pacote duplo|pacote triplo|\d\s?(em|in)\s?1|editions|edi[çc][õo]es)\b|\s[x×]\s/;
+const EDITION_IN_BUNDLE =
+  /\b(edition|edi[çc][ãa]o|deluxe|ultimate|premium|gold|definitive|definitiva|complete|completa|goty|game of the year|jogo do ano|upgrade|vault|cofre|version|vers[ãa]o)\b/;
+
+function bundleKind(n: string): StoreKind {
+  if (SEVERAL_GAMES_NAME.test(n)) return "pacote";
+  if (PREMIUM_NAME.test(n) || EDITION_IN_BUNDLE.test(n)) return "premium";
+  if (BUNDLE_NAME.test(n)) return "pacote";
+  return "jogo";
+}
+
 /** Avaliações de jogos (PS Plus Premium e versões de teste). */
 const TRIAL_NAME =
   /\b(trial|game trial|free trial|trial version|avalia[çc][ãa]o|avalia[çc][ãa]o (do|de) jogo|vers[ãa]o de (teste|avalia[çc][ãa]o)|teste gratuito|teste do jogo)\b/;
@@ -101,7 +126,7 @@ export function productKind(classification: string | null | undefined, name: str
   if (/DEMO/.test(c)) return "demo";
   if (/CURRENCY|MOEDA/.test(c)) return "moeda";
   if (/PREMIUM|EDI[ÇC][ÃA]O/.test(c)) return "premium";
-  if (/BUNDLE|PACOTE DE JOGO/.test(c)) return /ADD|COMPLEMENTO/.test(c) ? "dlc" : "pacote";
+  if (/BUNDLE|PACOTE D[EO] JOGO/.test(c)) return /ADD|COMPLEMENTO/.test(c) ? "dlc" : bundleKind(n);
   if (/ADD|SEASON|LEVEL|CHARACTER|COSTUME|MAP|VEHICLE|ITEM|EXPANSION|DLC|PACK|COMPLEMENTO|PASSE|EXPANS/.test(c)) return "dlc";
   if (/APP|THEME|AVATAR|SOUNDTRACK|VIDEO|MUSIC|TEMA|APLICATIVO/.test(c)) return "outro";
   const unknown = !/FULL_GAME|^GAME$|JOGO COMPLETO|FULL GAME/.test(c);
@@ -258,6 +283,7 @@ export function toStoreProduct(raw: RawGridProduct): StoreProduct {
   const basePrice = isFree ? 0 : parsePrice(basePriceText);
   const price = isFree ? 0 : (parsePrice(priceText) ?? basePrice);
   const fromText = Number(raw.price?.discountText?.match(/(\d+)\s*%/)?.[1]);
+  const imageDates = media.flatMap((m) => m.url?.match(/\/rnd\/(\d{6})\/(\d{4})\//)?.slice(1, 3).join("") ?? []).sort();
   const branding = [...(raw.price?.serviceBranding ?? []), ...(raw.price?.upsellServiceBranding ?? [])];
   return {
     id: raw.id,
@@ -273,12 +299,47 @@ export function toStoreProduct(raw: RawGridProduct): StoreProduct {
     plus: !!raw.price?.isTiedToSubscription || branding.some((b) => /PS_?PLUS/i.test(b)),
     classification: classificationOf(raw),
     kind: productKind(classificationOf(raw), raw.name),
+    imageDate: imageDates[0] ?? null,
   };
 }
 
-export type StoreSort = "relevancia" | "desconto" | "menor-preco" | "maior-preco" | "nome" | "nome-desc";
-export const STORE_SORTS: { value: StoreSort; label: string }[] = [
+/**
+ * Junta as listas de lançamentos de cada plataforma (cada uma já na ordem da
+ * loja, do mais novo ao mais antigo) numa ordem só: a ordem de cada lista é
+ * mantida e, entre as duas, vai primeiro o de imagens mais novas.
+ */
+export function mergeReleaseOrders(lists: StoreProduct[][]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const pos = lists.map(() => 0);
+  for (;;) {
+    let pick = -1;
+    for (let i = 0; i < lists.length; i++) {
+      while (pos[i] < lists[i].length && seen.has(lists[i][pos[i]].id)) pos[i]++;
+      if (pos[i] >= lists[i].length) continue;
+      if (pick < 0 || (lists[i][pos[i]].imageDate ?? "") > (lists[pick][pos[pick]].imageDate ?? "")) pick = i;
+    }
+    if (pick < 0) return out;
+    const p = lists[pick][pos[pick]++];
+    seen.add(p.id);
+    out.push(p.id);
+  }
+}
+
+export type StoreSort =
+  | "relevancia"
+  | "lancamento-novos"
+  | "lancamento-antigos"
+  | "desconto"
+  | "menor-preco"
+  | "maior-preco"
+  | "nome"
+  | "nome-desc";
+/** `group`: opções agrupadas na lista (as de data de lançamento). */
+export const STORE_SORTS: { value: StoreSort; label: string; group?: string }[] = [
   { value: "relevancia", label: "Mais vendidos" },
+  { value: "lancamento-novos", label: "Mais recentes", group: "Data de lançamento" },
+  { value: "lancamento-antigos", label: "Mais antigos", group: "Data de lançamento" },
   { value: "desconto", label: "Maior desconto" },
   { value: "menor-preco", label: "Menor preço" },
   { value: "maior-preco", label: "Maior preço" },
@@ -405,10 +466,26 @@ export function filterCounts(products: StoreProduct[], f: StoreFilters, region: 
   return { platform, kind, price };
 }
 
-/** Aplica busca, filtros e ordenação (a ordem da loja é a de "mais vendidos"). */
-export function filterProducts(products: StoreProduct[], f: StoreFilters): StoreProduct[] {
+export const isReleaseSort = (sort: StoreSort) => sort === "lancamento-novos" || sort === "lancamento-antigos";
+
+/**
+ * Aplica busca, filtros e ordenação (a ordem da loja é a de "mais vendidos").
+ * `releaseOrder`: ids do mais novo ao mais antigo (storeReleaseOrder), para
+ * ordenar por lançamento; sem ela, vale a data das imagens.
+ */
+export function filterProducts(products: StoreProduct[], f: StoreFilters, releaseOrder?: string[] | null): StoreProduct[] {
   const list = products.filter((p) => matches(p, f));
   const price = (p: StoreProduct) => p.price ?? Number.MAX_SAFE_INTEGER;
+  if (isReleaseSort(f.sort)) {
+    const rank = new Map((releaseOrder ?? []).map((id, i) => [id, i]));
+    // Do mais novo ao mais antigo; o que a lista de lançamentos não tem vai pela data das imagens, no fim.
+    const newest = [...list].sort(
+      (a, b) =>
+        (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity) ||
+        (b.imageDate ?? "").localeCompare(a.imageDate ?? ""),
+    );
+    return f.sort === "lancamento-novos" ? newest : newest.reverse();
+  }
   switch (f.sort) {
     case "desconto":
       return [...list].sort((a, b) => b.discount - a.discount || price(a) - price(b));

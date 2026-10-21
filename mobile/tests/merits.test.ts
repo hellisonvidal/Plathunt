@@ -13,8 +13,8 @@ const profile: Profile = {
 };
 
 describe("méritos", () => {
-  it("tem 2.000 méritos, ids únicos e todas as categorias conhecidas", () => {
-    expect(MERITS.length).toBe(2000);
+  it("tem 5.000 méritos, ids únicos e todas as categorias conhecidas", () => {
+    expect(MERITS.length).toBe(5000);
     expect(MERITS.filter((m) => m.category === "desafios")).toHaveLength(60);
     expect(new Set(MERITS.map((m) => m.id)).size).toBe(MERITS.length);
     const cats = new Set(MERIT_CATEGORIES.map((c) => c.id));

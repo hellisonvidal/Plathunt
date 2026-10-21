@@ -8,7 +8,7 @@ import { isComplete, primaryPlatform, withEarnedTrophies, type PlayedOn } from "
  * Méritos: conquistas do próprio app, liberadas quando o jogador atinge
  * objetivos definidos aqui (platinas, troféus, nível, tempo de jogo...).
  * Tudo é calculado no celular a partir dos dados da PSN e dos desafios
- * salvos no app. São 2.000 méritos, incluindo os de gêneros de jogos.
+ * salvos no app. São 5.000 méritos, incluindo os de gêneros de jogos.
  */
 
 export interface MeritContext {
@@ -1049,6 +1049,8 @@ function ladder(opts: {
   skip: number[];
   name: string;
   describe: (n: number) => string;
+  /** Outros campos do nome e da descrição (ex.: "{p}", a plataforma). */
+  vars?: Record<string, MeritVar>;
   value: Merit["value"];
   when?: (s: MeritStats, n: number) => number | null;
 }): Merit[] {
@@ -1059,9 +1061,9 @@ function ladder(opts: {
       category: opts.category,
       icon: opts.icon,
       name: opts.name,
-      nameVars: { n: target },
+      nameVars: { n: target, ...opts.vars },
       description: opts.describe(target),
-      vars: { n: target },
+      vars: { n: target, ...opts.vars },
       target,
       value: opts.value,
       ...(opts.when ? { when: (s: MeritStats) => opts.when!(s, target) } : {}),
@@ -1513,7 +1515,189 @@ const EXTRA_MERITS: Merit[] = [
   }),
 ];
 
-export const MERITS: Merit[] = [...BASE_MERITS, ...CHALLENGE_MERITS, ...EXTRA_MERITS];
+const MERITS_2000: Merit[] = [...BASE_MERITS, ...CHALLENGE_MERITS, ...EXTRA_MERITS];
+const TAKEN = new Set(MERITS_2000.map((m) => m.id));
+/** Ladder só com as metas cujo id ainda não existe (as séries e marcos de antes continuam iguais). */
+const more = (opts: Parameters<typeof ladder>[0]) => ladder({ ...opts, skip: [] }).filter((m) => !TAKEN.has(m.id));
+
+/** Méritos novos (de 2.000 para 5.000): marcos intermediários e marcos de horas, 100%, DLCs, social e plataformas. */
+const MORE_MERITS: Merit[] = [
+  // Os mesmos marcos de antes, com metas no meio do caminho e mais longe.
+  ...more({
+    key: "nivel",
+    category: "marcos",
+    icon: "⭐",
+    targets: range(5, 995, 5),
+    skip: [],
+    name: "Nível {n}",
+    describe: () => "Chegue ao nível {n} da PSN",
+    value: (s) => s.level,
+  }),
+  ...more({
+    key: "platinas",
+    category: "marcos",
+    icon: "🏆",
+    targets: range(5, 2000, 5),
+    skip: [],
+    name: "Marco de Platinas: {n}",
+    describe: () => "Conquiste {n} platinas",
+    value: (s) => s.earned.platinum,
+    when: (s, n) => s.nthAt((t) => t.earned.platinum > 0, n),
+  }),
+  ...more({
+    key: "trofeus",
+    category: "marcos",
+    icon: "🎖️",
+    targets: range(500, 100000, 500),
+    skip: [],
+    name: "Marco de Troféus: {n}",
+    describe: () => "Conquiste {n} troféus no total",
+    value: (s) => s.total,
+    when: (s, n) => s.sumAt((t) => sum(t.earned), n),
+  }),
+  ...more({
+    key: "ouro",
+    category: "marcos",
+    icon: "🥇",
+    targets: range(25, 5000, 25),
+    skip: [],
+    name: "Marco de Ouro: {n}",
+    describe: () => "Conquiste {n} troféus de ouro",
+    value: (s) => s.earned.gold,
+    when: (s, n) => s.sumAt((t) => t.earned.gold, n),
+  }),
+  ...more({
+    key: "prata",
+    category: "marcos",
+    icon: "🥈",
+    targets: range(50, 10000, 50),
+    skip: [],
+    name: "Marco de Prata: {n}",
+    describe: () => "Conquiste {n} troféus de prata",
+    value: (s) => s.earned.silver,
+    when: (s, n) => s.sumAt((t) => t.earned.silver, n),
+  }),
+  ...more({
+    key: "bronze",
+    category: "marcos",
+    icon: "🥉",
+    targets: range(250, 50000, 250),
+    skip: [],
+    name: "Marco de Bronze: {n}",
+    describe: () => "Conquiste {n} troféus de bronze",
+    value: (s) => s.earned.bronze,
+    when: (s, n) => s.sumAt((t) => t.earned.bronze, n),
+  }),
+  ...more({
+    key: "colecao",
+    category: "marcos",
+    icon: "📚",
+    targets: range(10, 3000, 10),
+    skip: [],
+    name: "Marco da Coleção: {n}",
+    describe: () => "Tenha troféus em {n} jogos",
+    value: (s) => s.games,
+    when: (s, n) => s.nthAt(() => true, n),
+  }),
+  // Marcos novos
+  ...more({
+    key: "marco-horas",
+    category: "marcos",
+    icon: "⏱️",
+    targets: range(50, 12750, 50),
+    skip: [],
+    name: "Marco de Horas: {n}",
+    describe: () => "Jogue {n} horas no total (PS4 e PS5)",
+    value: (s) => s.playHours,
+  }),
+  ...more({
+    key: "marco-100",
+    category: "marcos",
+    icon: "💯",
+    targets: range(5, 1000, 5),
+    skip: [],
+    name: "Marco de 100%: {n}",
+    describe: () => "Complete {n} jogos em 100%",
+    value: (s) => s.completed,
+    when: (s, n) => s.nthAt(isComplete, n),
+  }),
+  ...more({
+    key: "marco-dlc",
+    category: "marcos",
+    icon: "🧩",
+    targets: range(5, 500, 5),
+    skip: [],
+    name: "Marco de DLCs: {n}",
+    describe: () => "Tenha troféus em {n} jogos com DLC",
+    value: (s) => s.dlcGames,
+  }),
+  ...more({
+    key: "marco-amigos",
+    category: "marcos",
+    icon: "🤝",
+    targets: range(10, 1000, 10),
+    skip: [],
+    name: "Marco Social: {n}",
+    describe: () => "Tenha {n} amigos na PSN",
+    value: (s) => s.friends,
+  }),
+  ...more({
+    key: "marco-curtidas",
+    category: "marcos",
+    icon: "❤️",
+    targets: range(50, 5000, 50),
+    skip: [],
+    name: "Marco de Curtidas: {n}",
+    describe: () => "Curta {n} conquistas nas Atividades",
+    value: (s) => s.reactions,
+  }),
+  // Marcos de cada plataforma
+  ...PLATFORMS.flatMap((p) => {
+    const tag = p === "PS Vita" ? "Vita" : p;
+    const key = p === "PS Vita" ? "vita" : p.toLowerCase();
+    const on = (s: MeritStats, t: Title) => s.platformOf(t) === p;
+    return [
+      ...more({
+        key: `marco-${key}-jogos`,
+        category: "marcos",
+        icon: "🎮",
+        targets: range(25, 1500, 25),
+        skip: [],
+        name: "Biblioteca {p}: {n}",
+        vars: { p: tag },
+        describe: () => "Tenha troféus em {n} jogos de {p}",
+        value: (s) => platform(s, p)?.games ?? 0,
+        when: (s, n) => s.nthAt((t) => on(s, t), n),
+      }),
+      ...more({
+        key: `marco-${key}-platinas`,
+        category: "marcos",
+        icon: "💎",
+        targets: range(5, 500, 5),
+        skip: [],
+        name: "Platinas {p}: {n}",
+        vars: { p: tag },
+        describe: () => "Conquiste {n} platinas no {p}",
+        value: (s) => platform(s, p)?.platinums ?? 0,
+        when: (s, n) => s.nthAt((t) => on(s, t) && t.earned.platinum > 0, n),
+      }),
+      ...more({
+        key: `marco-${key}-trofeus`,
+        category: "marcos",
+        icon: "🎖️",
+        targets: range(250, 22000, 250),
+        skip: [],
+        name: "Troféus {p}: {n}",
+        vars: { p: tag },
+        describe: () => "Conquiste {n} troféus no {p}",
+        value: (s) => platform(s, p)?.trophies ?? 0,
+        when: (s, n) => s.sumAt((t) => (on(s, t) ? sum(t.earned) : 0), n),
+      }),
+    ];
+  }),
+];
+
+export const MERITS: Merit[] = [...MERITS_2000, ...MORE_MERITS];
 
 /** Avalia todos os méritos para um jogador. Méritos sem dado (null) ficam de fora. */
 export function evaluateMerits(ctx: MeritContext): MeritResult[] {

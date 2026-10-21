@@ -3,6 +3,7 @@ import { cached } from "../lib/cache";
 import { getSettings } from "../lib/settings";
 import {
   ALL_ID,
+  mergeReleaseOrders,
   FREE_CATEGORY_IDS,
   FREE_ID,
   OFFER_CATEGORY_IDS,
@@ -34,11 +35,14 @@ const PARALLEL = 4;
 /** Recebe os jogos já carregados (em ordem) e o total da categoria, enquanto o resto chega. */
 export type StoreProgress = (products: StoreProduct[], total: number) => void;
 
-async function fetchPage(categoryId: string, region: StoreRegion, offset: number) {
+/** Ordem da loja: mais vendidos (padrão) ou lançamentos, do mais novo ao mais antigo. */
+type GridSort = "sales30" | "productReleaseDate";
+
+async function fetchPage(categoryId: string, region: StoreRegion, offset: number, sort: GridSort = "sales30") {
   const variables = {
     id: categoryId,
     pageArgs: { size: PAGE_SIZE, offset },
-    sortBy: { name: "sales30", isAscending: false },
+    sortBy: { name: sort, isAscending: false },
     filterBy: [],
     facetOptions: [],
   };
@@ -63,14 +67,19 @@ async function fetchPage(categoryId: string, region: StoreRegion, offset: number
 const dedupe = (list: StoreProduct[]) => [...new Map(list.map((p) => [p.id, p])).values()];
 
 /** Todas as páginas de uma categoria (várias ao mesmo tempo), avisando o progresso. */
-async function fetchAll(categoryId: string, region: StoreRegion, onProgress?: StoreProgress): Promise<StoreProduct[]> {
-  const first = await fetchPage(categoryId, region, 0);
+async function fetchAll(
+  categoryId: string,
+  region: StoreRegion,
+  onProgress?: StoreProgress,
+  sort: GridSort = "sales30",
+): Promise<StoreProduct[]> {
+  const first = await fetchPage(categoryId, region, 0, sort);
   const pages: StoreProduct[][] = [first.products];
   const count = Math.min(MAX_PAGES, Math.ceil(first.total / PAGE_SIZE));
   onProgress?.(first.products, first.total);
   for (let start = 1; start < count; start += PARALLEL) {
     const batch = Array.from({ length: Math.min(PARALLEL, count - start) }, (_, i) => start + i);
-    const results = await Promise.all(batch.map((page) => fetchPage(categoryId, region, page * PAGE_SIZE)));
+    const results = await Promise.all(batch.map((page) => fetchPage(categoryId, region, page * PAGE_SIZE, sort)));
     results.forEach((r, i) => (pages[batch[i]] = r.products));
     onProgress?.(dedupe(pages.flat()), first.total);
     if (results.some((r) => r.products.length < PAGE_SIZE)) break;
@@ -145,6 +154,24 @@ export async function storeCategory(
       return derived
         ? fetchDerived(derived[0], derived[1], region, force, onProgress)
         : fetchAll(categoryId, region, onProgress);
+    },
+    force,
+  );
+}
+
+/**
+ * Ordem de lançamento de todos os jogos da loja (ids, do mais novo ao mais
+ * antigo). A loja não informa a data de cada jogo, só as listas de PS5 e de
+ * PS4 já em ordem de lançamento; o app junta as duas. Fica salva como o catálogo.
+ */
+export async function storeReleaseOrder(region: StoreRegion, force = false): Promise<string[]> {
+  return cached(
+    `store:${region}:lancamentos`,
+    storeRefreshMs(getSettings().storeUpdate),
+    async () => {
+      const ps5 = await fetchAll(PS5_ID, region, undefined, "productReleaseDate");
+      const ps4 = await fetchAll(PS4_ID, region, undefined, "productReleaseDate");
+      return mergeReleaseOrders([ps5, ps4]);
     },
     force,
   );

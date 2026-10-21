@@ -181,6 +181,36 @@ describe("edição premium", () => {
   });
 });
 
+describe("pacote do jogo (GAME_BUNDLE) da loja", () => {
+  it("separa edições premium, pacotes de vários jogos e o jogo completo", async () => {
+    const { productKind } = await import("../src/lib/store");
+    const kind = (name: string) => productKind("GAME_BUNDLE · Pacote do jogo", name);
+    // Edições especiais marcadas pela Sony como pacote do jogo.
+    expect(kind("Premium Edition de FINAL FANTASY VII REVELATION")).toBe("premium");
+    expect(kind("Premium Plus Edition de FINAL FANTASY VII REVELATION")).toBe("premium");
+    expect(kind("Forza Horizon 6 Deluxe Edition")).toBe("premium");
+    expect(kind("Grand Theft Auto VI: Ultimate Edition")).toBe("premium");
+    expect(kind("Call of Duty®: Modern Warfare® 4 - Edição Cofre")).toBe("premium");
+    expect(kind("God of War Laufey™ Upgrade para Digital Deluxe")).toBe("premium");
+    expect(kind("Romancing SaGa 3: Destinies United Digital Deluxe Version")).toBe("premium");
+    expect(kind("Bulwark: Falconeer Chronicles Digital Deluxe")).toBe("premium");
+    expect(kind("Stupid Never Dies: Glorious Idiot Edition")).toBe("premium");
+    // Vários jogos juntos.
+    expect(kind("Trilogy Edition da Série FINAL FANTASY VII Remake")).toBe("pacote");
+    expect(kind("We Were Here Series Bundle")).toBe("pacote");
+    expect(kind("Paradise Pack 4 in 1")).toBe("pacote");
+    expect(kind("Pacote Coleção Hazelight")).toBe("pacote");
+    expect(kind("KINGDOM HEARTS Collection [I～III]")).toBe("pacote");
+    expect(kind("Infection Free Zone x Besiege")).toBe("pacote");
+    expect(kind("Disney/Pixar Toy Story: Retro Roundup! + Toy Story 3 Complete Edition Double Pack")).toBe("pacote");
+    expect(kind("The Legend Of Fireball & Fortress Merge: Complete Editions")).toBe("pacote");
+    // O próprio jogo (pré-venda com bônus).
+    expect(kind("FINAL FANTASY VII REVELATION")).toBe("jogo");
+    expect(kind("Grand Theft Auto VI")).toBe("jogo");
+    expect(kind("Tomb Raider: Legacy of Atlantis")).toBe("jogo");
+  });
+});
+
 describe("pacotes e contagem dos filtros", () => {
   it("reconhece pacotes de jogos pelo nome", async () => {
     const { productKind } = await import("../src/lib/store");
@@ -193,7 +223,7 @@ describe("pacotes e contagem dos filtros", () => {
   it("separa edição premium, pacote e avaliação", async () => {
     const { productKind, kindOf, toStoreProduct } = await import("../src/lib/store");
     // A classificação da loja vale mais que o nome.
-    expect(productKind("GAME_BUNDLE · Pacote de jogos", "Call of Duty Vault Edition")).toBe("pacote");
+    expect(productKind("GAME_BUNDLE · Pacote de jogos", "Call of Duty Vault Edition")).toBe("premium");
     expect(productKind("PREMIUM_EDITION · Edição premium", "Jogo X")).toBe("premium");
     expect(productKind("ADD-ON_PACK · Complemento", "Pacote X")).toBe("dlc");
     // Palavras de edição só contam como edição, não no meio do título.
@@ -232,5 +262,25 @@ describe("pacotes e contagem dos filtros", () => {
     expect(c.platform).toMatchObject({ todas: 3, PS5: 2, PS4: 1 });
     // Com o filtro de plataforma PS4, só o pacote conta nos tipos.
     expect(filterCounts(list, { ...f, platform: "PS4" }, "pt-BR").kind).toMatchObject({ todos: 1, pacote: 1 });
+  });
+});
+
+describe("ordem de lançamento", () => {
+  it("junta as listas de PS5 e PS4 mantendo a ordem de cada uma", async () => {
+    const { mergeReleaseOrders, toStoreProduct } = await import("../src/lib/store");
+    const p = (id: string, date: string) =>
+      toStoreProduct({ id, name: id, media: [{ role: "MASTER", type: "IMAGE", url: `https://image.api.playstation.com/vulcan/ap/rnd/${date.slice(0, 6)}/${date.slice(6)}/x.jpg` }] });
+    const ps5 = [p("a", "2026100112"), p("b", "2025050112"), p("c", "2021010112")];
+    const ps4 = [p("x", "2026060112"), p("b", "2025050112"), p("y", "2015010112")];
+    expect(mergeReleaseOrders([ps5, ps4])).toEqual(["a", "x", "b", "c", "y"]);
+  });
+
+  it("ordena por lançamento, do mais novo ou do mais antigo", async () => {
+    const { filterProducts, toStoreProduct } = await import("../src/lib/store");
+    const list = ["a", "b", "c"].map((id) => toStoreProduct({ id, name: id }));
+    const f: StoreFilters = { query: "", platform: "todas", onlyDiscount: false, hidePlus: false, hideFree: false, price: "todas", sort: "lancamento-novos" };
+    const order = ["c", "a", "b"];
+    expect(filterProducts(list, f, order).map((x) => x.id)).toEqual(["c", "a", "b"]);
+    expect(filterProducts(list, { ...f, sort: "lancamento-antigos" }, order).map((x) => x.id)).toEqual(["b", "a", "c"]);
   });
 });

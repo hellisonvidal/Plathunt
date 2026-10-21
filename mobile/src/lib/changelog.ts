@@ -10,6 +10,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 4,
+    items: [
+      "🏁 Desafios: quando você e o amigo já têm o mesmo troféu, o desafio fica bloqueado.",
+      "🏆 Troféus na ordem original da PlayStation e, nos jogos de um amigo, um filtro com os troféus que você tem ou não.",
+      "🏅 5.000 méritos, e o aviso de novos méritos não se repete mais.",
+      "🎮 Conquistas: escolha o amigo numa caixa de seleção, como nos Méritos.",
+      "🛒 Loja: ordenar por lançamento (mais recentes ou mais antigos), e edições premium, pacotes e jogos completos não se misturam mais.",
+    ],
+  },
+  {
     id: 3,
     items: [
       "🌐 Recursos online em um servidor novo, mais rápido e sempre no ar, e agora dá para apagar seus dados do servidor em Configurações → Recursos online.",

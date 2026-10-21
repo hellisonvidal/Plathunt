@@ -8,6 +8,7 @@ import { useSettings } from "../lib/settings";
 import {
   filterCounts,
   filterProducts,
+  isReleaseSort,
   formatPrice,
   isNewLow,
   kindOf,
@@ -31,7 +32,7 @@ import {
 } from "../lib/store";
 import { useData } from "../lib/useData";
 import { openInBrowser } from "../psn/native";
-import { demoStoreCategory, storeCacheKey, storeCategory, type StoreProgress } from "../psn/store";
+import { demoStoreCategory, storeCacheKey, storeCategory, storeReleaseOrder, type StoreProgress } from "../psn/store";
 import { peekCached } from "../lib/cache";
 
 /** Quantos jogos entram na tela de cada vez (mais aparecem sozinhos ao rolar). */
@@ -102,9 +103,16 @@ export function StorePage() {
   // Filtrar milhares de jogos fica em segundo plano: digitar e rolar seguem fluidos.
   const deferredFilters = useDeferredValue(filters);
   const deferredProducts = useDeferredValue(products);
+  // Ordem de lançamento: só carrega quando essa ordenação é escolhida (no demo, vale a ordem da lista).
+  const byRelease = isReleaseSort(filters.sort);
+  const releases = useData(
+    async (force) => (byRelease && mode !== "demo" ? storeReleaseOrder(region, force) : null),
+    [byRelease, mode, region],
+  );
+  const releaseOrder = byRelease ? (releases.data ?? null) : null;
   const visible = useMemo(
-    () => (deferredProducts ? filterProducts(deferredProducts, deferredFilters) : null),
-    [deferredProducts, deferredFilters],
+    () => (deferredProducts ? filterProducts(deferredProducts, deferredFilters, releaseOrder) : null),
+    [deferredProducts, deferredFilters, releaseOrder],
   );
 
   return (
@@ -145,7 +153,9 @@ export function StorePage() {
                   : t("Carregando a loja… {n} jogos", { n: streaming.products.length })
                 : t("{n} de {total} jogos", { n: visible?.length ?? 0, total: products.length })}
             {stale && catalog.loading && t(" · atualizando a lista salva…")}
+            {byRelease && releases.loading && !releases.data && t(" · buscando as datas de lançamento…")}
           </p>
+          {byRelease && releases.error ? <ErrorBox error={releases.error} onRetry={releases.refresh} /> : null}
           {(!current || catalog.loading) && !catalog.error && (
             <div className="h-1 overflow-hidden rounded-full bg-surface-2">
               <div
@@ -225,7 +235,20 @@ function FilterBar({
           aria-label={t("Ordenar")}
           className="w-[36%] min-w-0 rounded-full border border-line bg-surface-2 px-2 text-sm"
         >
-          {STORE_SORTS.map((s) => (
+          {STORE_SORTS.filter((s) => !s.group).slice(0, 1).map((s) => (
+            <option key={s.value} value={s.value}>
+              {t(s.label)}
+            </option>
+          ))}
+          {/* As duas ordens por data de lançamento ficam juntas, com o título do grupo. */}
+          <optgroup label={t("Data de lançamento")}>
+            {STORE_SORTS.filter((s) => s.group).map((s) => (
+              <option key={s.value} value={s.value}>
+                {t(s.label)}
+              </option>
+            ))}
+          </optgroup>
+          {STORE_SORTS.filter((s) => !s.group).slice(1).map((s) => (
             <option key={s.value} value={s.value}>
               {t(s.label)}
             </option>

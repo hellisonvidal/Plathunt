@@ -33,3 +33,17 @@ describe("data dos méritos", () => {
     expect(getMeritDates("novo")).toEqual({});
   });
 });
+
+describe("espaço dos méritos", () => {
+  beforeEach(() => mem.clear());
+
+  it("guarda só os jogadores vistos por último, sempre com o atual", () => {
+    for (let i = 0; i < 20; i++) recordMeritDates(`amigo${i}`, ["a"]);
+    recordMeritDates("eu", ["a"]);
+    const book = JSON.parse(mem.get("tm.merits")!);
+    expect(Object.keys(book)).toHaveLength(12);
+    expect(book.eu).toBeDefined();
+    expect(book.amigo19).toBeDefined();
+    expect(book.amigo0).toBeUndefined();
+  });
+});
