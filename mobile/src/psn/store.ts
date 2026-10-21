@@ -3,6 +3,7 @@ import { cached } from "../lib/cache";
 import { getSettings } from "../lib/settings";
 import {
   ALL_ID,
+  DEMOS_ID,
   mergeReleaseOrders,
   FREE_CATEGORY_IDS,
   FREE_ID,
@@ -13,6 +14,7 @@ import {
   PS4_ID,
   PS5_ID,
   storeRefreshMs,
+  kindOf,
   toStoreProduct,
   type StoreProduct,
   type StoreRegion,
@@ -93,9 +95,9 @@ async function fetchAll(
  * jogos que se encaixam, monta a lista a partir do catálogo completo de PS5 e
  * PS4 (o mesmo do app, em cache) filtrando os jogos que se encaixam.
  */
-/** Todos: PS5 e PS4 juntos (jogos das duas plataformas aparecem uma vez). */
+/** Todos: PS5 e PS4 juntos (jogos das duas plataformas aparecem uma vez), mais as demos. */
 async function fetchEverything(region: StoreRegion, force: boolean, onProgress?: StoreProgress) {
-  return fetchDerived([], () => true, region, force, onProgress);
+  return fetchDerived([], () => true, region, force, onProgress, [PS5_ID, PS4_ID, DEMOS_ID]);
 }
 
 async function fetchDerived(
@@ -104,6 +106,8 @@ async function fetchDerived(
   region: StoreRegion,
   force: boolean,
   onProgress?: StoreProgress,
+  /** Catálogos usados quando nenhuma das categorias serve. */
+  fallback: string[] = [PS5_ID, PS4_ID],
 ): Promise<StoreProduct[]> {
   for (const id of categoryIds) {
     try {
@@ -116,7 +120,7 @@ async function fetchDerived(
     }
   }
   const found: StoreProduct[] = [];
-  for (const id of [PS5_ID, PS4_ID]) {
+  for (const id of fallback) {
     const list = await storeCategory(id, region, force, (partial) =>
       onProgress?.(dedupe([...found, ...partial]).filter(pick), 0),
     );
@@ -132,7 +136,9 @@ const DERIVED: Record<string, [string[], (p: StoreProduct) => boolean]> = {
   [PLUS_ID]: [PLUS_CATEGORY_IDS, (p) => p.plus],
 };
 
-export const storeCacheKey = (region: StoreRegion, categoryId: string) => `store:${region}:${categoryId}`;
+// "Todos" passou a incluir as demos: a chave nova faz a lista salva antes ser buscada de novo.
+export const storeCacheKey = (region: StoreRegion, categoryId: string) =>
+  `store:${region}:${categoryId === ALL_ID ? "todos-com-demos" : categoryId}`;
 
 /**
  * Jogos de uma categoria da loja (todos os que a loja tiver), na ordem de mais
@@ -225,6 +231,7 @@ export async function demoStoreCategory(categoryId: string): Promise<StoreProduc
     [OFFERS_ID]: (p) => p.discount > 0,
     [PS5_ID]: (p) => p.platforms.includes("PS5"),
     [PS4_ID]: (p) => p.platforms.includes("PS4"),
+    [DEMOS_ID]: (p) => kindOf(p) === "demo",
     [FREE_ID]: (p) => p.isFree,
     [PLUS_ID]: (p) => p.plus,
   };

@@ -13,6 +13,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     id: 5,
     items: [
       "🛒 Loja: tipos revisados com o catálogo inteiro da PlayStation Store. Edições Standard e Padrão aparecem como jogo completo, e edições premium, pacotes de jogos, avaliações e demos ficam cada um no seu filtro.",
+      "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.",
     ],
   },
   {

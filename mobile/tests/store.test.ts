@@ -266,6 +266,26 @@ describe("edição padrão e tipos conferidos com o catálogo da loja", () => {
   });
 });
 
+describe("avaliações, demos e complementos", () => {
+  it("jogos com 'Trial' no nome não são avaliação", async () => {
+    const { productKind } = await import("../src/lib/store");
+    const full = (name: string) => productKind("FULL_GAME · Jogo completo", name);
+    expect(full("Taboo Trial")).toBe("jogo");
+    expect(full("Trial of Greed VR")).toBe("jogo");
+    expect(full("Urban Trial Tricky Deluxe Edition")).toBe("premium");
+    expect(full("The Outlast Trials")).toBe("jogo");
+    expect(full("Tom Clancy’s Rainbow Six® Extraction Trial")).toBe("avaliacao");
+    expect(full("Far Cry® 6 FREE Trial")).toBe("avaliacao");
+    expect(productKind("DEMO · Demo", "Fracked Demo")).toBe("demo");
+  });
+
+  it("todas as classificações de complemento da loja são DLC", async () => {
+    const { productKind } = await import("../src/lib/store");
+    for (const c of ["OTHER · Expansão", "EPISODE · Episódio", "WEAPONS · Armas", "TICKET · Ingresso", "TRACK · Faixa", "ADD_ON_PACK", "COSTUME"])
+      expect(productKind(c, "Pacote de armas")).toBe("dlc");
+  });
+});
+
 describe("pacotes e contagem dos filtros", () => {
   it("reconhece pacotes de jogos pelo nome", async () => {
     const { productKind } = await import("../src/lib/store");
