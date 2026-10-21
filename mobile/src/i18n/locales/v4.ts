@@ -3,6 +3,11 @@ import type { Translations } from "../index";
 /** Traduções das novidades 4: desafios bloqueados, troféus na ordem da PlayStation, Conquistas e Loja. */
 const translations: Translations = {
   "en-US": {
+    "🎨 Ícone novo: o troféu de platina dentro da mira, maior e com fundo próprio, nítido em qualquer tela inicial.":
+      "🎨 New icon: the platinum trophy inside the crosshair, bigger and with its own background, crisp on any home screen.",
+    "🧪 Loja: as avaliações da PS Plus Premium/Deluxe aparecem em Todos e no filtro Avaliação, com a lista oficial da PlayStation.":
+      "🧪 Store: PS Plus Premium/Deluxe game trials now show in All and in the Trial filter, from PlayStation's official list.",
+    "Na PS Plus Premium": "In PS Plus Premium",
     "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
       "🎮 Store: new Demos category with the store's free demos (also in All), and add-ons on sale now in the DLC filter.",
     "Demos": "Demos",
@@ -34,6 +39,11 @@ const translations: Translations = {
       "🛒 Store: sort by release (newest or oldest), and premium editions, bundles and full games no longer get mixed up.",
   },
   "es-ES": {
+    "🎨 Ícone novo: o troféu de platina dentro da mira, maior e com fundo próprio, nítido em qualquer tela inicial.":
+      "🎨 Nuevo icono: el trofeo de platino dentro de la mira, más grande y con fondo propio, nítido en cualquier pantalla de inicio.",
+    "🧪 Loja: as avaliações da PS Plus Premium/Deluxe aparecem em Todos e no filtro Avaliação, com a lista oficial da PlayStation.":
+      "🧪 Tienda: las pruebas de juegos de PS Plus Premium/Deluxe aparecen en Todos y en el filtro Prueba, con la lista oficial de PlayStation.",
+    "Na PS Plus Premium": "En PS Plus Premium",
     "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
       "🎮 Tienda: nueva categoría Demos, con las demos gratuitas de la tienda (también en Todos), y complementos en oferta en el filtro DLC.",
     "Demos": "Demos",
@@ -65,6 +75,11 @@ const translations: Translations = {
       "🛒 Tienda: ordenar por lanzamiento (más recientes o más antiguos), y las ediciones premium, los packs y los juegos completos ya no se mezclan.",
   },
   "fr-FR": {
+    "🎨 Ícone novo: o troféu de platina dentro da mira, maior e com fundo próprio, nítido em qualquer tela inicial.":
+      "🎨 Nouvelle icône : le trophée de platine dans le viseur, plus grand et avec son propre fond, net sur tous les écrans d'accueil.",
+    "🧪 Loja: as avaliações da PS Plus Premium/Deluxe aparecem em Todos e no filtro Avaliação, com a lista oficial da PlayStation.":
+      "🧪 Boutique : les essais de jeux PS Plus Premium/Deluxe apparaissent dans Tous et dans le filtre Essai, avec la liste officielle de PlayStation.",
+    "Na PS Plus Premium": "Dans PS Plus Premium",
     "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
       "🎮 Boutique : nouvelle catégorie Démos, avec les démos gratuites de la boutique (aussi dans Tous), et extensions en promo dans le filtre DLC.",
     "Demos": "Démos",
@@ -96,6 +111,11 @@ const translations: Translations = {
       "🛒 Boutique : tri par date de sortie (plus récents ou plus anciens), et les éditions premium, packs et jeux complets ne se mélangent plus.",
   },
   "de-DE": {
+    "🎨 Ícone novo: o troféu de platina dentro da mira, maior e com fundo próprio, nítido em qualquer tela inicial.":
+      "🎨 Neues Symbol: die Platin-Trophäe im Fadenkreuz, größer und mit eigenem Hintergrund, scharf auf jedem Startbildschirm.",
+    "🧪 Loja: as avaliações da PS Plus Premium/Deluxe aparecem em Todos e no filtro Avaliação, com a lista oficial da PlayStation.":
+      "🧪 Store: Spiel-Testversionen von PS Plus Premium/Deluxe erscheinen unter Alle und im Filter Testversion, mit der offiziellen Liste von PlayStation.",
+    "Na PS Plus Premium": "In PS Plus Premium",
     "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
       "🎮 Store: neue Kategorie Demos mit den kostenlosen Demos des Stores (auch unter Alle), und Add-ons im Angebot im DLC-Filter.",
     "Demos": "Demos",
@@ -127,6 +147,11 @@ const translations: Translations = {
       "🛒 Store: Sortieren nach Erscheinung (neueste oder älteste), und Premium-Editionen, Bundles und Vollversionen werden nicht mehr vermischt.",
   },
   "it-IT": {
+    "🎨 Ícone novo: o troféu de platina dentro da mira, maior e com fundo próprio, nítido em qualquer tela inicial.":
+      "🎨 Nuova icona: il trofeo di platino nel mirino, più grande e con il suo sfondo, nitida su qualsiasi schermata Home.",
+    "🧪 Loja: as avaliações da PS Plus Premium/Deluxe aparecem em Todos e no filtro Avaliação, com a lista oficial da PlayStation.":
+      "🧪 Store: le prove dei giochi di PS Plus Premium/Deluxe compaiono in Tutti e nel filtro Prova, con l'elenco ufficiale di PlayStation.",
+    "Na PS Plus Premium": "In PS Plus Premium",
     "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
       "🎮 Store: nuova categoria Demo, con le demo gratuite dello store (anche in Tutti), e contenuti aggiuntivi in offerta nel filtro DLC.",
     "Demos": "Demo",
@@ -158,6 +183,11 @@ const translations: Translations = {
       "🛒 Store: ordina per uscita (più recenti o meno recenti), e edizioni premium, bundle e giochi completi non si mescolano più.",
   },
   "ja-JP": {
+    "🎨 Ícone novo: o troféu de platina dentro da mira, maior e com fundo próprio, nítido em qualquer tela inicial.":
+      "🎨 新しいアイコン：照準の中のプラチナトロフィーを大きくし、専用の背景でどのホーム画面でもくっきり表示。",
+    "🧪 Loja: as avaliações da PS Plus Premium/Deluxe aparecem em Todos e no filtro Avaliação, com a lista oficial da PlayStation.":
+      "🧪 ストア：PS Plusプレミアム/デラックスのゲームトライアルを、PlayStation公式リストから「すべて」と「トライアル」フィルターに表示します。",
+    "Na PS Plus Premium": "PS Plusプレミアムで",
     "🎮 Loja: nova categoria Demos, com as demos gratuitas da loja (também em Todos), e complementos das ofertas no filtro DLC.":
       "🎮 ストア：ストアの無料体験版をまとめた「体験版」カテゴリーを追加（「すべて」にも表示）。セール中の追加コンテンツはDLCフィルターに入ります。",
     "Demos": "体験版",
