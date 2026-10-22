@@ -3,7 +3,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // O app Android é autocontido: a interface (mobile/) vai dentro do APK e fala
 // direto com a PSN. Não há servidor.
 const config: CapacitorConfig = {
-  appId: "com.hellisonvidal.perseus",
+  appId: "com.hellisonvidal.plathunt",
   appName: "Plathunt",
   webDir: "mobile/dist",
   backgroundColor: "#0b0d12",
