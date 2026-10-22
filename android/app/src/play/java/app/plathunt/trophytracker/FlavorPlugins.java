@@ -1,4 +1,4 @@
-package com.hellisonvidal.plathunt;
+package app.plathunt.trophytracker;
 
 import com.getcapacitor.Plugin;
 import java.util.Collections;

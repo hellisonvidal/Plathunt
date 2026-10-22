@@ -1,4 +1,4 @@
-package com.hellisonvidal.plathunt;
+package app.plathunt.trophytracker;
 
 import android.app.Activity;
 import android.content.Intent;
