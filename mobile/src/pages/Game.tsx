@@ -429,7 +429,11 @@ function TrophyItem({
           {(trophy.earnedAt || rarity) && (
             <p className="mt-1 text-xs text-ps-blue-2">
               {trophy.earnedAt &&
-                t("Conquistado em {date}", { date: new Date(trophy.earnedAt).toLocaleDateString(locale()) })}
+                // Data e hora exatas da conquista (no fuso do celular).
+                t("Conquistado em {date} às {time}", {
+                  date: new Date(trophy.earnedAt).toLocaleDateString(locale()),
+                  time: new Date(trophy.earnedAt).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }),
+                })}
               {trophy.earnedAt && rarity && " · "}
               {rarity}
             </p>

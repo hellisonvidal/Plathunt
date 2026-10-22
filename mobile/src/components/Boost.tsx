@@ -108,11 +108,13 @@ export function BoostView({
         </details>
       )}
 
-      <p className="pb-2 text-center text-[0.6875rem] text-muted">
-        {t(
-          "A PSN não deixa outros apps enviarem mensagens: a convocação vira um texto pronto para mandar no WhatsApp, Telegram, Discord ou nas mensagens da PSN. Suas convocações ficam salvas neste celular.",
-        )}
-      </p>
+      {tab === "meus" && (
+        <p className="pb-2 text-center text-[0.6875rem] text-muted">
+          {t(
+            "A PSN não deixa outros apps enviarem mensagens: a convocação vira um texto pronto para mandar no WhatsApp, Telegram, Discord ou nas mensagens da PSN. Suas convocações ficam salvas neste celular.",
+          )}
+        </p>
+      )}
     </div>
   );
 }
@@ -485,8 +487,6 @@ function ShareButtons({
  * monta a resposta oferecendo ajuda, pronta para enviar.
  */
 function BoostInbox({ focus }: { focus: string | null }) {
-  const { client } = useApp();
-  const me = useData((force) => client.me(force), [client]);
   const inbox = useInbox();
   const { identity } = useCloud();
   // Pedidos que chegaram direto no app (recursos online).
@@ -508,40 +508,30 @@ function BoostInbox({ focus }: { focus: string | null }) {
 
   const fresh = inbox.filter((r) => r.status === "novo");
   const accepted = inbox.filter((r) => r.status === "aceito");
-  const name = me.data?.onlineId ?? t("eu");
   return (
     <div className="space-y-3">
       {inbox.length === 0 && (
         <div className="space-y-1 rounded-2xl border border-dashed border-line p-6 text-center">
           <p className="text-sm text-muted">{t("Nenhum pedido recebido ainda.")}</p>
           <p className="text-xs text-muted">
-            {t("Os pedidos chegam quando um amigo manda o link do Plathunt (WhatsApp, Telegram…) ou direto no app, com os recursos online ligados.")}
+            {t("Os pedidos de boost dos seus amigos chegam aqui, direto no app.")}
           </p>
         </div>
       )}
       {fresh.length > 0 && <h3 className="text-sm font-semibold text-muted">{t("Novos ({n})", { n: fresh.length })}</h3>}
       {fresh.map((r) => (
-        <ReceivedCard key={r.id} request={r} me={name} highlight={highlight === r.id} />
+        <ReceivedCard key={r.id} request={r} highlight={highlight === r.id} />
       ))}
       {accepted.length > 0 && <h3 className="text-sm font-semibold text-muted">{t("Aceitos ({n})", { n: accepted.length })}</h3>}
       {accepted.map((r) => (
-        <ReceivedCard key={r.id} request={r} me={name} highlight={highlight === r.id} />
+        <ReceivedCard key={r.id} request={r} highlight={highlight === r.id} />
       ))}
     </div>
   );
 }
 
 /** Pedido recebido: quem pediu, o jogo, os troféus e o que falta, com aceitar/recusar e a resposta pronta. */
-function ReceivedCard({ request: r, me, highlight }: { request: ReceivedBoost; me: string; highlight: boolean }) {
-  const [copied, setCopied] = useState(false);
-  const reply = boostMessage({ ...r, kind: "ajuda" }, me);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(reply);
-    } catch {}
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+function ReceivedCard({ request: r, highlight }: { request: ReceivedBoost; highlight: boolean }) {
   const chip = "rounded-full bg-surface-2 px-2 py-0.5";
   return (
     <article
@@ -604,11 +594,14 @@ function ReceivedCard({ request: r, me, highlight }: { request: ReceivedBoost; m
             </button>
           </div>
         ) : (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-online">{t("✔ Você aceitou. Envie a resposta para {from}:", { from: r.from })}</p>
-            <pre className="whitespace-pre-wrap rounded-xl bg-surface-2 p-3 font-sans text-xs leading-relaxed">{reply}</pre>
-            <ShareButtons text={reply} links={shareLinks(reply)} copied={copied} onCopy={copy} />
-            <button onClick={() => removeFromInbox(r.id)} className="text-xs text-muted underline">
+          // A resposta fica no app: quem pediu vê em "Meus pedidos" que você topou.
+          <div className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 p-3">
+            <p className="text-xs font-semibold text-online">
+              {r.cloudId
+                ? t("✔ Você topou ajudar. {from} vê sua resposta no Plathunt.", { from: r.from })
+                : t("✔ Você topou ajudar {from}.", { from: r.from })}
+            </p>
+            <button onClick={() => removeFromInbox(r.id)} className="shrink-0 text-xs text-muted underline">
               {t("Apagar")}
             </button>
           </div>

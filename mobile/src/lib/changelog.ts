@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 10,
+    items: [
+      "🕒 Troféus mostram a data e a hora exatas da conquista, também nos jogos dos amigos.",
+      "📥 Pedidos de boost recebidos ficam só dentro do app: ao topar, quem pediu vê a resposta no Plathunt.",
+    ],
+  },
+  {
     id: 9,
     items: [
       "🛒 Loja: tocar num jogo volta a abrir no navegador, sempre na página do jogo. Quem preferir o app PlayStation pode ligar em Configurações → Loja.",
