@@ -2,7 +2,7 @@ import { t } from "../i18n";
 import { VERSION_CODE } from "./settings";
 
 /** Repositório onde o GitHub Actions publica cada versão do APK (Releases). */
-export const REPO = "hellisonvidal/Trophy-Mania";
+export const REPO = "hellisonvidal/Trophyhunt";
 export const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
 
 export type UpdateResult =

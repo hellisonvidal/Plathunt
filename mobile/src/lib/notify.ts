@@ -107,6 +107,9 @@ export async function notify(
             smallIcon: "ic_stat_trophy",
             iconColor: "#7fc4ec",
             extra: { route },
+            // Lembretes não precisam de horário exato: sem alarme exato, o Android
+            // não pede a permissão "Alarmes e lembretes" (e a Play Store não exige declarar).
+            isExactNotification: false,
             ...(at ? { schedule: { at, allowWhileIdle: true } } : {}),
           },
         ],

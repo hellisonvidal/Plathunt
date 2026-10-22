@@ -2,7 +2,7 @@
 
 > **App não oficial.** O Plathunt não é afiliado, patrocinado nem aprovado pela Sony Interactive Entertainment. PlayStation e PSN são marcas da Sony.
 
-*Última atualização: 18 de outubro de 2026*
+*Última atualização: 22 de outubro de 2026*
 
 O Plathunt é um app independente, sem ligação com a Sony Interactive Entertainment. PlayStation é marca da Sony.
 
@@ -29,7 +29,22 @@ Os recursos online vêm ligados. Na primeira vez que você entra com a PSN, um a
 
 **Onde e por quanto tempo:** os dados ficam em um banco de dados Cloudflare D1 (região leste dos Estados Unidos) e permanecem lá enquanto os recursos online estiverem em uso.
 
-**Como apagar:** desligar os recursos online desconecta o celular. Para apagar todos os seus dados do servidor na hora, use **Configurações → Recursos online → Apagar meus dados do servidor**. Também dá para pedir em <https://github.com/hellisonvidal/Trophy-Mania/issues>.
+**Como apagar:** desligar os recursos online desconecta o celular. Para apagar todos os seus dados do servidor na hora, use **Configurações → Recursos online → Apagar meus dados do servidor**. Se você não tem mais o app instalado, veja [como pedir a exclusão dos seus dados](excluir-dados.md).
+
+## Serviços que o app consulta
+
+O app fala direto, do celular, com estes serviços. Nenhum deles recebe a sua senha nem dados do servidor do Plathunt; como em qualquer acesso à internet, eles veem o endereço IP do aparelho.
+
+- **PlayStation Network (Sony):** troféus, perfil, amigos e status online, com o token da sua sessão.
+- **PlayStation Store (Sony):** catálogo, preços e demos da loja (sem login).
+- **playstation.com (Sony):** a lista de avaliações da PS Plus, na página pública de jogos da PS Plus (sem login).
+- **Google Tradutor:** só com "Traduzir nomes e descrições" ligado em Configurações, os nomes e descrições de troféus que a Sony não traduziu (nenhum dado da conta).
+- **Ícones de sites (Google):** os ícones do PlayStationTrophies.org e do PSNProfiles nos botões de guias.
+- **Links externos que você toca** (vídeos de dicas, guias, página do jogo na loja) abrem no navegador ou no app do serviço, com as políticas deles.
+
+## Idade
+
+O app é destinado a maiores de 13 anos, a mesma idade mínima para ter uma conta da PlayStation Network na maioria dos países.
 
 ## Segurança
 
@@ -42,6 +57,10 @@ Os recursos online vêm ligados. Na primeira vez que você entra com a PSN, um a
 
 As notificações são geradas no próprio celular, e você pode desligá-las em **Configurações → Notificações**.
 
+## Mudanças nesta política
+
+Quando esta política mudar, a data no topo é atualizada e as mudanças importantes aparecem nas Novidades do app.
+
 ## Contato
 
-<https://github.com/hellisonvidal/Trophy-Mania/issues>
+Pelo e-mail de contato do desenvolvedor na página do Plathunt na Google Play, ou em <https://github.com/hellisonvidal/Trophyhunt/issues> (público: não publique dados pessoais).
