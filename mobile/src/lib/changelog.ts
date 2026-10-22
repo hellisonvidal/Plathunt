@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 9,
+    items: [
+      "🛒 Loja: tocar num jogo volta a abrir no navegador, sempre na página do jogo. Quem preferir o app PlayStation pode ligar em Configurações → Loja.",
+    ],
+  },
+  {
     id: 8,
     items: [
       "🛒 Loja: edições com nome, como Game of the Year, Definitive e Complete, aparecem como edição premium.",

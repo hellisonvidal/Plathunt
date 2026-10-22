@@ -576,9 +576,9 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
       rel="noreferrer"
       onClick={(e) => {
         e.preventDefault();
-        // No app PlayStation (dá para comprar e mandar baixar no console); sem ele, no navegador.
+        // No navegador (sempre na página do jogo) ou, se o usuário escolheu, no app PlayStation.
         const url = productLink(p, region);
-        void (getSettings().storeInPsApp ? openInPlayStationApp(url) : openInBrowser(url));
+        void (getSettings().storePsApp ? openInPlayStationApp(url) : openInBrowser(url));
       }}
       className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface"
     >
