@@ -3,6 +3,8 @@ import type { Translations } from "../index";
 /** Traduções das novidades 7: avisos dentro do app, Boost em popup, compartilhar e Loja no app PlayStation. */
 const translations: Translations = {
   "en-US": {
+    "🛒 Loja: edições com nome, como Game of the Year, Definitive e Complete, aparecem como edição premium.":
+      "🛒 Store: named editions such as Game of the Year, Definitive and Complete now show as premium editions.",
     "Toque para abrir":
       "Tap to open",
     "➕ Novo boost":
@@ -21,8 +23,8 @@ const translations: Translations = {
       "New",
     "Abrir jogos no app PlayStation":
       "Open games in the PlayStation App",
-    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado; desligado, abre no navegador":
-      "Tapping a Store game opens it in the PlayStation App, if installed; when off, it opens in the browser",
+    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado. Ele vai direto ao jogo quando está fechado; se já estiver aberto em segundo plano, pode mostrar a última tela dele. Desligado, abre a página do jogo no navegador.":
+      "Tapping a Store game opens it in the PlayStation App, if installed. It goes straight to the game when the app is closed; if it's already open in the background, it may show its last screen. When off, the game's page opens in the browser.",
     "🔔 Com o app aberto, as notificações aparecem dentro do app e levam direto à tela certa, como o pedido de boost recebido.":
       "🔔 With the app open, notifications show inside the app and take you straight to the right screen, like a received boost request.",
     "📣 Boost: o botão Novo boost abre a convocação em uma janela, e o catálogo de jogos só carrega nessa hora. Seus pedidos e as respostas podem ser compartilhados no WhatsApp, Telegram, Discord e outros apps.":
@@ -33,6 +35,8 @@ const translations: Translations = {
       "🛒 Store: tapping a game opens it in the PlayStation App when installed (you can turn it off in Settings → Store).",
   },
   "es-ES": {
+    "🛒 Loja: edições com nome, como Game of the Year, Definitive e Complete, aparecem como edição premium.":
+      "🛒 Tienda: las ediciones con nombre, como Game of the Year, Definitive y Complete, aparecen como edición premium.",
     "Toque para abrir":
       "Toca para abrir",
     "➕ Novo boost":
@@ -51,8 +55,8 @@ const translations: Translations = {
       "Nuevo",
     "Abrir jogos no app PlayStation":
       "Abrir juegos en la app PlayStation",
-    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado; desligado, abre no navegador":
-      "Al tocar un juego de la Tienda se abre en la app PlayStation, si está instalada; desactivado, se abre en el navegador",
+    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado. Ele vai direto ao jogo quando está fechado; se já estiver aberto em segundo plano, pode mostrar a última tela dele. Desligado, abre a página do jogo no navegador.":
+      "Al tocar un juego de la Tienda se abre en la app PlayStation, si está instalada. Va directo al juego cuando la app está cerrada; si ya está abierta en segundo plano, puede mostrar su última pantalla. Desactivado, la página del juego se abre en el navegador.",
     "🔔 Com o app aberto, as notificações aparecem dentro do app e levam direto à tela certa, como o pedido de boost recebido.":
       "🔔 Con la app abierta, las notificaciones aparecen dentro de la app y llevan directo a la pantalla correcta, como el pedido de boost recibido.",
     "📣 Boost: o botão Novo boost abre a convocação em uma janela, e o catálogo de jogos só carrega nessa hora. Seus pedidos e as respostas podem ser compartilhados no WhatsApp, Telegram, Discord e outros apps.":
@@ -63,6 +67,8 @@ const translations: Translations = {
       "🛒 Tienda: al tocar un juego se abre en la app PlayStation cuando está instalada (se puede desactivar en Ajustes → Tienda).",
   },
   "fr-FR": {
+    "🛒 Loja: edições com nome, como Game of the Year, Definitive e Complete, aparecem como edição premium.":
+      "🛒 Boutique : les éditions nommées, comme Game of the Year, Definitive et Complete, apparaissent comme éditions premium.",
     "Toque para abrir":
       "Touchez pour ouvrir",
     "➕ Novo boost":
@@ -81,8 +87,8 @@ const translations: Translations = {
       "Nouveau",
     "Abrir jogos no app PlayStation":
       "Ouvrir les jeux dans l'app PlayStation",
-    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado; desligado, abre no navegador":
-      "Toucher un jeu de la Boutique l'ouvre dans l'app PlayStation, si elle est installée ; désactivé, il s'ouvre dans le navigateur",
+    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado. Ele vai direto ao jogo quando está fechado; se já estiver aberto em segundo plano, pode mostrar a última tela dele. Desligado, abre a página do jogo no navegador.":
+      "Toucher un jeu de la Boutique l'ouvre dans l'app PlayStation, si elle est installée. Elle va directement au jeu quand elle est fermée ; si elle est déjà ouverte en arrière-plan, elle peut afficher son dernier écran. Désactivé, la page du jeu s'ouvre dans le navigateur.",
     "🔔 Com o app aberto, as notificações aparecem dentro do app e levam direto à tela certa, como o pedido de boost recebido.":
       "🔔 App ouverte, les notifications s'affichent dans l'app et mènent directement au bon écran, comme une demande de boost reçue.",
     "📣 Boost: o botão Novo boost abre a convocação em uma janela, e o catálogo de jogos só carrega nessa hora. Seus pedidos e as respostas podem ser compartilhados no WhatsApp, Telegram, Discord e outros apps.":
@@ -93,6 +99,8 @@ const translations: Translations = {
       "🛒 Boutique : toucher un jeu l'ouvre dans l'app PlayStation quand elle est installée (désactivable dans Paramètres → Boutique).",
   },
   "de-DE": {
+    "🛒 Loja: edições com nome, como Game of the Year, Definitive e Complete, aparecem como edição premium.":
+      "🛒 Store: Benannte Editionen wie Game of the Year, Definitive und Complete erscheinen als Premium-Edition.",
     "Toque para abrir":
       "Zum Öffnen tippen",
     "➕ Novo boost":
@@ -111,8 +119,8 @@ const translations: Translations = {
       "Neu",
     "Abrir jogos no app PlayStation":
       "Spiele in der PlayStation App öffnen",
-    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado; desligado, abre no navegador":
-      "Ein Spiel im Store wird in der PlayStation App geöffnet, falls installiert; ausgeschaltet im Browser",
+    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado. Ele vai direto ao jogo quando está fechado; se já estiver aberto em segundo plano, pode mostrar a última tela dele. Desligado, abre a página do jogo no navegador.":
+      "Ein Spiel im Store wird in der PlayStation App geöffnet, falls installiert. Sie springt direkt zum Spiel, wenn sie geschlossen ist; läuft sie schon im Hintergrund, zeigt sie eventuell ihren letzten Bildschirm. Ausgeschaltet öffnet sich die Spielseite im Browser.",
     "🔔 Com o app aberto, as notificações aparecem dentro do app e levam direto à tela certa, como o pedido de boost recebido.":
       "🔔 Bei geöffneter App erscheinen Benachrichtigungen in der App und führen direkt zum richtigen Bildschirm, etwa zu einer empfangenen Boost-Anfrage.",
     "📣 Boost: o botão Novo boost abre a convocação em uma janela, e o catálogo de jogos só carrega nessa hora. Seus pedidos e as respostas podem ser compartilhados no WhatsApp, Telegram, Discord e outros apps.":
@@ -123,6 +131,8 @@ const translations: Translations = {
       "🛒 Store: Ein Spiel wird in der PlayStation App geöffnet, wenn sie installiert ist (abschaltbar unter Einstellungen → Store).",
   },
   "it-IT": {
+    "🛒 Loja: edições com nome, como Game of the Year, Definitive e Complete, aparecem como edição premium.":
+      "🛒 Store: le edizioni con nome, come Game of the Year, Definitive e Complete, compaiono come edizione premium.",
     "Toque para abrir":
       "Tocca per aprire",
     "➕ Novo boost":
@@ -141,8 +151,8 @@ const translations: Translations = {
       "Nuovo",
     "Abrir jogos no app PlayStation":
       "Apri i giochi nell'app PlayStation",
-    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado; desligado, abre no navegador":
-      "Toccando un gioco dello Store si apre nell'app PlayStation, se installata; disattivato, si apre nel browser",
+    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado. Ele vai direto ao jogo quando está fechado; se já estiver aberto em segundo plano, pode mostrar a última tela dele. Desligado, abre a página do jogo no navegador.":
+      "Toccando un gioco dello Store si apre nell'app PlayStation, se installata. Va dritta al gioco quando l'app è chiusa; se è già aperta in background, può mostrare l'ultima schermata. Disattivato, la pagina del gioco si apre nel browser.",
     "🔔 Com o app aberto, as notificações aparecem dentro do app e levam direto à tela certa, como o pedido de boost recebido.":
       "🔔 Con l'app aperta, le notifiche compaiono nell'app e portano subito alla schermata giusta, come una richiesta di boost ricevuta.",
     "📣 Boost: o botão Novo boost abre a convocação em uma janela, e o catálogo de jogos só carrega nessa hora. Seus pedidos e as respostas podem ser compartilhados no WhatsApp, Telegram, Discord e outros apps.":
@@ -153,6 +163,8 @@ const translations: Translations = {
       "🛒 Store: toccando un gioco si apre nell'app PlayStation quando è installata (si può disattivare in Impostazioni → Store).",
   },
   "ja-JP": {
+    "🛒 Loja: edições com nome, como Game of the Year, Definitive e Complete, aparecem como edição premium.":
+      "🛒 ストア：Game of the Year、Definitive、Completeなど名前付きのエディションをプレミアムエディションとして表示します。",
     "Toque para abrir":
       "タップして開く",
     "➕ Novo boost":
@@ -171,8 +183,8 @@ const translations: Translations = {
       "新着",
     "Abrir jogos no app PlayStation":
       "ゲームをPlayStation Appで開く",
-    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado; desligado, abre no navegador":
-      "ストアのゲームをタップすると、インストール済みならPlayStation Appで開きます。オフにするとブラウザで開きます",
+    "Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado. Ele vai direto ao jogo quando está fechado; se já estiver aberto em segundo plano, pode mostrar a última tela dele. Desligado, abre a página do jogo no navegador.":
+      "ストアのゲームをタップすると、インストール済みならPlayStation Appで開きます。アプリが閉じているときはゲームに直接移動しますが、バックグラウンドで開いていると最後の画面が表示されることがあります。オフにするとゲームのページをブラウザで開きます。",
     "🔔 Com o app aberto, as notificações aparecem dentro do app e levam direto à tela certa, como o pedido de boost recebido.":
       "🔔 アプリを開いているとき、通知がアプリ内に表示され、受け取ったブースト依頼など該当画面へ直接移動します。",
     "📣 Boost: o botão Novo boost abre a convocação em uma janela, e o catálogo de jogos só carrega nessa hora. Seus pedidos e as respostas podem ser compartilhados no WhatsApp, Telegram, Discord e outros apps.":

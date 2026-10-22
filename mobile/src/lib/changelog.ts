@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 8,
+    items: [
+      "🛒 Loja: edições com nome, como Game of the Year, Definitive e Complete, aparecem como edição premium.",
+    ],
+  },
+  {
     id: 7,
     items: [
       "🔔 Com o app aberto, as notificações aparecem dentro do app e levam direto à tela certa, como o pedido de boost recebido.",

@@ -228,21 +228,28 @@ describe("edição padrão e tipos conferidos com o catálogo da loja", () => {
     expect(bundle("SILENT HILL 2 & SILENT HILL f Standard Dual Pack")).toBe("pacote");
   });
 
-  it("jogo completo só vira edição premium com Deluxe/Ultimate/Gold... Edition", async () => {
+  it("jogo completo vira edição premium com qualquer edição nomeada (GOTY, Definitive, Deluxe...)", async () => {
     const { productKind } = await import("../src/lib/store");
     const full = (name: string) => productKind("FULL_GAME · Jogo completo", name);
-    expect(full("Divinity: Original Sin 2 - Definitive Edition PS4 & PS5")).toBe("jogo");
-    expect(full("DYNASTY WARRIORS 8: Xtreme Legends Complete Edition")).toBe("jogo");
-    expect(full("Just Find It 2 Collector's Edition")).toBe("jogo");
+    expect(full("Marvel's Spider-Man: Game of the Year Edition")).toBe("premium");
+    expect(full("Fallout 4: Game of the Year Edition")).toBe("premium");
+    expect(full("Divinity: Original Sin 2 - Definitive Edition PS4 & PS5")).toBe("premium");
+    expect(full("DYNASTY WARRIORS 8: Xtreme Legends Complete Edition")).toBe("premium");
+    expect(full("Wasteland™ 2: Director's Cut")).toBe("premium");
+    expect(full("Kyle é Famoso: Edição Completa")).toBe("premium");
+    expect(full("Metro Exodus Gold Edition")).toBe("premium");
+    expect(full("KINGDOM HEARTS III + Re Mind (DLC)")).toBe("premium");
+    expect(full("KOI: GAME AND EXCLUSIVE THEME BUNDLE")).toBe("premium");
+    // O próprio jogo: palavras soltas, versão de plataforma, edição de console, inicial gratuita.
     expect(full("Bard's Gold")).toBe("jogo");
     expect(full("Spelunker HD Deluxe")).toBe("jogo");
+    expect(full("Guns of Icarus Alliance: PS4™ Edition")).toBe("jogo");
+    expect(full("FINAL FANTASY XIV - PS5 Upgrade Edition")).toBe("jogo");
+    expect(full("CATAN® - Console Edition PS4™ & PS5®")).toBe("jogo");
+    expect(full("Train Sim World® 7: Free Starter Edition")).toBe("jogo");
     expect(full("Green Hell PS4 + PS5 Free Upgrade")).toBe("jogo");
     expect(full("The Dark Pictures Anthology: Little Hope PS4 & PS5")).toBe("jogo");
     expect(full("Cave Digger 2 Dig Harder (VR + non-VR)")).toBe("jogo");
-    expect(full("Metro Exodus Gold Edition")).toBe("premium");
-    expect(full("DRAGON BALL XENOVERSE 2 Deluxe Edition")).toBe("premium");
-    expect(full("KINGDOM HEARTS III + Re Mind (DLC)")).toBe("premium");
-    expect(full("KOI: GAME AND EXCLUSIVE THEME BUNDLE")).toBe("premium");
     expect(full("Capcom Beat 'Em Up Bundle")).toBe("pacote");
     expect(full("DOOM + DOOM II")).toBe("pacote");
     expect(full("8-bit Adventure Anthology: Volume I")).toBe("pacote");
