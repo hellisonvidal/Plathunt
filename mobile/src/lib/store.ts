@@ -67,7 +67,10 @@ const PLATFORMS_IN_NAME = new RegExp(
   "g",
 );
 const withoutPlatforms = (n: string) =>
-  n.replace(/\bvr \+ non-vr\b/g, " ").replace(PLATFORMS_IN_NAME, " ").replace(/\s+/g, " ").trim();
+  n
+    // "PS4 Edition", "PS5 Upgrade Edition": a versão de uma plataforma, não uma edição especial.
+    .replace(new RegExp(`\\b${PLATFORM}(?:\\s+upgrade)?\\s+(?:edition|edi[çc][ãa]o)\\b`, "g"), " ")
+    .replace(/\bvr \+ non-vr\b/g, " ").replace(PLATFORMS_IN_NAME, " ").replace(/\s+/g, " ").trim();
 
 /** Edição padrão ("Standard Edition", "Edição Padrão"...): é o próprio jogo, não edição premium. */
 const STANDARD_NAME =
@@ -92,16 +95,18 @@ const PREMIUM_NAME = new RegExp(
 );
 
 /**
- * Edição que só existe para ser vendida acima do jogo: Deluxe, Ultimate,
- * Gold, Premium... Num "jogo completo" da loja só ela conta: "Definitive",
- * "Complete", "Collector's", "Anniversary", "Remastered" e "Jogo do Ano"
- * costumam ser a única versão do jogo à venda (e há jogos chamados "... Gold"
- * ou "... Deluxe"), então ficam como jogo completo.
+ * Edição especial com nome num "jogo completo" da loja: "Game of the Year
+ * Edition", "Definitive Edition", "Complete Edition", "Edição Deluxe",
+ * "Director's Cut"... A palavra antes de "Edition" precisa ser um nome
+ * (não número nem plataforma); "Console Edition" e "VR Edition" são o próprio
+ * jogo. Palavras soltas no fim ("Bard's Gold", "Spelunker HD Deluxe") não contam.
  */
-const UPSELL_EDITION = new RegExp(
+const NAMED_EDITION = new RegExp(
   [
-    "\\b(digital deluxe|super deluxe|deluxe|ultimate|gold|premium|vault|champions|legendary|royal|ultra)\\s+(edition|edi[çc][ãa]o|edici[óo]n|[ée]dition)\\b",
-    "\\b(edition|edi[çc][ãa]o|edici[óo]n|[ée]dition)\\s+(digital\\s+)?(deluxe|de luxo|ultimate|suprema|ouro|gold|premium|lend[áa]ria|legendaria|l[ée]gendaire|campe[õo]es|cofre)\\b",
+    "\\b(?!(?:console|vr|ps\\d|pc|standard|base|normal|regular|launch|lan[çc]amento|free|starter|upgrade|trial|demo)\\s)[a-zà-ÿ'’]{3,}\\s+(edition|edi[çc][ãa]o|edici[óo]n|[ée]dition)\\b",
+    "\\b(edition|edi[çc][ãa]o|edici[óo]n|[ée]dition)\\s+(?!(?:console|vr|padr[ãa]o|standard|est[áa]ndar|base)\\b)(digital\\s+)?[a-zà-ÿ'’]{3,}",
+    "\\b(goty|game of the year|jogo do ano|juego del a[ñn]o)\\b",
+    "\\b(director'?s cut|vers[ãa]o do diretor|versi[óo]n del director)\\b",
   ].join("|"),
 );
 
@@ -153,7 +158,7 @@ function fullGameKind(n: string, raw: string): StoreKind {
   if ((twoGames || bundle) && WITH_EXTRAS.test(twoGames ? n.slice(n.indexOf(" + ")) : n)) return "premium";
   if (STANDARD_NAME.test(n)) return "jogo";
   if ((SEVERAL_GAMES_NAME.test(n) && !SINGLE_FROM_SERIES.test(raw)) || bundle || twoGames) return "pacote";
-  if (UPSELL_EDITION.test(n)) return "premium";
+  if (NAMED_EDITION.test(n)) return "premium";
   return "jogo";
 }
 

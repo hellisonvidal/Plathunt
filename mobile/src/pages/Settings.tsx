@@ -134,7 +134,7 @@ export function SettingsPage() {
           />
           <Toggle
             label={t("Abrir jogos no app PlayStation")}
-            hint={t("Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado; desligado, abre no navegador")}
+            hint={t("Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado. Ele vai direto ao jogo quando está fechado; se já estiver aberto em segundo plano, pode mostrar a última tela dele. Desligado, abre a página do jogo no navegador.")}
             checked={settings.storeInPsApp}
             onChange={(storeInPsApp) => updateSettings({ storeInPsApp })}
           />
