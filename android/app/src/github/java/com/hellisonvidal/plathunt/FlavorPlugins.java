@@ -1,4 +1,4 @@
-package com.hellisonvidal.perseus;
+package com.hellisonvidal.plathunt;
 
 import com.getcapacitor.Plugin;
 import java.util.Collections;

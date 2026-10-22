@@ -1,4 +1,4 @@
-package com.hellisonvidal.perseus;
+package com.hellisonvidal.plathunt;
 
 import android.content.res.Configuration;
 import android.os.Bundle;

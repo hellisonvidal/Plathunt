@@ -26,8 +26,13 @@ As duas versões do app são geradas juntas pelo GitHub Actions (Actions → And
 | **GitHub** | APK (`trophy-mania-android` e Releases) | por dentro do app (Configurações → Atualizações) |
 | **Play Store** | AAB (`trophy-mania-play-store`) | pela própria Play Store |
 
-> As duas usam o mesmo id (`com.hellisonvidal.perseus`). Quem tem o APK do GitHub
+> As duas usam o mesmo id, **`com.hellisonvidal.plathunt`** (é o "Nome do pacote" na Play
+> Console e não pode mudar depois da primeira publicação). Quem tem o APK do GitHub
 > instalado precisa desinstalá-lo antes de instalar pela Play Store (o login é refeito).
+>
+> Até o build 14, o id era `com.hellisonvidal.perseus`. Para o Android é outro app:
+> quem tem essa versão instala a nova e apaga a antiga (a atualização por dentro do app
+> antigo baixa a nova, que aparece ao lado da antiga até ela ser desinstalada).
 
 ## 1. Criar e cadastrar a chave de envio (você, uma vez só)
 
@@ -64,7 +69,7 @@ Em **Actions → Android APK → Run workflow** (na `main`). Ao terminar, baixe 
 
 ## 4. Criar o app na Play Console
 
-1. **Criar app**: nome `Plathunt: Trophy Tracker`, idioma padrão **Português (Brasil)**, **App**, **Gratuito**. Aceite as declarações.
+1. **Criar app**: nome `Plathunt: Trophy Tracker`, nome do pacote `com.hellisonvidal.plathunt`, idioma padrão **Português (Brasil)**, **App**, **Gratuito**. Aceite as declarações.
 2. **Assinatura do app pelo Google Play**: aceite. O Google guarda a chave final; a sua é só de envio.
 3. **Conteúdo do app** (menu "Política e programas → Conteúdo do app"):
 

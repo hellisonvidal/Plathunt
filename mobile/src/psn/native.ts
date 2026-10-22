@@ -44,7 +44,7 @@ export const isNativeApp = () => Capacitor.isNativePlatform();
  */
 export const isPlayStoreBuild = () => isNativeApp() && !Capacitor.isPluginAvailable("AppUpdater");
 
-export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.hellisonvidal.perseus";
+export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.hellisonvidal.plathunt";
 
 /** Plugin nativo (android/.../ExternalBrowserPlugin.java). */
 interface ExternalBrowserPlugin {

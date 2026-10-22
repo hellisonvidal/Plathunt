@@ -1,4 +1,4 @@
-package com.hellisonvidal.perseus;
+package com.hellisonvidal.plathunt;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
