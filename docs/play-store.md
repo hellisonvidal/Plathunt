@@ -23,8 +23,8 @@ As duas versões do app são geradas juntas pelo GitHub Actions (Actions → And
 
 | Versão | Arquivo | Atualização |
 | --- | --- | --- |
-| **GitHub** | APK (`trophy-mania-android` e Releases) | por dentro do app (Configurações → Atualizações) |
-| **Play Store** | AAB (`trophy-mania-play-store`) | pela própria Play Store |
+| **GitHub** | APK (`plathunt-android` e Releases) | por dentro do app (Configurações → Atualizações) |
+| **Play Store** | AAB (`plathunt-play-store`) | pela própria Play Store |
 
 > As duas usam o mesmo id, **`app.plathunt.trophytracker`** (é o "Nome do pacote" na Play
 > Console e não pode mudar depois da primeira publicação). Quem tem o APK do GitHub
@@ -59,7 +59,7 @@ No GitHub, em **Settings → Secrets and variables → Actions → New repositor
 
 ## 2. Gerar o pacote
 
-Em **Actions → Android APK → Run workflow** (na `main`). Ao terminar, baixe o artefato **trophy-mania-play-store**: dentro está o `app-play-release.aab`, assinado. O número da versão (`versionCode`) sobe sozinho a cada build (10000 + build).
+Em **Actions → Android APK → Run workflow** (na `main`). Ao terminar, baixe o artefato **plathunt-play-store**: dentro está o `app-play-release.aab`, assinado. O número da versão (`versionCode`) sobe sozinho a cada build (10000 + build).
 
 ## 3. Conta de desenvolvedor (você)
 

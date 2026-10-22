@@ -151,7 +151,7 @@ function BackButton() {
 }
 
 /**
- * Links de pedido de boost (trophymania://boost?d=…): guardam o pedido em
+ * Links de pedido de boost (plathunt://boost?d=…, ou trophymania:// dos links antigos): guardam o pedido em
  * "Pedidos recebidos" e abrem essa tela.
  */
 let launchUrlHandled = false;
@@ -161,7 +161,7 @@ function BoostLinks() {
   const { client } = useApp();
   useEffect(() => {
     const open = async (url: string | undefined) => {
-      if (!url?.startsWith("trophymania://boost")) return;
+      if (!url || !/^(plathunt|trophymania):\/\/boost/.test(url)) return;
       const me = await client.me().catch(() => null);
       const result = importBoost(url, me?.onlineId ?? null);
       navigate(`/activity?view=boost-inbox${result.ok ? `&pedido=${encodeURIComponent(result.request.id)}` : ""}`);

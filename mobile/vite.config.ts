@@ -11,7 +11,7 @@ import { flattenCascadeLayers } from "./cssLayers";
  */
 function legacyCss(): Plugin {
   return {
-    name: "trophy-mania:flatten-css-layers",
+    name: "plathunt:flatten-css-layers",
     apply: "build",
     enforce: "post",
     generateBundle(_options, bundle) {

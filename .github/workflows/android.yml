@@ -2,7 +2,7 @@ name: Android APK
 
 # Gera o APK do Plathunt (versão do GitHub) e o AAB da Play Store. Roda sozinho a cada mudança no app e
 # também manualmente em Actions → Android APK → Run workflow.
-# - Em qualquer branch: o APK fica em "Artifacts" (trophy-mania-android).
+# - Em qualquer branch: o APK fica em "Artifacts" (plathunt-android).
 # - Na main: também publica uma Release "build-N" com o APK, que é o que o botão
 #   "Verificar atualizações" do app consulta.
 on:
@@ -121,7 +121,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: trophy-mania-android
+          name: plathunt-android
           path: ${{ env.APK_PATH }}
           if-no-files-found: error
 
@@ -129,7 +129,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: env.ANDROID_KEYSTORE_FILE != ''
         with:
-          name: trophy-mania-play-store
+          name: plathunt-play-store
           path: android/app/build/outputs/bundle/playRelease/app-play-release.aab
           if-no-files-found: error
 
