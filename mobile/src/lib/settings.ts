@@ -19,6 +19,8 @@ export interface Settings {
   startTab: "/" | "/stats" | "/friends" | "/activity" | "/store";
   /** País da PlayStation Store (moeda e preços da aba Loja). */
   storeRegion: StoreRegion;
+  /** Usa o país da conta da PSN na Loja (e não o idioma do celular). Desliga ao escolher um país à mão. */
+  storeRegionAuto: boolean;
   /** De quanto em quanto tempo a loja salva no celular é atualizada. */
   storeUpdate: StoreRefresh;
   /**
@@ -57,6 +59,8 @@ export const DEFAULT_SETTINGS: Settings = {
   startTab: "/",
   // Na primeira abertura, o país do aparelho.
   storeRegion: deviceStoreRegion(),
+  // Assim que entra com a PSN, troca para o país da conta.
+  storeRegionAuto: true,
   // Padrão: a loja salva só é atualizada quando o usuário puxa a tela da loja.
   storeUpdate: "manual",
   storePsApp: false,

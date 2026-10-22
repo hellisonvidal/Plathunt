@@ -173,6 +173,7 @@ export function createDemoClient(): PsnClient {
   return {
     me: () => delay(PROFILES.me),
     profile: (accountId) => delay(PROFILES[keyOf(accountId)]),
+    accountCountry: () => delay(null),
     realName: (onlineId) =>
       delay(({ PlatHunter_BR: "Rafael Lima", TrophyQueen: "Ana Souza", NightOwl_77: "Bia Costa" } as Record<string, string>)[onlineId] ?? null),
     titles: (accountId) => delay(titlesOf(keyOf(accountId))),

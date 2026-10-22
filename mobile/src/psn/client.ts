@@ -2,6 +2,7 @@ import {
   getBasicPresence,
   getProfileFromAccountId,
   getProfileFromUserName,
+  getUserRegion,
   getTitleTrophies,
   getTitleTrophyGroups,
   getUserPlayedGames,
@@ -144,6 +145,24 @@ export function createPsnClient(): PsnClient {
     async profile(accountId, force) {
       // Perfis passam pelo limitador: a lista completa de amigos pode ter centenas.
       return cached(`profile:${accountId}`, 30 * MIN, () => limited(() => loadProfile(accountId)), force);
+    },
+
+    async accountCountry(force) {
+      return cached(
+        "account-country",
+        24 * 60 * MIN,
+        async () => {
+          try {
+            // O país vem no npId do perfil antigo da PSN (ex.: "...@a1.br").
+            const me = await client.me();
+            const region = await limited(async () => getUserRegion(await auth(), me.onlineId));
+            return region?.code ?? null;
+          } catch {
+            return null;
+          }
+        },
+        force,
+      );
     },
 
     async realName(onlineId, force) {

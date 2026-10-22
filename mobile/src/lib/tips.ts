@@ -37,25 +37,27 @@ const google = (query: string) => `https://www.google.com/search?q=${encodeURICo
 
 export type GuideSite = "pst" | "psnp";
 
-/** Onde fica cada tipo de página nos sites: troféus e guias completos. */
-const SITES: Record<GuideSite, { trophy: string; guide: string }> = {
-  pst: { trophy: "playstationtrophies.org/game", guide: "playstationtrophies.org/game" },
-  psnp: { trophy: "psnprofiles.com/trophy", guide: "psnprofiles.com/guide" },
+/**
+ * Domínio de cada site. A busca filtra só pelo domínio: filtrar por um caminho
+ * (site:psnprofiles.com/trophy) somado a nome do jogo entre aspas e plataforma
+ * deixava a busca restritiva demais e o Google não achava nada.
+ */
+const SITES: Record<GuideSite, string> = {
+  pst: "playstationtrophies.org",
+  psnp: "psnprofiles.com",
 };
 
 /**
- * Guia escrito de um troféu. Os dois sites usam ids próprios nos endereços,
- * então a busca é restrita às páginas de troféu do site e usa os nomes
- * oficiais em inglês (como nos sites) do jogo e do troféu, entre aspas, para
- * achar exatamente aquele troféu daquele jogo, mais a plataforma.
+ * Guia escrito de um troféu: o nome oficial em inglês do troféu entre aspas
+ * (como nos sites) e o nome do jogo, no site escolhido. Os dois sites usam ids
+ * próprios nos endereços, por isso a busca. A plataforma não entra: ela quase
+ * nunca aparece no texto das páginas de troféu.
  */
 export function trophyWrittenGuideUrl(site: GuideSite, game: { name: string; platform: string }, trophyName: string): string {
-  return google(
-    `site:${SITES[site].trophy} "${guideGameName(game.name)}" "${clean(trophyName)}" ${mainPlatform(game.platform)}`.trim(),
-  );
+  return google(`site:${SITES[site]} "${clean(trophyName)}" ${guideGameName(game.name)} trophy`);
 }
 
 /** Guia completo do jogo (roteiro para a platina) no site escolhido. */
 export function gameWrittenGuideUrl(site: GuideSite, game: { name: string; platform: string }): string {
-  return google(`site:${SITES[site].guide} "${guideGameName(game.name)} Trophy Guide" ${mainPlatform(game.platform)}`.trim());
+  return google(`site:${SITES[site]} ${guideGameName(game.name)} trophy guide ${mainPlatform(game.platform)}`.trim());
 }
