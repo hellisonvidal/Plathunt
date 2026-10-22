@@ -23,8 +23,8 @@ As duas versões do app são geradas juntas pelo GitHub Actions (Actions → And
 
 | Versão | Arquivo | Atualização |
 | --- | --- | --- |
-| **GitHub** | APK (`trophy-mania-android` e Releases) | por dentro do app (Configurações → Atualizações) |
-| **Play Store** | AAB (`trophy-mania-play-store`) | pela própria Play Store |
+| **GitHub** | APK (`plathunt-android` e Releases) | por dentro do app (Configurações → Atualizações) |
+| **Play Store** | AAB (`plathunt-play-store`) | pela própria Play Store |
 
 > As duas usam o mesmo id, **`app.plathunt.trophytracker`** (é o "Nome do pacote" na Play
 > Console e não pode mudar depois da primeira publicação). Quem tem o APK do GitHub
@@ -59,7 +59,7 @@ No GitHub, em **Settings → Secrets and variables → Actions → New repositor
 
 ## 2. Gerar o pacote
 
-Em **Actions → Android APK → Run workflow** (na `main`). Ao terminar, baixe o artefato **trophy-mania-play-store**: dentro está o `app-play-release.aab`, assinado. O número da versão (`versionCode`) sobe sozinho a cada build (10000 + build).
+Em **Actions → Android APK → Run workflow** (na `main`). Ao terminar, baixe o artefato **plathunt-play-store**: dentro está o `app-play-release.aab`, assinado. O número da versão (`versionCode`) sobe sozinho a cada build (10000 + build).
 
 ## 3. Conta de desenvolvedor (você)
 
@@ -75,7 +75,7 @@ Em **Actions → Android APK → Run workflow** (na `main`). Ao terminar, baixe 
 
 | Seção | Resposta |
 | --- | --- |
-| Política de privacidade | `https://github.com/hellisonvidal/Trophyhunt/blob/main/docs/privacidade.md` |
+| Política de privacidade | `https://github.com/hellisonvidal/Plathunt/blob/main/docs/privacidade.md` |
 | Acesso ao app | **Parte da funcionalidade é restrita.** Instruções: "Na tela de entrada, toque em *Ver demonstração* para usar o app com dados de exemplo, sem conta. As funções com dados reais exigem uma conta da PlayStation Network do próprio usuário; o login é feito na página oficial da Sony." |
 | Anúncios | Não, o app não contém anúncios |
 | Classificação de conteúdo | Categoria **Outros apps** (utilitário/referência de jogos). Violência, sexo, drogas, palavrões, jogos de azar: **não**. Usuários interagem? **Sim** (curtidas e pedidos de boost entre usuários, sem chat livre). Compartilha a localização? **Não**. Compras digitais? **Não** (a Loja só mostra preços e abre a PlayStation Store) |
@@ -84,7 +84,7 @@ Em **Actions → Android APK → Run workflow** (na `main`). Ao terminar, baixe 
 | ID de publicidade | Não usa |
 | Apps governamentais / financeiros / saúde | Não |
 | Segurança dos dados | Tabela abaixo |
-| Exclusão de dados | URL: `https://github.com/hellisonvidal/Trophyhunt/blob/main/docs/excluir-dados.md` |
+| Exclusão de dados | URL: `https://github.com/hellisonvidal/Plathunt/blob/main/docs/excluir-dados.md` |
 
 ### Segurança dos dados
 

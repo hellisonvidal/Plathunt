@@ -26,11 +26,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Links de convocação de boost recebidos de amigos (trophymania://boost?d=…). -->
+            <!-- Links de convocação de boost recebidos de amigos (plathunt://boost?d=…; trophymania:// é o formato antigo, ainda aceito). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="plathunt" />
                 <data android:scheme="trophymania" />
             </intent-filter>
 

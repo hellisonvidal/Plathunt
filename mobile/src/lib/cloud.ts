@@ -14,7 +14,7 @@ import { persistRemove, persistSet } from "./persist";
  */
 const API = (import.meta.env.VITE_CLOUD_URL ?? "").replace(/\/+$/, "");
 const SESSION_KEY = "tm.cloud" as const;
-export const PRIVACY_URL = "https://github.com/hellisonvidal/Trophyhunt/blob/main/docs/privacidade.md";
+export const PRIVACY_URL = "https://github.com/hellisonvidal/Plathunt/blob/main/docs/privacidade.md";
 
 /** Este build sabe o endereço do servidor dos recursos online. */
 export const cloudAvailable = () => API !== "";

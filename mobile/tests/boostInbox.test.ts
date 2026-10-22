@@ -80,3 +80,13 @@ describe("cloudPayload", () => {
     expect(JSON.stringify(p).length).toBeLessThan(8000);
   });
 });
+
+describe("links com o nome antigo", () => {
+  it("gera links plathunt:// e ainda lê os trophymania:// já enviados", () => {
+    const boost = { id: "b", game: { id: "G", name: "Jogo", platform: "PS5", iconUrl: null }, players: 1, when: "Hoje à noite", trophies: ["T"], note: "", kind: "pedido" as const, createdAt: "2026-10-22T00:00:00Z", joined: [], done: false };
+    const link = boostLink(boost as never, "Aloy_Hunter");
+    expect(link.startsWith("plathunt://boost?d=")).toBe(true);
+    expect(parseBoostText(link)?.game.name).toBe("Jogo");
+    expect(parseBoostText(link.replace("plathunt://", "trophymania://"))?.game.name).toBe("Jogo");
+  });
+});

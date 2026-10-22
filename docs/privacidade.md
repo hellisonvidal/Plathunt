@@ -63,4 +63,4 @@ Quando esta política mudar, a data no topo é atualizada e as mudanças importa
 
 ## Contato
 
-Pelo e-mail de contato do desenvolvedor na página do Plathunt na Google Play, ou em <https://github.com/hellisonvidal/Trophyhunt/issues> (público: não publique dados pessoais).
+Pelo e-mail de contato do desenvolvedor na página do Plathunt na Google Play, ou em <https://github.com/hellisonvidal/Plathunt/issues> (público: não publique dados pessoais).

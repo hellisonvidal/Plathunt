@@ -6,7 +6,7 @@ import { persistSet } from "./persist";
 /**
  * Pedidos de boost recebidos de outros jogadores. Sem servidor, o pedido
  * viaja dentro da própria mensagem (WhatsApp, Telegram…) como um link
- * trophymania://boost?d=…: tocar no link abre o app, ou dá para colar a
+ * plathunt://boost?d=…: tocar no link abre o app, ou dá para colar a
  * mensagem no painel "Pedidos recebidos".
  */
 export interface ReceivedBoost {
@@ -26,7 +26,7 @@ export interface ReceivedBoost {
 
 type Payload = Pick<ReceivedBoost, "from" | "game" | "trophies" | "players" | "when" | "note" | "createdAt">;
 
-const LINK = "trophymania://boost?d=";
+const LINK = "plathunt://boost?d=";
 const KEY = "tm.boostInbox" as const;
 const listeners = new Set<() => void>();
 
@@ -59,7 +59,8 @@ export function boostLink(b: Pick<Boost, "game" | "trophies" | "players" | "when
 
 /** Lê um pedido de um link ou de uma mensagem colada; null se não houver pedido válido. */
 export function parseBoostText(text: string): Payload | null {
-  const code = text.match(/trophymania:\/\/boost\?d=([A-Za-z0-9_-]+)/)?.[1];
+  // trophymania:// é o formato dos links enviados antes do nome Plathunt.
+  const code = text.match(/(?:plathunt|trophymania):\/\/boost\?d=([A-Za-z0-9_-]+)/)?.[1];
   if (!code) return null;
   try {
     const p = JSON.parse(fromBase64Url(code)) as Payload;
