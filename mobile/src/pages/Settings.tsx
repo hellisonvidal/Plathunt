@@ -134,9 +134,9 @@ export function SettingsPage() {
           />
           <Toggle
             label={t("Abrir jogos no app PlayStation")}
-            hint={t("Tocar num jogo da Loja abre no app PlayStation, se ele estiver instalado. Ele vai direto ao jogo quando está fechado; se já estiver aberto em segundo plano, pode mostrar a última tela dele. Desligado, abre a página do jogo no navegador.")}
-            checked={settings.storeInPsApp}
-            onChange={(storeInPsApp) => updateSettings({ storeInPsApp })}
+            hint={t("Desligado (padrão), o jogo abre no navegador, sempre na página dele. Ligado, abre no app PlayStation: ele vai direto ao jogo quando está fechado, mas, se já estiver aberto em segundo plano, mostra a última tela dele.")}
+            checked={settings.storePsApp}
+            onChange={(storePsApp) => updateSettings({ storePsApp })}
           />
           <p className="px-4 pb-4 text-xs text-muted">
             {t("A loja fica salva no celular e abre na hora. Puxe a tela da loja para baixo para atualizar quando quiser.")}

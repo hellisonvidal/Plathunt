@@ -21,8 +21,13 @@ export interface Settings {
   storeRegion: StoreRegion;
   /** De quanto em quanto tempo a loja salva no celular é atualizada. */
   storeUpdate: StoreRefresh;
-  /** Tocar num jogo da Loja abre no app PlayStation (se instalado) em vez do navegador. */
-  storeInPsApp: boolean;
+  /**
+   * Tocar num jogo da Loja abre no app PlayStation (se instalado) em vez do
+   * navegador. Desligado por padrão: com o app PlayStation já aberto em segundo
+   * plano, ele mostra a última tela em vez do jogo, e o Android 14+ não deixa
+   * outro app fechá-lo. (Chave nova: a antiga vinha ligada.)
+   */
+  storePsApp: boolean;
   /** Notificações do app (chave geral) e cada tipo. */
   notifications: boolean;
   notifyMerits: boolean;
@@ -54,7 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   storeRegion: deviceStoreRegion(),
   // Padrão: a loja salva só é atualizada quando o usuário puxa a tela da loja.
   storeUpdate: "manual",
-  storeInPsApp: true,
+  storePsApp: false,
   // Claro ou escuro, como o sistema do aparelho.
   theme: "auto",
   notifications: true,
