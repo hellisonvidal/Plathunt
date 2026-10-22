@@ -120,11 +120,17 @@ export function SettingsPage() {
         </Section>
 
         <Section title={t("Loja")}>
+          <Toggle
+            label={t("Usar o país da minha conta PSN")}
+            hint={t("Ligado (padrão), a loja mostra a moeda e os preços do país da sua conta da PSN, não do idioma do celular. Escolher um país abaixo desliga esta opção.")}
+            checked={settings.storeRegionAuto}
+            onChange={(storeRegionAuto) => updateSettings({ storeRegionAuto })}
+          />
           <Choice
             label={t("País da PlayStation Store (moeda e preços)")}
             options={STORE_REGIONS.map((r) => ({ value: r.value, label: t(r.label) }))}
             value={settings.storeRegion}
-            onChange={(storeRegion) => updateSettings({ storeRegion })}
+            onChange={(storeRegion) => updateSettings({ storeRegion, storeRegionAuto: false })}
           />
           <Choice
             label={t("Atualizar a loja salva no celular")}

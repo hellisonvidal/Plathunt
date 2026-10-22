@@ -5,11 +5,11 @@ import { t } from "./i18n";
 import { App as CapApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { importBoost } from "./lib/boostInbox";
-import { ALL_ID } from "./lib/store";
+import { ALL_ID, storeRegionForCountry } from "./lib/store";
 import { storeCategory } from "./psn/store";
 import { runBackgroundChecks } from "./lib/checks";
 import { onInAppNotice, onNotificationTap, type InAppNotice } from "./lib/notify";
-import { getSettings, updateSettings } from "./lib/settings";
+import { getSettings, updateSettings, useSettings } from "./lib/settings";
 import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
 import { createDemoClient } from "./psn/demo";
@@ -103,6 +103,7 @@ export function App() {
         <BackButton />
         <BoostLinks />
         <BackgroundChecks />
+        <AccountStoreRegion />
         <StorePreload />
         <NotificationLinks />
         <InAppNotices />
@@ -259,6 +260,29 @@ function StorePreload() {
     }, 8000);
     return () => clearTimeout(timer);
   }, [mode]);
+  return null;
+}
+
+/**
+ * A Loja segue o país da conta da PSN (moeda e preços certos para quem tem
+ * conta de outro país), a menos que o usuário tenha escolhido um país à mão.
+ */
+function AccountStoreRegion() {
+  const { mode, client } = useApp();
+  const { storeRegionAuto } = useSettings();
+  useEffect(() => {
+    if (mode !== "psn" || !storeRegionAuto) return;
+    let alive = true;
+    void client.accountCountry().then((country) => {
+      const region = storeRegionForCountry(country);
+      if (alive && region && getSettings().storeRegionAuto && getSettings().storeRegion !== region) {
+        updateSettings({ storeRegion: region });
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [mode, client, storeRegionAuto]);
   return null;
 }
 

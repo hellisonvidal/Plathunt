@@ -291,8 +291,30 @@ export const STORE_REGIONS = [
   { value: "it-IT", label: "Itália" },
   { value: "en-GB", label: "Reino Unido" },
   { value: "ja-JP", label: "Japão" },
+  { value: "en-CA", label: "Canadá" },
+  { value: "en-AU", label: "Austrália" },
+  { value: "es-CL", label: "Chile" },
+  { value: "es-CO", label: "Colômbia" },
+  { value: "es-PE", label: "Peru" },
 ] as const;
 export type StoreRegion = (typeof STORE_REGIONS)[number]["value"];
+
+/**
+ * Loja do país da conta PSN (código ISO, como "BR"). Países sem loja própria no
+ * app usam a mais parecida: mesma moeda e idioma (Áustria → Alemanha, Irlanda →
+ * Reino Unido...). null quando não há nenhuma parecida.
+ */
+export function storeRegionForCountry(code: string | null | undefined): StoreRegion | null {
+  const cc = (code ?? "").toUpperCase();
+  const own = STORE_REGIONS.find((r) => r.value.slice(3) === cc);
+  if (own) return own.value;
+  const similar: Record<string, StoreRegion> = {
+    AT: "de-DE", CH: "de-DE", LU: "fr-FR", BE: "fr-FR", MC: "fr-FR", IE: "en-GB", NZ: "en-AU",
+    UY: "es-AR", PY: "es-AR", BO: "es-PE", EC: "es-PE", CR: "es-MX", GT: "es-MX", HN: "es-MX", NI: "es-MX",
+    PA: "es-MX", SV: "es-MX",
+  };
+  return similar[cc] ?? null;
+}
 
 /** País da loja do aparelho (moeda e preços), quando a loja existe no app; senão, Estados Unidos. */
 export function deviceStoreRegion(): StoreRegion {
@@ -473,6 +495,12 @@ const PRICE_STEPS: Record<StoreRegion, number[]> = {
   "it-IT": [2, 5, 10, 20, 30, 40, 50, 60, 80],
   "en-GB": [2, 5, 10, 20, 30, 40, 50, 60, 80],
   "ja-JP": [300, 500, 1000, 2000, 3000, 4000, 5000, 7000, 9000],
+  "en-CA": [2, 5, 10, 20, 30, 40, 50, 70, 90],
+  "en-AU": [2, 5, 10, 20, 30, 50, 70, 90, 110],
+  // Chile, Colômbia e Peru: a PlayStation Store cobra em dólar.
+  "es-CL": [2, 5, 10, 20, 30, 40, 50, 60, 80],
+  "es-CO": [2, 5, 10, 20, 30, 40, 50, 60, 80],
+  "es-PE": [2, 5, 10, 20, 30, 40, 50, 60, 80],
 };
 
 /** Opções do filtro de preço na moeda da região (até X, X–Y, …, acima de Z). */
@@ -594,6 +622,11 @@ export function formatPrice(cents: number, region: StoreRegion): string {
     "it-IT": "EUR",
     "en-GB": "GBP",
     "ja-JP": "JPY",
+    "en-CA": "CAD",
+    "en-AU": "AUD",
+    "es-CL": "USD",
+    "es-CO": "USD",
+    "es-PE": "USD",
   };
   try {
     return (cents / 100).toLocaleString(region, { style: "currency", currency: currency[region] });

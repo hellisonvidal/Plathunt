@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 11,
+    items: [
+      "🛒 Loja: moeda e preços do país da sua conta da PSN (não mais do idioma do celular), com Canadá, Austrália, Chile, Colômbia e Peru.",
+      "📖 Guias do PSNProfiles e do PlayStationTrophies voltam a encontrar resultados.",
+    ],
+  },
+  {
     id: 10,
     items: [
       "🕒 Troféus mostram a data e a hora exatas da conquista, também nos jogos dos amigos.",
