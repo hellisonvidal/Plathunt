@@ -44,3 +44,17 @@ export async function restorePersisted(): Promise<void> {
     }),
   );
 }
+
+/**
+ * Dados da conta que saiu (desafios, méritos, boosts, curtidas, verificações
+ * em segundo plano), para não passarem para a próxima conta. Ficam as
+ * configurações e o histórico de preços da loja, que são do aparelho.
+ */
+const ACCOUNT_KEYS: Key[] = ["tm.reactions", "tm.boosts", "tm.challenges", "tm.merits", "tm.boostInbox", "tm.boostInboxDismissed", "tm.cloud"];
+
+export function clearAccountData() {
+  ACCOUNT_KEYS.forEach(persistRemove);
+  try {
+    localStorage.removeItem("tm.checks");
+  } catch {}
+}

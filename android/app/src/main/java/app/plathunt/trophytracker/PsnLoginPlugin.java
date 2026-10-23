@@ -49,14 +49,19 @@ public class PsnLoginPlugin extends Plugin {
     @PluginMethod
     public void login(PluginCall call) {
         String browser = authTabBrowser(getContext());
+        SharedPreferences prefs = getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        // Depois de sair, o login precisa pedir a conta de novo: sem modo efêmero, o
+        // navegador entraria direto na conta anterior, então usa a tela antiga (sem cookies).
+        if (browser != null && prefs.getBoolean(PREF_FRESH, false)
+                && !CustomTabsClient.isEphemeralBrowsingSupported(getContext(), browser)) {
+            browser = null;
+        }
         if (browser == null) {
             Intent intent = new Intent(getContext(), PsnLoginActivity.class);
             startActivityForResult(call, intent, "onLoginResult");
             return;
         }
-        SharedPreferences prefs = getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        boolean fresh = prefs.getBoolean(PREF_FRESH, false)
-            && CustomTabsClient.isEphemeralBrowsingSupported(getContext(), browser);
+        boolean fresh = prefs.getBoolean(PREF_FRESH, false);
         AuthTabIntent authTab = new AuthTabIntent.Builder().setEphemeralBrowsingEnabled(fresh).build();
         // O mesmo que AuthTabIntent.launch(), mas pelo resultado de atividade do Capacitor.
         Intent intent = authTab.intent;
@@ -224,6 +229,9 @@ public class PsnLoginPlugin extends Plugin {
             String npsso = data.getStringExtra(PsnLoginActivity.EXTRA_NPSSO);
             if (code != null) ret.put("code", code);
             if (npsso != null) ret.put("npsso", npsso);
+            if (code != null || npsso != null) {
+                getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(PREF_FRESH).apply();
+            }
         }
         call.resolve(ret);
     }

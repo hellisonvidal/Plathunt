@@ -42,8 +42,6 @@ export interface Settings {
   cloudNoticeSeen: boolean;
   /** Desligou os recursos online (o app não reconecta sozinho). */
   cloudOff: boolean;
-  /** Ao sair, mantém a conta da Sony salva no celular (o próximo login é com um toque). */
-  keepSonyLogin: boolean;
   /** Última novidade (changelog) que o usuário já viu. */
   changelogSeen: number;
   /** Já entrou com a PSN alguma vez (o aviso sobre os dados só aparece antes disso). */
@@ -76,7 +74,6 @@ export const DEFAULT_SETTINGS: Settings = {
   cloudNoticeSeen: false,
   cloudOff: false,
   signedInBefore: false,
-  keepSonyLogin: true,
   changelogSeen: 0,
 };
 
