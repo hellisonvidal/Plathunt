@@ -12,6 +12,11 @@ interface PsnLoginPlugin {
    * código OAuth. {} se não houver login salvo (ou ele expirou).
    */
   silentLogin(): Promise<{ code?: string }>;
+  /**
+   * O mesmo login no navegador do celular, onde a chave de acesso (passkey) da
+   * Sony funciona. Devolve o código OAuth; {} se o usuário fechar o navegador.
+   */
+  browserLogin(): Promise<{ code?: string }>;
   /** Troca o NPSSO pelo código OAuth (lê o redirect, o que o WebView não consegue). */
   authorize(options: { npsso: string }): Promise<{ code: string }>;
   /** Apaga o login da Sony do aparelho (o próximo login pede usuário e senha). */
