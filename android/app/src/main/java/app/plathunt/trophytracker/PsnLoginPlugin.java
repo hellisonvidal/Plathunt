@@ -2,10 +2,15 @@ package app.plathunt.trophytracker;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
-import androidx.browser.customtabs.CustomTabsIntent;
+import androidx.browser.auth.AuthTabIntent;
+import androidx.browser.customtabs.CustomTabsClient;
+import androidx.browser.customtabs.CustomTabsService;
+import java.util.ArrayList;
+import java.util.List;
 import android.webkit.CookieManager;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -20,68 +25,91 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 
 /**
  * Login da PSN feito no próprio celular (sem servidor):
- * - login(): abre direto o formulário de entrada da Sony e resolve com
+ * - login(): abre o formulário de entrada da Sony numa Auth Tab do navegador
+ *   (Chrome 137+, Brave…), onde a chave de acesso (passkey) funciona e o
+ *   navegador devolve o redirect só para o Plathunt. Sem navegador com Auth
+ *   Tab, abre a tela antiga (WebView). Resolve com
  *   { code } (código OAuth) quando o usuário termina, ou { npsso } como
  *   reserva, ou {} se ele fechar a tela;
  * - silentLogin(): sem mostrar nada, usa o login da Sony já guardado no
  *   aparelho (cookie npsso) para pegar um código OAuth; {} se não houver;
  * - authorize({ npsso }): troca o NPSSO pelo código OAuth (login manual).
  *   A Sony entrega o código em um redirect, que o WebView não deixa ler;
- * - browserLogin(): o mesmo login, mas no navegador do celular (aba do
- *   Chrome), onde a chave de acesso (passkey) da Sony funciona; o código volta
- *   pelo PsnBrowserRedirectActivity. {} se o usuário fechar a aba;
  * - clearSession(): apaga o login da Sony guardado no aparelho, para que o
  *   próximo login peça usuário e senha (troca de conta).
  */
 @CapacitorPlugin(name = "PsnLogin")
 public class PsnLoginPlugin extends Plugin {
 
+    private static final String REDIRECT_SCHEME = "com.scee.psxandroid.scecompcall";
+    private static final String PREFS = "psn_login";
+    /** Depois de "esquecer o login da Sony", a próxima Auth Tab começa sem sessão (troca de conta). */
+    private static final String PREF_FRESH = "fresh";
+
     @PluginMethod
     public void login(PluginCall call) {
-        Intent intent = new Intent(getContext(), PsnLoginActivity.class);
-        startActivityForResult(call, intent, "onLoginResult");
-    }
-
-    /** Login no navegador esperando o retorno da Sony (só um por vez). */
-    private static PluginCall pendingBrowserCall;
-    private final Handler handler = new Handler(Looper.getMainLooper());
-
-    @PluginMethod
-    public void browserLogin(PluginCall call) {
-        PluginCall previous = pendingBrowserCall;
-        if (previous != null) previous.resolve(new JSObject());
-        pendingBrowserCall = call;
+        String browser = authTabBrowser(getContext());
+        if (browser == null) {
+            Intent intent = new Intent(getContext(), PsnLoginActivity.class);
+            startActivityForResult(call, intent, "onLoginResult");
+            return;
+        }
+        SharedPreferences prefs = getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        boolean fresh = prefs.getBoolean(PREF_FRESH, false)
+            && CustomTabsClient.isEphemeralBrowsingSupported(getContext(), browser);
+        AuthTabIntent authTab = new AuthTabIntent.Builder().setEphemeralBrowsingEnabled(fresh).build();
+        // O mesmo que AuthTabIntent.launch(), mas pelo resultado de atividade do Capacitor.
+        Intent intent = authTab.intent;
+        intent.setPackage(browser);
+        intent.setData(Uri.parse(AUTHORIZE_URL));
+        intent.putExtra(AuthTabIntent.EXTRA_REDIRECT_SCHEME, REDIRECT_SCHEME);
         try {
-            new CustomTabsIntent.Builder().setShowTitle(true).build()
-                .launchUrl(getActivity(), Uri.parse(AUTHORIZE_URL));
+            startActivityForResult(call, intent, "onAuthTabResult");
         } catch (Exception e) {
-            pendingBrowserCall = null;
-            call.reject("Nenhum navegador encontrado.", e);
+            startActivityForResult(call, new Intent(getContext(), PsnLoginActivity.class), "onLoginResult");
         }
     }
 
-    /** Chamado pelo PsnBrowserRedirectActivity com o código (null se não veio). */
-    static void deliverBrowserCode(String code) {
-        PluginCall call = pendingBrowserCall;
-        pendingBrowserCall = null;
-        if (call == null) return;
-        JSObject ret = new JSObject();
-        if (code != null) ret.put("code", code);
-        call.resolve(ret);
+    /** Navegador com Auth Tab: o padrão do celular, depois o Chrome, depois qualquer outro. */
+    static String authTabBrowser(Context ctx) {
+        try {
+            List<String> browsers = new ArrayList<>();
+            for (ResolveInfo info : ctx.getPackageManager().queryIntentServices(
+                    new Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION), 0)) {
+                if (info.serviceInfo != null && !browsers.contains(info.serviceInfo.packageName)) {
+                    browsers.add(info.serviceInfo.packageName);
+                }
+            }
+            List<String> order = new ArrayList<>();
+            String preferred = CustomTabsClient.getPackageName(ctx, null);
+            if (preferred != null) order.add(preferred);
+            order.add("com.android.chrome");
+            order.addAll(browsers);
+            for (String pkg : order) {
+                if (browsers.contains(pkg) && CustomTabsClient.isAuthTabSupported(ctx, pkg)) return pkg;
+            }
+        } catch (Exception ignored) {
+            // Sem como consultar os navegadores: usa a tela antiga.
+        }
+        return null;
     }
 
-    /**
-     * Voltou ao app sem o retorno da Sony (fechou a aba do navegador): libera o
-     * botão de entrar. A espera dá tempo para o retorno chegar primeiro.
-     */
-    @Override
-    protected void handleOnResume() {
-        super.handleOnResume();
-        if (pendingBrowserCall == null) return;
-        final PluginCall waiting = pendingBrowserCall;
-        handler.postDelayed(() -> {
-            if (pendingBrowserCall == waiting) deliverBrowserCode(null);
-        }, 2000);
+    @ActivityCallback
+    private void onAuthTabResult(PluginCall call, ActivityResult result) {
+        JSObject ret = new JSObject();
+        Intent data = result.getData();
+        if (result.getResultCode() == AuthTabIntent.RESULT_OK && data != null && data.getData() != null) {
+            try {
+                String code = extractCode(data.getData().toString());
+                if (code != null) {
+                    ret.put("code", code);
+                    getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(PREF_FRESH).apply();
+                }
+            } catch (Exception ignored) {
+                // Redirect inesperado: tratado como login cancelado.
+            }
+        }
+        call.resolve(ret);
     }
 
     /** Mesmo fluxo OAuth do app oficial da PlayStation. */
@@ -125,6 +153,9 @@ public class PsnLoginPlugin extends Plugin {
     public void clearSession(PluginCall call) {
         // O app não usa cookies próprios (os dados ficam no localStorage), então
         // apagar tudo remove só o login da Sony.
+        // O login da Sony na Auth Tab fica no navegador, que o app não apaga: a
+        // próxima Auth Tab abre em modo efêmero (sem sessão), quando o navegador deixa.
+        getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(PREF_FRESH, true).apply();
         CookieManager cookies = CookieManager.getInstance();
         cookies.removeAllCookies(removed -> {
             cookies.flush();

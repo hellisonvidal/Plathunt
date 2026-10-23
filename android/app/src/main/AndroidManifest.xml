@@ -44,21 +44,6 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density|fontScale"
             android:exported="false" />
 
-        <!-- Retorno do login da Sony feito no navegador (chave de acesso). É o mesmo endereço do app PlayStation: com os dois instalados, o Android pergunta qual abrir. -->
-        <activity
-            android:name=".PsnBrowserRedirectActivity"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:noHistory="true"
-            android:excludeFromRecents="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.scee.psxandroid.scecompcall" android:host="redirect" />
-            </intent-filter>
-        </activity>
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -72,6 +57,10 @@
 
     <!-- Para achar o navegador do aparelho (links da loja abrem nele, não no app da PlayStation). -->
     <queries>
+        <!-- Navegadores com Custom Tabs / Auth Tab (login da Sony com chave de acesso). -->
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
         <!-- App PlayStation: a Loja tenta abrir o jogo escolhido nele. -->
         <package android:name="com.scee.psxandroid" />
         <intent>

@@ -58,18 +58,6 @@ export function LoginPage({
     }
   }
 
-  async function loginWithBrowser() {
-    setError(null);
-    setBusy(true);
-    try {
-      await finish(await PsnLogin.browserLogin());
-    } catch {
-      setError(t("Não foi possível abrir o navegador do celular."));
-    } finally {
-      setBusy(false);
-    }
-  }
-
   // Ao abrir o app, reaproveita o login da Sony salvo no aparelho, sem
   // mostrar a página da Sony. A página só abre ao tocar em "Entrar com a PSN".
   useEffect(() => {
@@ -121,17 +109,7 @@ export function LoginPage({
             >
               {checking ? t("Verificando login salvo…") : busy ? t("Conectando à PSN…") : t("Entrar com a PSN")}
             </button>
-          ) : null}
-          {native && (
-            <button
-              onClick={loginWithBrowser}
-              disabled={busy || checking}
-              className="w-full rounded-xl border border-ps-blue py-3 text-sm font-semibold active:bg-surface disabled:opacity-60"
-            >
-              {t("🔑 Entrar pelo navegador (chave de acesso)")}
-            </button>
-          )}
-          {native ? null : (
+          ) : (
             <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
               {t("O login com a PSN funciona no app Android. Aqui no navegador você pode ver a demonstração.")}
             </p>
