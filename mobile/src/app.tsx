@@ -8,7 +8,7 @@ import { importBoost } from "./lib/boostInbox";
 import { ALL_ID, storeRegionForCountry } from "./lib/store";
 import { storeCategory } from "./psn/store";
 import { runBackgroundChecks } from "./lib/checks";
-import { onInAppNotice, onNotificationTap, type InAppNotice } from "./lib/notify";
+import { cancelAllNotifications, onInAppNotice, onNotificationTap, type InAppNotice } from "./lib/notify";
 import { getSettings, updateSettings, useSettings } from "./lib/settings";
 import { hasSession, signOut as clearSession } from "./psn/auth";
 import { createPsnClient } from "./psn/client";
@@ -26,7 +26,7 @@ import { ProfilePage } from "./pages/Profile";
 import { SettingsPage, ThemesPage } from "./pages/Settings";
 import { StorePage } from "./pages/Store";
 import { StatsPage } from "./pages/Stats";
-import { persistRemove, persistSet } from "./lib/persist";
+import { clearAccountData, persistRemove, persistSet } from "./lib/persist";
 
 type Mode = "psn" | "demo";
 const MODE_KEY = "tm.mode" as const;
@@ -66,14 +66,15 @@ export function App() {
       mode,
       client: mode === "demo" ? createDemoClient() : createPsnClient(),
       signOut: (reason) => {
-        // Sem motivo = o usuário tocou em "Sair": esquece também a conta da Sony,
-        // a não ser que ele tenha pedido para lembrar (Configurações → Conta).
-        clearSession(!reason && !getSettings().keepSonyLogin);
+        // Sem motivo = o usuário tocou em "Sair / trocar de conta": esquece a
+        // conta da Sony e apaga os dados da conta no celular, e a próxima entrada
+        // mostra o login da PSN de novo (dá para usar outra conta).
+        clearSession(!reason);
         if (!reason) {
-          // Saiu por vontade própria: não entra de novo sozinho, e a identidade
-          // dos recursos online não passa para a próxima conta.
           skipSilentLogin();
           void disconnectCloud();
+          clearAccountData();
+          void cancelAllNotifications().catch(() => {});
         }
         persistRemove(MODE_KEY);
         setNotice(reason ?? null);

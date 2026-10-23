@@ -58,23 +58,9 @@ export function SettingsPage() {
               <p className="text-xs text-muted">{mode === "demo" ? t("Modo demonstração") : t("Conectado à PSN")}</p>
             </div>
           </div>
-          {mode === "psn" && (
-            <Toggle
-              label={t("🔑 Lembrar a conta da Sony ao sair")}
-              hint={t(
-                "Ao sair, o login da Sony continua salvo neste celular e a próxima entrada é com um toque. Na tela da Sony, o gerenciador de senhas do Android (ex.: Google) oferece salvar e preencher seu e-mail e senha; o app nunca guarda a senha.",
-              )}
-              checked={settings.keepSonyLogin}
-              onChange={(keepSonyLogin) => updateSettings({ keepSonyLogin })}
-            />
-          )}
           <Row
             label={t("Sair / trocar de conta")}
-            hint={
-              settings.keepSonyLogin
-                ? t("A conta da Sony fica lembrada; para usar outra conta, desligue a opção acima antes de sair")
-                : t("Na próxima entrada a PSN pede usuário e senha, então dá para usar outra conta")
-            }
+            hint={t("Na próxima entrada a PSN pede usuário e senha, então dá para usar outra conta")}
             danger
             onClick={() => signOut()}
           />

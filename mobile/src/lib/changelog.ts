@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 15,
+    items: [
+      "🚪 Sair / trocar de conta apaga os dados da conta no celular e a próxima entrada pede o login da PSN de novo.",
+    ],
+  },
+  {
     id: 14,
     items: [
       "🔑 Login da Sony no navegador do celular (Chrome, Brave…), com chave de acesso (passkey), senha salva e volta automática para o app.",
