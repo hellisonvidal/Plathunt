@@ -2,6 +2,10 @@ package app.plathunt.trophytracker;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
+import androidx.browser.customtabs.CustomTabsIntent;
 import android.webkit.CookieManager;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -23,6 +27,9 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  *   aparelho (cookie npsso) para pegar um código OAuth; {} se não houver;
  * - authorize({ npsso }): troca o NPSSO pelo código OAuth (login manual).
  *   A Sony entrega o código em um redirect, que o WebView não deixa ler;
+ * - browserLogin(): o mesmo login, mas no navegador do celular (aba do
+ *   Chrome), onde a chave de acesso (passkey) da Sony funciona; o código volta
+ *   pelo PsnBrowserRedirectActivity. {} se o usuário fechar a aba;
  * - clearSession(): apaga o login da Sony guardado no aparelho, para que o
  *   próximo login peça usuário e senha (troca de conta).
  */
@@ -33,6 +40,48 @@ public class PsnLoginPlugin extends Plugin {
     public void login(PluginCall call) {
         Intent intent = new Intent(getContext(), PsnLoginActivity.class);
         startActivityForResult(call, intent, "onLoginResult");
+    }
+
+    /** Login no navegador esperando o retorno da Sony (só um por vez). */
+    private static PluginCall pendingBrowserCall;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
+    @PluginMethod
+    public void browserLogin(PluginCall call) {
+        PluginCall previous = pendingBrowserCall;
+        if (previous != null) previous.resolve(new JSObject());
+        pendingBrowserCall = call;
+        try {
+            new CustomTabsIntent.Builder().setShowTitle(true).build()
+                .launchUrl(getActivity(), Uri.parse(AUTHORIZE_URL));
+        } catch (Exception e) {
+            pendingBrowserCall = null;
+            call.reject("Nenhum navegador encontrado.", e);
+        }
+    }
+
+    /** Chamado pelo PsnBrowserRedirectActivity com o código (null se não veio). */
+    static void deliverBrowserCode(String code) {
+        PluginCall call = pendingBrowserCall;
+        pendingBrowserCall = null;
+        if (call == null) return;
+        JSObject ret = new JSObject();
+        if (code != null) ret.put("code", code);
+        call.resolve(ret);
+    }
+
+    /**
+     * Voltou ao app sem o retorno da Sony (fechou a aba do navegador): libera o
+     * botão de entrar. A espera dá tempo para o retorno chegar primeiro.
+     */
+    @Override
+    protected void handleOnResume() {
+        super.handleOnResume();
+        if (pendingBrowserCall == null) return;
+        final PluginCall waiting = pendingBrowserCall;
+        handler.postDelayed(() -> {
+            if (pendingBrowserCall == waiting) deliverBrowserCode(null);
+        }, 2000);
     }
 
     /** Mesmo fluxo OAuth do app oficial da PlayStation. */

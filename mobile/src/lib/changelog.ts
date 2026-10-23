@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 13,
+    items: [
+      "🔑 Novo botão “Entrar pelo navegador (chave de acesso)”: o login da Sony abre no navegador do celular, onde a chave de acesso (passkey) funciona, e volta sozinho para o app.",
+    ],
+  },
+  {
     id: 12,
     items: [
       "🔑 Conta da Sony com chave de acesso (passkey): entre pelo navegador em “Problemas? Entrar manualmente” (o botão da chave de acesso na tela da Sony fechava o app).",
