@@ -130,6 +130,9 @@ export function LoginPage({
         {native && (
           <details className="mt-8 w-full text-left text-sm text-muted">
             <summary>{t("Problemas? Entrar manualmente")}</summary>
+            <p className="mt-3">
+              {t("Usa chave de acesso (passkey) na conta da Sony? A tela de login do app pode mostrar só um QR code. Entre pelo navegador do celular, onde a chave de acesso funciona:")}
+            </p>
             <ol className="mt-3 list-decimal space-y-2 pl-5">
               <li>
                 {t("Em um navegador, entre na sua conta em")}{" "}
