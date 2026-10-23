@@ -3,7 +3,8 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 /** Plugin nativo (android/.../PsnLoginPlugin.java). */
 interface PsnLoginPlugin {
   /**
-   * Abre direto o formulário de login da Sony. Devolve o código OAuth quando o
+   * Abre o formulário de login da Sony (Auth Tab do navegador, com chave de
+   * acesso; ou a tela antiga, sem navegador compatível). Devolve o código OAuth quando o
    * usuário entra (ou o NPSSO, como reserva); {} se ele fechar a tela.
    */
   login(): Promise<{ code?: string; npsso?: string }>;
@@ -12,11 +13,6 @@ interface PsnLoginPlugin {
    * código OAuth. {} se não houver login salvo (ou ele expirou).
    */
   silentLogin(): Promise<{ code?: string }>;
-  /**
-   * O mesmo login no navegador do celular, onde a chave de acesso (passkey) da
-   * Sony funciona. Devolve o código OAuth; {} se o usuário fechar o navegador.
-   */
-  browserLogin(): Promise<{ code?: string }>;
   /** Troca o NPSSO pelo código OAuth (lê o redirect, o que o WebView não consegue). */
   authorize(options: { npsso: string }): Promise<{ code: string }>;
   /** Apaga o login da Sony do aparelho (o próximo login pede usuário e senha). */
