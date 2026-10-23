@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 12,
+    items: [
+      "🔑 Login com chave de acesso (passkey) da Sony na tela do app, quando o celular permite; senão, use “Problemas? Entrar manualmente”.",
+    ],
+  },
+  {
     id: 11,
     items: [
       "🛒 Loja: moeda e preços do país da sua conta da PSN (não mais do idioma do celular), com Canadá, Austrália, Chile, Colômbia e Peru.",

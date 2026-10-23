@@ -19,6 +19,8 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.webkit.WebSettingsCompat;
+import androidx.webkit.WebViewFeature;
 
 /**
  * Tela de login da PSN. Abre direto o formulário de entrada da Sony (o mesmo
@@ -85,6 +87,13 @@ public class PsnLoginActivity extends AppCompatActivity {
         // senha da Sony e preenche sozinho no próximo login. O app não guarda a senha.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
+        }
+        // Chaves de acesso (passkeys) da Sony: sem isso, a WebView não tem WebAuthn
+        // e a Sony mostra só o QR code. Funciona quando o WebView do celular é
+        // recente e o gerenciador de senhas aceita o app; senão, sobra o login
+        // pelo navegador (opção manual na tela de entrada).
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_AUTHENTICATION)) {
+            WebSettingsCompat.setWebAuthenticationSupport(settings, WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER);
         }
         // A Sony pode recusar o login em WebViews identificadas como tal.
         settings.setUserAgentString(settings.getUserAgentString().replace("; wv", "").replace(" Version/4.0", ""));
