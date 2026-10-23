@@ -12,7 +12,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     id: 12,
     items: [
-      "🔑 Login com chave de acesso (passkey) da Sony na tela do app, quando o celular permite; senão, use “Problemas? Entrar manualmente”.",
+      "🔑 Conta da Sony com chave de acesso (passkey): entre pelo navegador em “Problemas? Entrar manualmente” (o botão da chave de acesso na tela da Sony fechava o app).",
     ],
   },
   {
