@@ -356,6 +356,35 @@ export function compareTitles(mine: Title[], theirs: Title[]): TitleComparison {
   };
 }
 
+/** Jogo em comum com o tempo de jogo de cada jogador (em segundos). */
+export interface CommonPlaytime {
+  mine: Title;
+  theirs: Title;
+  mineSeconds: number;
+  theirsSeconds: number;
+}
+
+/**
+ * Jogos em comum (pelo nome, como em `compareTitles`) em que os dois têm tempo
+ * de jogo registrado, do maior tempo somado para o menor.
+ */
+export function commonPlaytime(
+  mine: Title[],
+  minePlaytime: Map<string, number>,
+  theirs: Title[],
+  theirsPlaytime: Map<string, number>,
+): CommonPlaytime[] {
+  return compareTitles(mine, theirs)
+    .common.map(({ mine: a, theirs: b }) => ({
+      mine: a,
+      theirs: b,
+      mineSeconds: minePlaytime.get(a.id) ?? 0,
+      theirsSeconds: theirsPlaytime.get(b.id) ?? 0,
+    }))
+    .filter((c) => c.mineSeconds > 0 && c.theirsSeconds > 0)
+    .sort((x, y) => y.mineSeconds + y.theirsSeconds - (x.mineSeconds + x.theirsSeconds));
+}
+
 /** Do primeiro troféu à platina (ou ao último troféu, no 100%). */
 export interface CompletionSpan {
   start: string;

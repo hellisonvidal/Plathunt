@@ -5,10 +5,12 @@ import { GroupedBars, Legend, SERIES_COLORS, StatTile, type Series } from "../co
 import { CompletionTimes } from "../components/CompletionTimes";
 import { Mural, MURAL_LABELS, type MuralCategory, type MuralKind } from "../components/Mural";
 import { PageHeader } from "../components/PageHeader";
+import { PlayerRow, type PickPlayer } from "../components/PlayerPicker";
 import { RankingView, useRanking } from "./Ranking";
 import { locale, t } from "../i18n";
-import { ErrorBox, GameIcon, Spinner, TrophyBadge, TrophyStack } from "../components/ui";
+import { Avatar, ErrorBox, GameIcon, Spinner, TrophyBadge, TrophyStack } from "../components/ui";
 import {
+  commonPlaytime,
   compareTitles,
   computeStats,
   filterByPlatform,
@@ -23,33 +25,80 @@ import {
   PLATFORM_ORDER,
 } from "../lib/stats";
 import { useData } from "../lib/useData";
-import { untilRefresh } from "../lib/cache";
+import { peekCached, untilRefresh } from "../lib/cache";
 import type { Title } from "../psn/types";
 
 const TYPES = ["platinum", "gold", "silver", "bronze"] as const;
 
+const PLAYERS_KEY = "stats:players";
+type PlayerList = { me: PickPlayer; friends: PickPlayer[] };
+const pickPlayer = (p: PickPlayer): PickPlayer => ({ accountId: p.accountId, onlineId: p.onlineId, avatarUrl: p.avatarUrl });
+
 export function StatsPage() {
   const { client } = useApp();
-  // O Ranking fica dentro de Estatísticas (/stats?view=ranking).
+  // O Ranking fica dentro de Estatísticas (/stats?view=ranking). De quem são
+  // as estatísticas (?who=) e com quem comparar (?vs=) também ficam no
+  // endereço: ao voltar de um jogo, continua no mesmo jogador.
   const [params, setParams] = useSearchParams();
   const view = params.get("view") === "ranking" ? "ranking" : "stats";
-  const setView = (v: "stats" | "ranking") => setParams(v === "ranking" ? { view: "ranking" } : {}, { replace: true });
+  const subjectId = params.get("who") || "me";
+  const compareId = params.get("vs") || "";
+  const update = (changes: Record<string, string>) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        for (const [key, value] of Object.entries(changes)) {
+          if (value) next.set(key, value);
+          else next.delete(key);
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  const setView = (v: "stats" | "ranking") => update({ view: v === "ranking" ? "ranking" : "" });
+  const setSubject = (id: string) =>
+    update({ who: id === "me" ? "" : id, ...(id === compareId ? { vs: "" } : {}) });
   const ranking = useRanking();
-  // De quem são as estatísticas: suas ou de um amigo.
-  const [subjectId, setSubjectId] = useState("me");
   const [refreshKey, setRefreshKey] = useState(0);
   const [statsLoading, setStatsLoading] = useState(false);
-  const friends = useData((force) => client.friends(force), [client]);
-  const sortedFriends = [...(friends.data ?? [])].sort((a, b) =>
-    a.onlineId.localeCompare(b.onlineId, locale(), { sensitivity: "base" }),
+  // Você e os amigos (nome e avatar): carregados uma vez e guardados até o
+  // usuário atualizar a tela. Se a PSN falhar ou voltar a lista vazia ao
+  // atualizar, fica a lista anterior (o seletor não some).
+  const players = useData(
+    async (force): Promise<PlayerList> => {
+      const previous = (await peekCached<PlayerList>(PLAYERS_KEY))?.value;
+      try {
+        return await untilRefresh(
+          PLAYERS_KEY,
+          async () => {
+            const [me, friends] = await Promise.all([client.me(force), client.friends(force)]);
+            const list = { me: { ...pickPlayer(me), accountId: "me" }, friends: friends.map(pickPlayer) };
+            return !list.friends.length && previous?.friends.length ? previous : list;
+          },
+          force,
+        );
+      } catch (e) {
+        if (previous) return previous;
+        throw e;
+      }
+    },
+    [client],
   );
-  const subject = sortedFriends.find((f) => f.accountId === subjectId) ?? null;
+  const everyone = players.data ? [players.data.me, ...players.data.friends] : [];
+  const subject = players.data?.friends.find((f) => f.accountId === subjectId) ?? null;
 
   return (
     <>
       <PageHeader
         title={view === "ranking" ? t("Ranking") : t("Estatísticas")}
-        onRefresh={view === "ranking" ? ranking.refresh : () => setRefreshKey((k) => k + 1)}
+        onRefresh={
+          view === "ranking"
+            ? ranking.refresh
+            : () => {
+                players.refresh();
+                setRefreshKey((k) => k + 1);
+              }
+        }
         refreshing={view === "ranking" ? ranking.loading : statsLoading}
       />
       <div className="space-y-4 px-4 pt-4">
@@ -76,30 +125,33 @@ export function StatsPage() {
           <RankingView ranking={ranking} />
         ) : (
           <>
-            {/* Estatísticas de um amigo, como as suas (troféus públicos). */}
-            {sortedFriends.length > 0 && (
-              <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2 text-sm">
-                <span className="text-muted">{t("Estatísticas de")}</span>
-                <select
-                  value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
-                  className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
-                >
-                  <option value="me">{t("Você")}</option>
-                  {sortedFriends.map((f) => (
-                    <option key={f.accountId} value={f.accountId}>
-                      {f.onlineId}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+            {/* De quem são as estatísticas e com quem comparar, juntos. */}
+            <div className="divide-y divide-line rounded-2xl border border-line bg-surface">
+              <PlayerRow
+                title={t("Estatísticas de")}
+                value={subjectId}
+                options={everyone.length ? everyone : [{ accountId: "me", onlineId: t("Você"), avatarUrl: null }]}
+                onChange={setSubject}
+                loading={players.loading && !players.data}
+              />
+              <PlayerRow
+                title={t("Comparar com")}
+                value={compareId}
+                options={everyone.filter((p) => p.accountId !== subjectId)}
+                onChange={(id) => update({ vs: id })}
+                allowNone
+                loading={players.loading && !players.data}
+              />
+            </div>
+            {players.error && !players.data ? <ErrorBox error={players.error} onRetry={players.refresh} /> : null}
             <PlayerStats
               key={subjectId}
               accountId={subjectId}
               name={subject?.onlineId}
               refreshKey={refreshKey}
               onLoading={setStatsLoading}
+              compareId={compareId}
+              players={players.data ? everyone : undefined}
             />
           </>
         )}
@@ -118,6 +170,8 @@ export function PlayerStats({
   name,
   refreshKey = 0,
   onLoading,
+  compareId,
+  players,
 }: {
   /** "me" ou o accountId do amigo. */
   accountId: string;
@@ -126,10 +180,19 @@ export function PlayerStats({
   /** Muda para buscar tudo de novo na PSN. */
   refreshKey?: number;
   onLoading?: (loading: boolean) => void;
+  /**
+   * Com quem comparar, escolhido fora (na aba Estatísticas, junto com o
+   * jogador). Sem ele, o seletor "Comparar com" aparece aqui dentro.
+   */
+  compareId?: string;
+  /** Você ("me") e os amigos, com avatar, para a comparação. */
+  players?: PickPlayer[];
 }) {
   const { client } = useApp();
   const [platform, setPlatform] = useState<string | null>(null);
-  const [friendId, setFriendId] = useState<string>("");
+  const [localFriendId, setFriendId] = useState<string>("");
+  const external = compareId !== undefined;
+  const friendId = (external ? compareId : localFriendId) === accountId ? "" : external ? compareId : localFriendId;
   // Categoria tocada nos quadros: abre o mural de jogos em um pop-up.
   const [mural, setMural] = useState<MuralKind | null>(null);
 
@@ -181,12 +244,14 @@ export function PlayerStats({
   const privateName = mine.data && "privateName" in mine.data ? mine.data.privateName : null;
   const data = mine.data && !("privateName" in mine.data) ? mine.data : null;
   // Com quem dá para comparar: os amigos e, nas estatísticas de um amigo, você.
-  const compareList = data
-    ? [
-        ...(accountId === "me" ? [] : [{ accountId: "me", onlineId: data.me.onlineId }]),
-        ...data.friends.filter((f) => f.accountId !== accountId),
-      ]
-    : [];
+  const compareList: PickPlayer[] = players
+    ? players.filter((p) => p.accountId !== accountId)
+    : data
+      ? [
+          ...(accountId === "me" ? [] : [{ accountId: "me", onlineId: data.me.onlineId, avatarUrl: data.me.avatarUrl }]),
+          ...data.friends.filter((f) => f.accountId !== accountId),
+        ]
+      : [];
   const friend = compareList.find((f) => f.accountId === friendId) ?? null;
   // Ao trocar de amigo, os dados do anterior ficam em `theirs.data` até os
   // novos chegarem: só valem os do amigo escolhido agora.
@@ -215,6 +280,11 @@ export function PlayerStats({
 
   const all = [meStats, frStats].filter((s): s is NonNullable<typeof s> => s !== null);
   const names = [data?.subjectName || t("Você"), friend?.onlineId ?? ""].slice(0, all.length);
+  // Avatares na legenda (os do seletor; o seu vem do perfil).
+  const avatars = [
+    accountId === "me" ? data?.me.avatarUrl : players?.find((p) => p.accountId === accountId)?.avatarUrl,
+    friend?.avatarUrl,
+  ];
   const series = (pick: (s: NonNullable<typeof meStats>) => number[]): Series[] =>
     all.map((s, i) => ({ name: names[i], values: pick(s) }));
 
@@ -271,23 +341,17 @@ export function PlayerStats({
             ]}
           />
 
-          <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2 text-sm">
-            <span className="text-muted">{t("Comparar com")}</span>
-            <select
-              value={friendId}
-              onChange={(e) => setFriendId(e.target.value)}
-              className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
-            >
-              <option value="">{t("ninguém")}</option>
-              {[...compareList]
-                .sort((a, b) => a.onlineId.localeCompare(b.onlineId, locale(), { sensitivity: "base" }))
-                .map((f) => (
-                  <option key={f.accountId} value={f.accountId}>
-                    {f.onlineId}
-                  </option>
-                ))}
-            </select>
-          </label>
+          {!external && (
+            <div className="rounded-2xl border border-line bg-surface">
+              <PlayerRow
+                title={t("Comparar com")}
+                value={friendId}
+                options={compareList}
+                onChange={setFriendId}
+                allowNone
+              />
+            </div>
+          )}
 
           {friend && (friendLoading || theirs.loading) && (
             <Spinner label={t("Buscando os jogos de {name}…", { name: friend.onlineId })} />
@@ -299,7 +363,19 @@ export function PlayerStats({
             </p>
           )}
 
-          <Legend series={series(() => [])} />
+          {all.length > 1 ? (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              {names.map((n, i) => (
+                <span key={n} className="flex min-w-0 items-center gap-2">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: SERIES_COLORS[i] }} />
+                  <Avatar src={avatars[i]} name={n} size={24} />
+                  <span className="truncate font-semibold">{n}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <Legend series={series(() => [])} />
+          )}
 
           {/* Quadros tocáveis (abrem o mural); o tempo de jogo fica por último. */}
           <div className="grid grid-cols-2 gap-3">
@@ -426,6 +502,19 @@ export function PlayerStats({
 
           <CompletionTimes accountId={accountId} titles={filterByPlatform(data.titles, platform, data.playedOn)} />
 
+          {friend && friendTitles && friendPlay && (
+            <CommonPlaytimeSection
+              names={names}
+              accountIds={[accountId, friend.accountId]}
+              list={commonPlaytime(
+                filterByPlatform(data.titles, platform, data.playedOn),
+                data.playtime,
+                filterByPlatform(friendTitles, platform, friendPlay.playedOn),
+                friendPlay.playtime,
+              )}
+            />
+          )}
+
           {all.map((s, i) =>
             s.topPlayed.length ? (
               <MostPlayed
@@ -475,6 +564,98 @@ function TrophyIconOnly({ type }: { type: (typeof TYPES)[number] }) {
 }
 
 const MOST_PLAYED_STEP = 5;
+const COMMON_STEP = 8;
+
+/**
+ * Tempo de jogo nos jogos em comum: total de cada um, em quantos cada um
+ * jogou mais e, por jogo, as duas barras de tempo lado a lado.
+ */
+function CommonPlaytimeSection({
+  names,
+  accountIds,
+  list,
+}: {
+  names: string[];
+  accountIds: string[];
+  list: ReturnType<typeof commonPlaytime>;
+}) {
+  const [count, setCount] = useState(COMMON_STEP);
+  const totals = [
+    list.reduce((sum, c) => sum + c.mineSeconds, 0),
+    list.reduce((sum, c) => sum + c.theirsSeconds, 0),
+  ];
+  const more = [
+    list.filter((c) => c.mineSeconds > c.theirsSeconds).length,
+    list.filter((c) => c.theirsSeconds > c.mineSeconds).length,
+  ];
+  const max = Math.max(1, ...list.map((c) => Math.max(c.mineSeconds, c.theirsSeconds)));
+  return (
+    <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+      <h2 className="font-semibold">{t("Tempo nos jogos em comum")}</h2>
+      {list.length === 0 ? (
+        <p className="text-sm text-muted">{t("Nenhum jogo em comum com tempo de jogo registrado.")}</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            {names.map((n, i) => (
+              <div key={n} className="min-w-0 rounded-xl bg-surface-2 p-2">
+                <p className="flex items-center gap-1.5 truncate text-xs text-muted">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: SERIES_COLORS[i] }} />
+                  {n}
+                </p>
+                <p className="text-lg font-bold tabular-nums">{formatDuration(totals[i])}</p>
+                <p className="text-[0.6875rem] text-muted">{t("jogou mais em {n} de {total}", { n: more[i], total: list.length })}</p>
+              </div>
+            ))}
+          </div>
+          <ul className="divide-y divide-line">
+            {list.slice(0, count).map((c) => (
+              <li key={c.mine.id} className="flex items-center gap-3 py-2.5">
+                <Link to={`/game/${accountIds[0]}/${c.mine.id}?service=${c.mine.service}`} className="shrink-0">
+                  <GameIcon src={c.mine.iconUrl} size={40} />
+                </Link>
+                <span className="min-w-0 flex-1">
+                  <Link
+                    to={`/game/${accountIds[0]}/${c.mine.id}?service=${c.mine.service}`}
+                    className="block truncate text-sm font-semibold"
+                  >
+                    {c.mine.name}
+                  </Link>
+                  {[c.mineSeconds, c.theirsSeconds].map((seconds, i) => (
+                    <span key={i} className="mt-1 flex items-center gap-2">
+                      <span className="h-2 flex-1">
+                        <span
+                          className="block h-full rounded-r-[0.25rem]"
+                          style={{ width: `${(seconds / max) * 100}%`, minWidth: 3, background: SERIES_COLORS[i] }}
+                        />
+                      </span>
+                      <span
+                        className={`w-16 shrink-0 text-right text-xs tabular-nums ${
+                          seconds >= [c.mineSeconds, c.theirsSeconds][1 - i] ? "font-semibold" : "text-muted"
+                        }`}
+                      >
+                        {formatDuration(seconds)}
+                      </span>
+                    </span>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {list.length > COMMON_STEP && (
+            <button
+              onClick={() => setCount((n) => (n >= list.length ? COMMON_STEP : n + 10))}
+              className="w-full text-sm font-semibold text-ps-blue-2"
+            >
+              {count >= list.length ? t("Mostrar menos") : t("Ver mais ({n})", { n: list.length - count })}
+            </button>
+          )}
+          <p className="text-[0.6875rem] text-muted">{t("Só jogos de PS4 e PS5 (PS3 e Vita não registram tempo).")}</p>
+        </>
+      )}
+    </section>
+  );
+}
 
 /** Mais jogados: ícone do jogo, nome e barra de tempo; "Ver mais" mostra os próximos. */
 function MostPlayed({

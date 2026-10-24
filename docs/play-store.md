@@ -17,7 +17,7 @@ Guia completo para colocar o Plathunt na Google Play. O app já está preparado;
 | Ícone 512×512 (PNG 32 bits), imagem de destaque 1024×500, capturas | ✅ em `assets/play-store/` |
 | Textos da página da loja (pt-BR e en-US) | ✅ abaixo |
 | Chave de envio cadastrada no GitHub | ✅ o AAB já sai assinado (artefato `plathunt-play-store`) |
-| Conta de desenvolvedor, teste fechado e envio | ⏳ **(você)**, passos 3 a 6 |
+| Conta de desenvolvedor, teste fechado e envio | ✅ app em teste fechado na Play Store |
 
 As duas versões do app são geradas juntas pelo GitHub Actions (Actions → Android APK):
 
