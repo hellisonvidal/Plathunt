@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 17,
+    items: [
+      "👥 Estatísticas: escolha o jogador e com quem comparar no mesmo lugar, com avatar; ao voltar de um jogo, continua no mesmo jogador.",
+      "⏱️ Comparação do tempo de jogo nos jogos que você e o amigo têm em comum.",
+    ],
+  },
+  {
     id: 16,
     items: [
       "📊 Estatísticas dos amigos: escolha o amigo em Estatísticas → \"Estatísticas de\" ou toque em \"📊 Estatísticas\" no cartão dele, na aba Amigos.",

@@ -297,3 +297,21 @@ describe("situação dos jogos", () => {
     expect(s.platinums).toBe(3);
   });
 });
+
+describe("tempo nos jogos em comum", () => {
+  it("só os jogos que os dois jogaram com tempo registrado, do maior tempo somado", async () => {
+    const { commonPlaytime } = await import("../src/lib/stats");
+    const mine = [title("A1", "Alpha", "PS5", 10, c(0, 0, 0, 1)), title("B1", "Beta", "PS4", 10, c(0, 0, 0, 1)), title("C1", "Gamma", "PS5", 0, c(0, 0, 0, 0))];
+    const theirs = [title("A2", "ALPHA", "PS5", 50, c(0, 0, 0, 1)), title("B2", "Beta", "PS4", 5, c(0, 0, 0, 1)), title("C2", "Gamma", "PS5", 0, c(0, 0, 0, 0))];
+    const list = commonPlaytime(
+      mine,
+      new Map([["A1", 3600], ["B1", 7200], ["C1", 100]]),
+      theirs,
+      new Map([["A2", 600], ["B2", 7200]]),
+    );
+    expect(list.map((x) => [x.mine.id, x.theirs.id, x.mineSeconds, x.theirsSeconds])).toEqual([
+      ["B1", "B2", 7200, 7200],
+      ["A1", "A2", 3600, 600],
+    ]);
+  });
+});
