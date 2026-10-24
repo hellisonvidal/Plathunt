@@ -149,3 +149,30 @@ jobs:
             --title "Plathunt $APP_VERSION (build $BUILD_NUMBER)" \
             --notes "${NOTES:-Nova versão}" \
             --target "$GITHUB_SHA"
+
+      # Envio automático para a Play Console (faixa de teste interno, como
+      # rascunho), só na main e se o segredo PLAY_SERVICE_ACCOUNT_JSON existir
+      # (docs/play-store.md). O primeiro envio de um app novo é feito à mão na
+      # Play Console. Uma falha aqui não derruba o build nem a Release do GitHub.
+      - name: Preparar envio para a Play Store
+        id: play
+        if: github.ref == 'refs/heads/main' && env.ANDROID_KEYSTORE_FILE != ''
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$PLAY_JSON" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Sem PLAY_SERVICE_ACCOUNT_JSON: o AAB fica só no artefato plathunt-play-store (envie à mão na Play Console)."
+          fi
+
+      - name: Enviar para a Play Store (teste interno)
+        if: steps.play.outputs.ok == 'true'
+        continue-on-error: true
+        uses: r0adkll/upload-google-play@v1.1.3
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: app.plathunt.trophytracker
+          releaseFiles: android/app/build/outputs/bundle/playRelease/app-play-release.aab
+          track: internal
+          status: draft
