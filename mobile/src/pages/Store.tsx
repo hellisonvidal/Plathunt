@@ -586,6 +586,8 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
         <RemoteImage
           src={p.imageUrl}
           alt=""
+          // Cartão com cerca de metade da largura da tela.
+          fit={220}
           onLoad={() => setLoaded(true)}
           className={`aspect-square w-full object-cover transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
           fallback={

@@ -16,6 +16,7 @@ import { evaluateMerits, meritName, MERITS } from "./merits";
 import { getMeritDates, recordMeritDates } from "./meritDates";
 import { notificationsEnabled, notify } from "./notify";
 import { countReactedItems } from "./reactions";
+import { savingData } from "./dataSaver";
 import { getSettings, VERSION_CODE } from "./settings";
 import { matchPlayed } from "./stats";
 import { checkForUpdate } from "./updates";
@@ -66,6 +67,8 @@ interface CheckState {
 const KEY = "tm.checks";
 /** Intervalo mínimo entre verificações (para não gastar chamadas à PSN). */
 const EVERY_MS = 15 * 60_000;
+/** Economizando dados (dados móveis): no máximo uma verificação por hora. */
+const EVERY_MS_SAVING_DATA = 60 * 60_000;
 let running = false;
 
 function readState(): CheckState {
@@ -97,7 +100,7 @@ export async function runBackgroundChecks(client: PsnClient, now = Date.now()): 
   const settings = getSettings();
   if (!settings.notifications || running) return;
   const state = readState();
-  if (now - state.at < EVERY_MS) return;
+  if (now - state.at < (savingData() ? EVERY_MS_SAVING_DATA : EVERY_MS)) return;
   running = true;
   try {
     state.at = now;
