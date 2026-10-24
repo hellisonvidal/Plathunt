@@ -385,6 +385,15 @@ export function commonPlaytime(
     .sort((x, y) => y.mineSeconds + y.theirsSeconds - (x.mineSeconds + x.theirsSeconds));
 }
 
+/**
+ * Se o 100% do jogo tem tempo próprio: nos jogos com DLC (o 100% vem depois
+ * da platina) e nos sem platina (o 100% é a única conclusão). Nos outros, o
+ * 100% é o mesmo momento da platina.
+ */
+export function hasOwnFullTime(title: Title): boolean {
+  return title.hasGroups || title.defined.platinum === 0;
+}
+
 /** Do primeiro troféu à platina (ou ao último troféu, no 100%). */
 export interface CompletionSpan {
   start: string;

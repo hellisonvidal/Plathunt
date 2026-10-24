@@ -315,3 +315,13 @@ describe("tempo nos jogos em comum", () => {
     ]);
   });
 });
+
+describe("tempo até o 100%", () => {
+  it("conta jogos com DLC e jogos sem platina; nos outros, o 100% é a platina", async () => {
+    const { hasOwnFullTime } = await import("../src/lib/stats");
+    const base = title("X", "Jogo", "PS5", 100, c(1, 1, 1, 1));
+    expect(hasOwnFullTime(base)).toBe(false);
+    expect(hasOwnFullTime({ ...base, hasGroups: true })).toBe(true);
+    expect(hasOwnFullTime({ ...base, defined: c(0, 1, 2, 10), earned: c(0, 1, 2, 10) })).toBe(true);
+  });
+});

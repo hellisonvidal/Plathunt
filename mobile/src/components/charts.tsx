@@ -89,7 +89,7 @@ export function StatTile({
   return (
     <Tag
       {...(onSelect ? { onClick: onSelect, "aria-pressed": !!selected, type: "button" as const } : {})}
-      className={`rounded-2xl border bg-surface p-3 text-left ${
+      className={`flex flex-col rounded-2xl border bg-surface p-3 text-left ${
         selected ? "border-ps-blue-2 ring-1 ring-ps-blue-2" : "border-line"
       } ${onSelect ? "active:bg-surface-2" : ""}`}
     >
@@ -98,9 +98,11 @@ export function StatTile({
         {onSelect && <span aria-hidden>{selected ? "▾" : "▸"}</span>}
       </p>
       {values.length === 1 ? (
-        <p className="mt-1 text-2xl font-bold tabular-nums">{values[0]}</p>
+        <p className="mt-auto pt-1 text-2xl font-bold tabular-nums">{values[0]}</p>
       ) : (
-        <div className="mt-1 space-y-0.5">
+        // No pé do quadro: os números ficam na mesma altura dos quadros vizinhos,
+        // mesmo quando o título de um ocupa duas linhas.
+        <div className="mt-auto space-y-0.5 pt-1">
           {values.map((v, i) => (
             <p key={names[i]} className="flex items-center gap-1.5 text-lg font-bold tabular-nums">
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: SERIES_COLORS[i] }} />

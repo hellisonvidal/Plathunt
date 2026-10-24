@@ -10,6 +10,10 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 19,
+    items: ["⏱️ Tempo até o 100% agora inclui os jogos sem platina, e os números da comparação ficam alinhados."],
+  },
+  {
     id: 18,
     items: [
       "⏱️ Tempo até a platina / 100% agora compara você e o amigo: média, o mais rápido e os jogos em comum lado a lado.",
