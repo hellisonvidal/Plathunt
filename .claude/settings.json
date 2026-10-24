@@ -1,0 +1,18 @@
+{
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
+  },
+  "permissions": {
+    "deny": [
+      "Read(./.next/**)",
+      "Read(./node_modules/**)",
+      "Read(./mobile/node_modules/**)",
+      "Read(./cloudflare/node_modules/**)",
+      "Read(./mobile/dist/**)",
+      "Read(./android/app/build/**)",
+      "Read(./android/app/src/main/assets/public/**)",
+      "Read(./**/package-lock.json)",
+      "Read(./assets/play-store/capturas/**)"
+    ]
+  }
+}

@@ -52,7 +52,7 @@ export function RemoteImage({
   /** Largura na tela (px): imagens da loja vêm nesse tamanho, não em alta resolução. */
   fit?: number;
 }) {
-  const candidates = imageCandidates(src, fit ?? (typeof props.width === "number" ? props.width : undefined));
+  const candidates = imageCandidates(src, fit);
   const [attempt, setAttempt] = useState(0);
   const [lastSrc, setLastSrc] = useState(src);
   // Recomeça as tentativas quando o endereço muda (ex.: dados atualizados).
@@ -163,7 +163,6 @@ export function GameIcon({ src, size = 56 }: { src: string | null; size?: number
       src={src}
       fallback={placeholder}
       alt=""
-      fit={size}
       className="shrink-0 rounded-lg object-cover"
       style={{ width: rem(size), height: rem(size) }}
     />

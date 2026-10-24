@@ -12,7 +12,8 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     id: 16,
     items: [
-      "📶 Menos consumo de dados: o app baixa só o que mudou nas listas de jogos, as imagens da loja vêm no tamanho da tela e, nos dados móveis, as verificações em segundo plano ficam mais espaçadas (Configurações → Dados → Economia de dados).",
+      "📊 Estatísticas dos amigos: escolha o amigo em Estatísticas → \"Estatísticas de\" ou toque em \"📊 Estatísticas\" no cartão dele, na aba Amigos.",
+      "🛒 Loja mais leve: as imagens dos jogos ficaram 15% menores e são baixadas no tamanho da tela.",
     ],
   },
   {

@@ -32,7 +32,7 @@ function WithTime({ text, time }: { text: string; time: string }) {
  * troféu ao último. Busca as datas dos troféus de cada jogo concluído aos
  * poucos (vão aparecendo conforme chegam).
  */
-export function CompletionTimes({ titles }: { titles: Title[] }) {
+export function CompletionTimes({ titles, accountId = "me" }: { titles: Title[]; accountId?: string }) {
   const { client } = useApp();
   const done = titles.filter((t) => t.earned.platinum > 0 || t.progress === 100);
   const key = done.map((t) => t.id).join(",");
@@ -47,7 +47,7 @@ export function CompletionTimes({ titles }: { titles: Title[] }) {
     setRows(new Map());
     void mapLimit(done, 4, async (title) => {
       const row = await client
-        .gameTrophies("me", title)
+        .gameTrophies(accountId, title)
         .then((trophies) => ({ title, ...completionSpans(trophies) }))
         .catch(() => null);
       if (alive) setRows((prev) => new Map(prev).set(title.id, row));
@@ -55,7 +55,7 @@ export function CompletionTimes({ titles }: { titles: Title[] }) {
     return () => {
       alive = false;
     };
-  }, [client, key]);
+  }, [client, key, accountId]);
 
   if (!done.length) return null;
   const loaded = [...rows.values()].filter((r): r is Row => !!r);

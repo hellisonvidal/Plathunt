@@ -109,8 +109,7 @@ export interface PsnClient {
   /** Lista completa de jogos com troféus. */
   titles(accountId: string, force?: boolean): Promise<Title[]>;
   /** Só os 100 jogos mais recentes (mais leve, para a lista de amigos). */
-  /** Os últimos jogos do jogador (do mais recente ao mais antigo); `limit` padrão: 100. */
-  recentTitles(accountId: string, force?: boolean, limit?: number): Promise<Title[]>;
+  recentTitles(accountId: string, force?: boolean): Promise<Title[]>;
   /** Jogos jogados com tempo de jogo; null se o perfil não permitir. */
   playedGames(accountId: string, force?: boolean): Promise<PlayedGame[] | null>;
   trophyGroups(game: { id: string; service: Title["service"] }): Promise<TrophyGroup[]>;

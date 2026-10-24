@@ -521,7 +521,9 @@ function SkeletonGrid({ count = 6 }: { count?: number }) {
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3" aria-hidden>
       {Array.from({ length: count }, (_, i) => (
         <li key={i} className="overflow-hidden rounded-2xl border border-line bg-surface">
-          <div className="aspect-square w-full animate-pulse bg-surface-2" />
+          <div className="flex justify-center bg-surface-2 py-[7.5%]">
+            <div className="aspect-square w-[85%] animate-pulse rounded-xl bg-line" />
+          </div>
           <div className="space-y-2 p-2.5">
             <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2" />
             <div className="h-3 w-1/2 animate-pulse rounded bg-surface-2" />
@@ -582,16 +584,16 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
       }}
       className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface"
     >
-      <div className="relative bg-surface-2">
+      {/* Imagem 15% menor que o cartão, baixada nesse tamanho: a loja carrega mais rápido. */}
+      <div className="relative flex justify-center bg-surface-2 py-[7.5%]">
         <RemoteImage
           src={p.imageUrl}
           alt=""
-          // Cartão com cerca de metade da largura da tela.
-          fit={220}
+          fit={170}
           onLoad={() => setLoaded(true)}
-          className={`aspect-square w-full object-cover transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
+          className={`aspect-square w-[85%] rounded-xl object-cover transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
           fallback={
-            <span className="flex aspect-square w-full items-center justify-center bg-surface-2 text-4xl" aria-hidden>
+            <span className="flex aspect-square w-[85%] items-center justify-center rounded-xl text-4xl" aria-hidden>
               🎮
             </span>
           }
