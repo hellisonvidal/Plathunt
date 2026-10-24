@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { mapLimit } from "../lib/cache";
-import { compareTitles, completionSpans, formatSpan, type CompletionSpan } from "../lib/stats";
+import { compareTitles, completionSpans, formatSpan, hasOwnFullTime, type CompletionSpan } from "../lib/stats";
 import { SERIES_COLORS } from "./charts";
 import { locale, t } from "../i18n";
 import type { Title } from "../psn/types";
@@ -30,8 +30,8 @@ function WithTime({ text, time }: { text: string; time: string }) {
 
 type Kind = "platinum" | "full";
 
-// 100% só de jogos com DLC: nos outros, o 100% é o mesmo momento da platina.
-const ofKind = (r: Row, k: Kind) => (k === "full" ? (r.title.hasGroups ? r.full : null) : r.platinum);
+// 100% só de jogos com DLC ou sem platina: nos outros, é o mesmo momento da platina.
+const ofKind = (r: Row, k: Kind) => (k === "full" ? (hasOwnFullTime(r.title) ? r.full : null) : r.platinum);
 
 /**
  * Datas de platina e 100% dos jogos concluídos de um jogador, buscadas aos
@@ -184,7 +184,7 @@ export function CompletionTimes({
       <p className="text-[0.6875rem] text-muted">
         {kind === "platinum"
           ? t("Do primeiro troféu conquistado até a platina.")
-          : t("Só jogos com DLC: do primeiro troféu conquistado até o último, contando as DLCs.")}
+          : t("Jogos com DLC ou sem platina: do primeiro troféu conquistado até o último, contando as DLCs.")}
       </p>
 
       {comparing && (
@@ -251,7 +251,7 @@ export function CompletionTimes({
       )}
       {!showCommon && !loading && !spans.length && (
         <p className="text-xs text-muted">
-          {kind === "platinum" ? t("Nenhuma platina por aqui ainda.") : t("Nenhum jogo com DLC 100% por aqui ainda.")}
+          {kind === "platinum" ? t("Nenhuma platina por aqui ainda.") : t("Nenhum jogo com DLC ou sem platina 100% por aqui ainda.")}
         </p>
       )}
 
