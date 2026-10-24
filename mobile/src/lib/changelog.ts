@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 18,
+    items: [
+      "⏱️ Tempo até a platina / 100% agora compara você e o amigo: média, o mais rápido e os jogos em comum lado a lado.",
+    ],
+  },
+  {
     id: 17,
     items: [
       "👥 Estatísticas: escolha o jogador e com quem comparar no mesmo lugar, com avatar; ao voltar de um jogo, continua no mesmo jogador.",
