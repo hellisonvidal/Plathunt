@@ -8,7 +8,6 @@ import { importBoost } from "./lib/boostInbox";
 import { ALL_ID, storeRegionForCountry } from "./lib/store";
 import { storeCategory } from "./psn/store";
 import { runBackgroundChecks } from "./lib/checks";
-import { savingData } from "./lib/dataSaver";
 import { cancelAllNotifications, onInAppNotice, onNotificationTap, type InAppNotice } from "./lib/notify";
 import { getSettings, updateSettings, useSettings } from "./lib/settings";
 import { hasSession, signOut as clearSession } from "./psn/auth";
@@ -256,8 +255,7 @@ function BackgroundChecks() {
 function StorePreload() {
   const { mode } = useApp();
   useEffect(() => {
-    // Economizando dados, a loja só carrega quando a aba é aberta.
-    if (mode === "demo" || savingData()) return;
+    if (mode === "demo") return;
     const timer = setTimeout(() => {
       void storeCategory(ALL_ID, getSettings().storeRegion).catch(() => {});
     }, 8000);

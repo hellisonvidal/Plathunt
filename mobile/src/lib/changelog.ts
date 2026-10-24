@@ -10,12 +10,6 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    id: 16,
-    items: [
-      "📶 Menos consumo de dados: o app baixa só o que mudou nas listas de jogos, as imagens da loja vêm no tamanho da tela e, nos dados móveis, as verificações em segundo plano ficam mais espaçadas (Configurações → Dados → Economia de dados).",
-    ],
-  },
-  {
     id: 15,
     items: [
       "🚪 Sair / trocar de conta apaga os dados da conta no celular e a próxima entrada pede o login da PSN de novo.",

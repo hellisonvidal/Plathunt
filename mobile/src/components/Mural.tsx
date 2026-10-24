@@ -226,7 +226,6 @@ export function Mural({
                     <RemoteImage
                       src={title.iconUrl}
                       alt=""
-                      fit={140}
                       className="aspect-square w-full object-cover"
                       fallback={
                         <span className="flex aspect-square w-full items-center justify-center text-3xl" aria-hidden>

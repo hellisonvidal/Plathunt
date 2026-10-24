@@ -24,12 +24,6 @@ export interface Settings {
   /** De quanto em quanto tempo a loja salva no celular é atualizada. */
   storeUpdate: StoreRefresh;
   /**
-   * Economia de dados: menos verificações em segundo plano, loja sem
-   * pré-carregar e imagens menores. "auto": nos dados móveis (4G/5G) ou com a
-   * economia de dados do Android ligada.
-   */
-  dataSaver: "auto" | "on" | "off";
-  /**
    * Tocar num jogo da Loja abre no app PlayStation (se instalado) em vez do
    * navegador. Desligado por padrão: com o app PlayStation já aberto em segundo
    * plano, ele mostra a última tela em vez do jogo, e o Android 14+ não deixa
@@ -67,7 +61,6 @@ export const DEFAULT_SETTINGS: Settings = {
   storeRegionAuto: true,
   // Padrão: a loja salva só é atualizada quando o usuário puxa a tela da loja.
   storeUpdate: "manual",
-  dataSaver: "auto",
   storePsApp: false,
   // Claro ou escuro, como o sistema do aparelho.
   theme: "auto",
@@ -101,7 +94,6 @@ export function getSettings(): Settings {
     const merged = { ...DEFAULT_SETTINGS, ...Object.fromEntries(known.map((k) => [k, saved[k]])) } as Settings;
     if (!LANGUAGES.some((l) => l.value === merged.language)) merged.language = DEFAULT_SETTINGS.language;
     if (!STORE_REGIONS.some((r) => r.value === merged.storeRegion)) merged.storeRegion = DEFAULT_SETTINGS.storeRegion;
-    if (!["auto", "on", "off"].includes(merged.dataSaver)) merged.dataSaver = DEFAULT_SETTINGS.dataSaver;
     if (!STORE_REFRESH.some((r) => r.value === merged.storeUpdate)) merged.storeUpdate = DEFAULT_SETTINGS.storeUpdate;
     return merged;
   } catch {

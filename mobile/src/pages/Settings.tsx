@@ -186,23 +186,6 @@ export function SettingsPage() {
         </Section>
 
         <Section title={t("Dados")}>
-          <div>
-            <Choice
-              label={t("Economia de dados")}
-              options={[
-                { value: "auto" as const, label: t("Nos dados móveis") },
-                { value: "on" as const, label: t("Sempre") },
-                { value: "off" as const, label: t("Nunca") },
-              ]}
-              value={settings.dataSaver}
-              onChange={(dataSaver) => updateSettings({ dataSaver })}
-            />
-            <p className="-mt-2 px-4 pb-4 text-xs text-muted">
-              {t(
-                "Economizando, o app procura novidades no máximo uma vez por hora, a loja só carrega quando você abre a aba e as imagens da loja vêm menores.",
-              )}
-            </p>
-          </div>
           <Row
             label={t("Atualizar todos os dados agora")}
             hint={t("Busca tudo de novo na PSN em vez de usar o que está salvo")}

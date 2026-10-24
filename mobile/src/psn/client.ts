@@ -13,8 +13,7 @@ import {
   type AuthorizationPayload,
   type TrophyTitle,
 } from "psn-api";
-import { cached, createLimiter, mapLimit, peekCached } from "../lib/cache";
-import { DELTA_PAGE, syncTitles } from "../lib/titleSync";
+import { cached, createLimiter, mapLimit } from "../lib/cache";
 import { toPresence, UNKNOWN_PRESENCE, type RawPresence } from "../lib/presence";
 import { getSettings } from "../lib/settings";
 import { parseDuration, platformFromCategory } from "../lib/stats";
@@ -191,16 +190,6 @@ export function createPsnClient(): PsnClient {
         10 * MIN,
         async () => {
           const a = await auth();
-          // Com uma cópia salva (mesmo vencida), baixa só o que mudou desde ela:
-          // em geral uma página de 100 jogos em vez da lista inteira.
-          const saved = await peekCached<Title[]>(`titles:${accountId}`);
-          if (saved?.value?.length) {
-            const synced = await syncTitles(saved.value, async (offset) => {
-              const res = await getUserTitles(a, accountId, { limit: DELTA_PAGE, offset, headerOverrides: headers() });
-              return { titles: res.trophyTitles.map(toTitle), nextOffset: res.nextOffset, total: res.totalItemCount };
-            }).catch(() => null);
-            if (synced) return synced;
-          }
           const all: Title[] = [];
           // Todos os jogos (até 20.000), seus e dos amigos, em páginas de 800 (o
           // máximo da PSN): a comparação de estatísticas, o Boost e os Desafios
@@ -217,13 +206,13 @@ export function createPsnClient(): PsnClient {
       );
     },
 
-    async recentTitles(accountId, force, limit = 100) {
+    async recentTitles(accountId, force) {
       return cached(
-        limit === 100 ? `recent:${accountId}` : `recent${limit}:${accountId}`,
+        `recent:${accountId}`,
         30 * MIN,
         () =>
           limited(async () => {
-            const res = await getUserTitles(await auth(), accountId, { limit, headerOverrides: headers() });
+            const res = await getUserTitles(await auth(), accountId, { limit: 100, headerOverrides: headers() });
             return res.trophyTitles.map(toTitle);
           }),
         force,
@@ -400,9 +389,7 @@ export function createPsnClient(): PsnClient {
           const active = (
             await mapLimit(friendIds, CONCURRENCY, async (id) => {
               try {
-                // Só os últimos jogos de cada amigo (a lista vem do mais recente ao
-                // mais antigo): bem menos dados que os 100 jogos de antes.
-                const titles = (await client.recentTitles(id, force, FEED_GAMES_PER_FRIEND))
+                const titles = (await client.recentTitles(id, force))
                   .filter((t) => new Date(t.lastUpdated).getTime() >= since)
                   .slice(0, FEED_GAMES_PER_FRIEND);
                 return { id, titles };
