@@ -16,7 +16,7 @@ Guia completo para colocar o Plathunt na Google Play. O app já está preparado;
 | Acesso para o revisor sem conta | ✅ botão **Ver demonstração** na tela de entrada |
 | Ícone 512×512 (PNG 32 bits), imagem de destaque 1024×500, capturas | ✅ em `assets/play-store/` |
 | Textos da página da loja (pt-BR e en-US) | ✅ abaixo |
-| Chave de envio cadastrada no GitHub | ⏳ **(você)**, passo 1 |
+| Chave de envio cadastrada no GitHub | ✅ o AAB já sai assinado (artefato `plathunt-play-store`) |
 | Conta de desenvolvedor, teste fechado e envio | ⏳ **(você)**, passos 3 a 6 |
 
 As duas versões do app são geradas juntas pelo GitHub Actions (Actions → Android APK):
@@ -60,6 +60,16 @@ No GitHub, em **Settings → Secrets and variables → Actions → New repositor
 ## 2. Gerar o pacote
 
 Em **Actions → Android APK → Run workflow** (na `main`). Ao terminar, baixe o artefato **plathunt-play-store**: dentro está o `app-play-release.aab`, assinado. O número da versão (`versionCode`) sobe sozinho a cada build (10000 + build).
+
+### Envio automático (opcional, depois do primeiro envio)
+
+O build da `main` também pode mandar o AAB sozinho para a Play Console, na faixa de **teste interno**, como **rascunho** (você revisa e lança na Play Console). O **primeiro** envio de um app novo precisa ser feito à mão (passo 5); depois:
+
+1. Na Google Cloud, crie uma **conta de serviço** e baixe a chave **JSON** (IAM e administrador → Contas de serviço → Chaves → Adicionar chave → JSON). Ative a **Google Play Android Developer API** no mesmo projeto.
+2. Na Play Console, em **Usuários e permissões → Convidar novos usuários**, convide o e-mail da conta de serviço com acesso ao app e a permissão **Lançar apps para faixas de teste**.
+3. No GitHub (**Settings → Secrets and variables → Actions**), crie o segredo **`PLAY_SERVICE_ACCOUNT_JSON`** com o conteúdo inteiro do arquivo JSON.
+
+Sem o segredo, o build só avisa e o AAB continua no artefato. Se o envio falhar, o build e a Release do GitHub seguem normalmente.
 
 ## 3. Conta de desenvolvedor (você)
 
