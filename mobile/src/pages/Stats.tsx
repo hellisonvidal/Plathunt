@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { GroupedBars, Legend, SERIES_COLORS, StatTile, type Series } from "../components/charts";
@@ -35,6 +35,99 @@ export function StatsPage() {
   const view = params.get("view") === "ranking" ? "ranking" : "stats";
   const setView = (v: "stats" | "ranking") => setParams(v === "ranking" ? { view: "ranking" } : {}, { replace: true });
   const ranking = useRanking();
+  // De quem são as estatísticas: suas ou de um amigo.
+  const [subjectId, setSubjectId] = useState("me");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const friends = useData((force) => client.friends(force), [client]);
+  const sortedFriends = [...(friends.data ?? [])].sort((a, b) =>
+    a.onlineId.localeCompare(b.onlineId, locale(), { sensitivity: "base" }),
+  );
+  const subject = sortedFriends.find((f) => f.accountId === subjectId) ?? null;
+
+  return (
+    <>
+      <PageHeader
+        title={view === "ranking" ? t("Ranking") : t("Estatísticas")}
+        onRefresh={view === "ranking" ? ranking.refresh : () => setRefreshKey((k) => k + 1)}
+        refreshing={view === "ranking" ? ranking.loading : statsLoading}
+      />
+      <div className="space-y-4 px-4 pt-4">
+        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-surface p-1 text-sm" role="tablist">
+          {(
+            [
+              ["stats", "📊 Estatísticas"],
+              ["ranking", "🏆 Ranking"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={view === key}
+              onClick={() => setView(key)}
+              className={`rounded-xl py-2 font-semibold ${view === key ? "bg-ps-blue" : "text-muted"}`}
+            >
+              {t(label)}
+            </button>
+          ))}
+        </div>
+
+        {view === "ranking" ? (
+          <RankingView ranking={ranking} />
+        ) : (
+          <>
+            {/* Estatísticas de um amigo, como as suas (troféus públicos). */}
+            {sortedFriends.length > 0 && (
+              <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2 text-sm">
+                <span className="text-muted">{t("Estatísticas de")}</span>
+                <select
+                  value={subjectId}
+                  onChange={(e) => setSubjectId(e.target.value)}
+                  className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
+                >
+                  <option value="me">{t("Você")}</option>
+                  {sortedFriends.map((f) => (
+                    <option key={f.accountId} value={f.accountId}>
+                      {f.onlineId}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <PlayerStats
+              key={subjectId}
+              accountId={subjectId}
+              name={subject?.onlineId}
+              refreshKey={refreshKey}
+              onLoading={setStatsLoading}
+            />
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+/**
+ * Estatísticas completas de um jogador (você ou um amigo com troféus
+ * públicos), com comparação opcional com outro. Usada na aba Estatísticas e
+ * no pop-up de estatísticas da aba Amigos.
+ */
+export function PlayerStats({
+  accountId,
+  name,
+  refreshKey = 0,
+  onLoading,
+}: {
+  /** "me" ou o accountId do amigo. */
+  accountId: string;
+  /** Nome do amigo (enquanto os dados chegam). */
+  name?: string;
+  /** Muda para buscar tudo de novo na PSN. */
+  refreshKey?: number;
+  onLoading?: (loading: boolean) => void;
+}) {
+  const { client } = useApp();
   const [platform, setPlatform] = useState<string | null>(null);
   const [friendId, setFriendId] = useState<string>("");
   // Categoria tocada nos quadros: abre o mural de jogos em um pop-up.
@@ -44,13 +137,23 @@ export function StatsPage() {
     async (force) => {
       // Fica salvo até o usuário puxar a tela para atualizar.
       const [me, titles, played, friends] = await untilRefresh(
-        "stats:me",
-        () => Promise.all([client.me(force), client.titles("me", force), client.playedGames("me", force), client.friends(force)]),
+        accountId === "me" ? "stats:me" : `stats:subject:${accountId}`,
+        () =>
+          Promise.all([
+            client.me(force),
+            // Troféus privados: a PSN recusa a lista de jogos do amigo.
+            accountId === "me" ? client.titles("me", force) : client.titles(accountId, force).catch(() => null),
+            client.playedGames(accountId, force),
+            client.friends(force),
+          ]),
         force,
       );
-      return { me, titles, ...playMaps(matchPlayed(titles, played ?? [])), friends };
+      const subjectName =
+        accountId === "me" ? me.onlineId : (friends.find((f) => f.accountId === accountId)?.onlineId ?? name ?? "");
+      if (!titles) return { privateName: subjectName } as const;
+      return { me, subjectName, titles, ...playMaps(matchPlayed(titles, played ?? [])), friends };
     },
-    [client],
+    [client, accountId],
   );
 
   const theirs = useData(
@@ -75,8 +178,16 @@ export function StatsPage() {
     [client, friendId],
   );
 
-  const data = mine.data;
-  const friend = data?.friends.find((f) => f.accountId === friendId) ?? null;
+  const privateName = mine.data && "privateName" in mine.data ? mine.data.privateName : null;
+  const data = mine.data && !("privateName" in mine.data) ? mine.data : null;
+  // Com quem dá para comparar: os amigos e, nas estatísticas de um amigo, você.
+  const compareList = data
+    ? [
+        ...(accountId === "me" ? [] : [{ accountId: "me", onlineId: data.me.onlineId }]),
+        ...data.friends.filter((f) => f.accountId !== accountId),
+      ]
+    : [];
+  const friend = compareList.find((f) => f.accountId === friendId) ?? null;
   // Ao trocar de amigo, os dados do anterior ficam em `theirs.data` até os
   // novos chegarem: só valem os do amigo escolhido agora.
   const friendData = friend && theirs.data?.friendId === friend.accountId ? theirs.data : null;
@@ -103,7 +214,7 @@ export function StatsPage() {
     friend && friendTitles && friendPlay ? stats(friendTitles, friendPlay.playtime, friendPlay.playedOn) : null;
 
   const all = [meStats, frStats].filter((s): s is NonNullable<typeof s> => s !== null);
-  const names = [data?.me.onlineId ?? t("Você"), friend?.onlineId ?? ""].slice(0, all.length);
+  const names = [data?.subjectName || t("Você"), friend?.onlineId ?? ""].slice(0, all.length);
   const series = (pick: (s: NonNullable<typeof meStats>) => number[]): Series[] =>
     all.map((s, i) => ({ name: names[i], values: pick(s) }));
 
@@ -120,234 +231,222 @@ export function StatsPage() {
       />
     ));
 
+  // Puxar a tela para atualizar (na página) busca tudo de novo na PSN.
+  useEffect(() => {
+    if (refreshKey > 0) {
+      mine.refresh();
+      theirs.refresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
+  useEffect(() => onLoading?.(mine.loading), [mine.loading, onLoading]);
+
   return (
     <>
-      <PageHeader
-        title={view === "ranking" ? t("Ranking") : t("Estatísticas")}
-        onRefresh={view === "ranking" ? ranking.refresh : () => (mine.refresh(), theirs.refresh())}
-        refreshing={view === "ranking" ? ranking.loading : mine.loading}
-      />
-      <div className="space-y-4 px-4 pt-4">
-        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-surface p-1 text-sm" role="tablist">
-          {(
-            [
-              ["stats", "📊 Estatísticas"],
-              ["ranking", "🏆 Ranking"],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              role="tab"
-              aria-selected={view === key}
-              onClick={() => setView(key)}
-              className={`rounded-xl py-2 font-semibold ${view === key ? "bg-ps-blue" : "text-muted"}`}
+      {mine.error ? <ErrorBox error={mine.error} onRetry={mine.refresh} /> : null}
+      {mine.loading && !mine.data && (
+        <Spinner
+          label={
+            accountId === "me" ? t("Calculando suas estatísticas…") : t("Buscando os jogos de {name}…", { name: name ?? "" })
+          }
+        />
+      )}
+      {privateName !== null && (
+        <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
+          {t("Os troféus de {name} são privados, então não dá para mostrar as estatísticas.", { name: privateName ?? "" })}
+        </p>
+      )}
+
+      {data && meStats && (
+        <>
+          <PlatformPicker
+            platforms={platforms}
+            selected={platform}
+            onSelect={setPlatform}
+            counts={[
+              { name: names[0] ?? t("Você"), titles: data.titles, playedOn: data.playedOn },
+              ...(friend && friendTitles && friendPlay
+                ? [{ name: friend.onlineId, titles: friendTitles, playedOn: friendPlay.playedOn }]
+                : []),
+            ]}
+          />
+
+          <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2 text-sm">
+            <span className="text-muted">{t("Comparar com")}</span>
+            <select
+              value={friendId}
+              onChange={(e) => setFriendId(e.target.value)}
+              className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
             >
-              {t(label)}
-            </button>
-          ))}
-        </div>
+              <option value="">{t("ninguém")}</option>
+              {[...compareList]
+                .sort((a, b) => a.onlineId.localeCompare(b.onlineId, locale(), { sensitivity: "base" }))
+                .map((f) => (
+                  <option key={f.accountId} value={f.accountId}>
+                    {f.onlineId}
+                  </option>
+                ))}
+            </select>
+          </label>
 
-        {view === "ranking" ? (
-          <RankingView ranking={ranking} />
-        ) : (
-          <>
-            {mine.error ? <ErrorBox error={mine.error} onRetry={mine.refresh} /> : null}
-            {mine.loading && !data && <Spinner label={t("Calculando suas estatísticas…")} />}
+          {friend && (friendLoading || theirs.loading) && (
+            <Spinner label={t("Buscando os jogos de {name}…", { name: friend.onlineId })} />
+          )}
+          {friend && theirs.error ? <ErrorBox error={theirs.error} onRetry={theirs.refresh} /> : null}
+          {friend && friendData && !friendTitles && (
+            <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
+              {t("Os troféus de {name} são privados, então não dá para comparar.", { name: friend.onlineId })}
+            </p>
+          )}
 
-            {data && meStats && (
-              <>
-                <PlatformPicker
-                  platforms={platforms}
-                  selected={platform}
-                  onSelect={setPlatform}
-                  counts={[
-                    { name: names[0] ?? t("Você"), titles: data.titles, playedOn: data.playedOn },
-                    ...(friend && friendTitles && friendPlay
-                      ? [{ name: friend.onlineId, titles: friendTitles, playedOn: friendPlay.playedOn }]
-                      : []),
-                  ]}
-                />
+          <Legend series={series(() => [])} />
 
-                <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2 text-sm">
-                  <span className="text-muted">{t("Comparar com")}</span>
-                  <select
-                    value={friendId}
-                    onChange={(e) => setFriendId(e.target.value)}
-                    className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
-                  >
-                    <option value="">{t("ninguém")}</option>
-                    {[...data.friends]
-                      .sort((a, b) => a.onlineId.localeCompare(b.onlineId, locale(), { sensitivity: "base" }))
-                      .map((f) => (
-                        <option key={f.accountId} value={f.accountId}>
-                          {f.onlineId}
-                        </option>
-                      ))}
-                  </select>
-                </label>
+          {/* Quadros tocáveis (abrem o mural); o tempo de jogo fica por último. */}
+          <div className="grid grid-cols-2 gap-3">
+            {tiles([
+              ["jogos", all.map((s) => s.games.toLocaleString(locale()))],
+              ["platinas", all.map((s) => s.platinums.toLocaleString(locale()))],
+              ["conclusao", all.map((s) => `${s.avgProgress}%`)],
+              ["trofeus", all.map((s) => s.totalTrophies.toLocaleString(locale()))],
+              ["faltam", all.map((s) => s.totalMissing.toLocaleString(locale()))],
+              ["tempo", all.map((s) => formatDuration(s.playSeconds))],
+            ])}
+          </div>
 
-                {friend && (friendLoading || theirs.loading) && (
-                  <Spinner label={t("Buscando os jogos de {name}…", { name: friend.onlineId })} />
-                )}
-                {friend && theirs.error ? <ErrorBox error={theirs.error} onRetry={theirs.refresh} /> : null}
-                {friend && friendData && !friendTitles && (
-                  <p className="rounded-xl border border-line bg-surface p-3 text-sm text-muted">
-                    {t("Os troféus de {name} são privados, então não dá para comparar.", { name: friend.onlineId })}
-                  </p>
-                )}
+          {/* Situação dos jogos logo abaixo dos quadros. */}
+          <GamesBreakdown stats={all} names={names} selected={mural} onSelect={setMural} />
 
-                <Legend series={series(() => [])} />
-
-                {/* Quadros tocáveis (abrem o mural); o tempo de jogo fica por último. */}
-                <div className="grid grid-cols-2 gap-3">
-                  {tiles([
-                    ["jogos", all.map((s) => s.games.toLocaleString(locale()))],
-                    ["platinas", all.map((s) => s.platinums.toLocaleString(locale()))],
-                    ["conclusao", all.map((s) => `${s.avgProgress}%`)],
-                    ["trofeus", all.map((s) => s.totalTrophies.toLocaleString(locale()))],
-                    ["faltam", all.map((s) => s.totalMissing.toLocaleString(locale()))],
-                    ["tempo", all.map((s) => formatDuration(s.playSeconds))],
-                  ])}
-                </div>
-
-                {/* Situação dos jogos logo abaixo dos quadros. */}
-                <GamesBreakdown stats={all} names={names} selected={mural} onSelect={setMural} />
-
-                {mural && (
-                  <Mural
-                    key={`${typeof mural === "object" ? mural.year : mural}:${friendId}`}
-                    category={mural}
-                    onClose={() => setMural(null)}
-                    platform={platform}
-                    players={[
+          {mural && (
+            <Mural
+              key={`${typeof mural === "object" ? mural.year : mural}:${friendId}`}
+              category={mural}
+              onClose={() => setMural(null)}
+              platform={platform}
+              players={[
+                {
+                  name: names[0],
+                  accountId,
+                  titles: data.titles,
+                  playtime: data.playtime,
+                  playedOn: data.playedOn,
+                  firstPlayed: data.firstPlayed,
+                },
+                ...(friend && friendTitles && friendPlay
+                  ? [
                       {
-                        name: names[0],
-                        accountId: "me",
-                        titles: data.titles,
-                        playtime: data.playtime,
-                        playedOn: data.playedOn,
-                        firstPlayed: data.firstPlayed,
+                        name: friend.onlineId,
+                        accountId: friend.accountId,
+                        titles: friendTitles,
+                        playtime: friendPlay.playtime,
+                        playedOn: friendPlay.playedOn,
+                        firstPlayed: friendPlay.firstPlayed,
                       },
-                      ...(friend && friendTitles && friendPlay
-                        ? [
-                            {
-                              name: friend.onlineId,
-                              accountId: friend.accountId,
-                              titles: friendTitles,
-                              playtime: friendPlay.playtime,
-                              playedOn: friendPlay.playedOn,
-                              firstPlayed: friendPlay.firstPlayed,
-                            },
-                          ]
-                        : []),
-                    ]}
-                  />
-                )}
+                    ]
+                  : []),
+              ]}
+            />
+          )}
 
-                <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
-                  <h2 className="font-semibold">{t("Troféus por tipo")}</h2>
-                  <GroupedBars
-                    categories={TYPES.map((t) => (
-                      <TrophyBadge key={t} type={t} />
-                    ))}
-                    series={series((s) => TYPES.map((t) => s.trophies[t]))}
-                  />
-                  <div className="flex items-center gap-3 border-t border-line pt-3">
-                    <span className="flex w-[5.5rem] shrink-0 items-center gap-1.5 text-sm font-semibold">
-                      <TrophyStack />
-                      {t("Total")}
+          <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+            <h2 className="font-semibold">{t("Troféus por tipo")}</h2>
+            <GroupedBars
+              categories={TYPES.map((t) => (
+                <TrophyBadge key={t} type={t} />
+              ))}
+              series={series((s) => TYPES.map((t) => s.trophies[t]))}
+            />
+            <div className="flex items-center gap-3 border-t border-line pt-3">
+              <span className="flex w-[5.5rem] shrink-0 items-center gap-1.5 text-sm font-semibold">
+                <TrophyStack />
+                {t("Total")}
+              </span>
+              <span className="flex flex-1 flex-wrap justify-end gap-x-4 gap-y-0.5">
+                {all.map((s, i) => (
+                  <span key={names[i]} className="flex items-center gap-1.5 text-lg font-bold tabular-nums">
+                    {all.length > 1 && (
+                      <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />
+                    )}
+                    {s.totalTrophies.toLocaleString(locale())}
+                  </span>
+                ))}
+              </span>
+            </div>
+            {/* Troféus que ainda faltam, por tipo, em todos os jogos da lista. */}
+            <div className="space-y-1.5 border-t border-line pt-3">
+              <p className="text-sm font-semibold">{t("Troféus não conquistados")}</p>
+              {all.map((s, i) => (
+                <div key={names[i]} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                  {all.length > 1 && <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />}
+                  {TYPES.map((type) => (
+                    <span key={type} className="flex items-center gap-1 tabular-nums text-muted">
+                      <TrophyIconOnly type={type} />
+                      {s.missing[type].toLocaleString(locale())}
                     </span>
-                    <span className="flex flex-1 flex-wrap justify-end gap-x-4 gap-y-0.5">
-                      {all.map((s, i) => (
-                        <span key={names[i]} className="flex items-center gap-1.5 text-lg font-bold tabular-nums">
-                          {all.length > 1 && (
-                            <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />
-                          )}
-                          {s.totalTrophies.toLocaleString(locale())}
-                        </span>
-                      ))}
-                    </span>
-                  </div>
-                  {/* Troféus que ainda faltam, por tipo, em todos os jogos da lista. */}
-                  <div className="space-y-1.5 border-t border-line pt-3">
-                    <p className="text-sm font-semibold">{t("Troféus não conquistados")}</p>
-                    {all.map((s, i) => (
-                      <div key={names[i]} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                        {all.length > 1 && <span className="h-2 w-2 rounded-full" style={{ background: SERIES_COLORS[i] }} />}
-                        {TYPES.map((type) => (
-                          <span key={type} className="flex items-center gap-1 tabular-nums text-muted">
-                            <TrophyIconOnly type={type} />
-                            {s.missing[type].toLocaleString(locale())}
-                          </span>
-                        ))}
-                        <span className="ml-auto font-bold tabular-nums">
-                          {t("{n} faltando", { n: s.totalMissing })}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
+                  ))}
+                  <span className="ml-auto font-bold tabular-nums">
+                    {t("{n} faltando", { n: s.totalMissing })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
 
-                <YearStats
-                  onSelectYear={(year) => setMural({ year })}
-                  players={[
-                    { name: names[0], titles: filterByPlatform(data.titles, platform, data.playedOn), firstPlayed: data.firstPlayed },
-                    ...(friend && friendTitles && friendPlay
-                      ? [
-                          {
-                            name: friend.onlineId,
-                            titles: filterByPlatform(friendTitles, platform, friendPlay.playedOn),
-                            firstPlayed: friendPlay.firstPlayed,
-                          },
-                        ]
-                      : []),
-                  ]}
-                />
+          <YearStats
+            onSelectYear={(year) => setMural({ year })}
+            players={[
+              { name: names[0], titles: filterByPlatform(data.titles, platform, data.playedOn), firstPlayed: data.firstPlayed },
+              ...(friend && friendTitles && friendPlay
+                ? [
+                    {
+                      name: friend.onlineId,
+                      titles: filterByPlatform(friendTitles, platform, friendPlay.playedOn),
+                      firstPlayed: friendPlay.firstPlayed,
+                    },
+                  ]
+                : []),
+            ]}
+          />
 
-                <PlatformTitles
-                  players={[
-                    { name: names[0], accountId: "me", titles: data.titles, playedOn: data.playedOn },
-                    ...(friend && friendTitles && friendPlay
-                      ? [
-                          {
-                            name: friend.onlineId,
-                            accountId: friend.accountId,
-                            titles: friendTitles,
-                            playedOn: friendPlay.playedOn,
-                          },
-                        ]
-                      : []),
-                  ]}
-                  platform={platform}
-                />
+          <PlatformTitles
+            players={[
+              { name: names[0], accountId, titles: data.titles, playedOn: data.playedOn },
+              ...(friend && friendTitles && friendPlay
+                ? [
+                    {
+                      name: friend.onlineId,
+                      accountId: friend.accountId,
+                      titles: friendTitles,
+                      playedOn: friendPlay.playedOn,
+                    },
+                  ]
+                : []),
+            ]}
+            platform={platform}
+          />
 
-                <CompletionTimes titles={filterByPlatform(data.titles, platform, data.playedOn)} />
+          <CompletionTimes accountId={accountId} titles={filterByPlatform(data.titles, platform, data.playedOn)} />
 
-                {all.map((s, i) =>
-                  s.topPlayed.length ? (
-                    <MostPlayed
-                      key={names[i]}
-                      title={all.length > 1 ? `${t("Mais jogados")} · ${names[i]}` : t("Mais jogados")}
-                      list={s.topPlayed}
-                      accountId={i === 0 ? "me" : friendId}
-                      color={SERIES_COLORS[i]}
-                      note={t("Tempo disponível para {n} de {total} jogos (PS3 e Vita não registram).", {
-                        n: s.gamesWithPlaytime,
-                        total: s.games,
-                      })}
-                    />
-                  ) : null,
-                )}
-          </>
-        )}
-          </>
-        )}
-      </div>
+          {all.map((s, i) =>
+            s.topPlayed.length ? (
+              <MostPlayed
+                key={names[i]}
+                title={all.length > 1 ? `${t("Mais jogados")} · ${names[i]}` : t("Mais jogados")}
+                list={s.topPlayed}
+                accountId={i === 0 ? accountId : friendId}
+                color={SERIES_COLORS[i]}
+                note={t("Tempo disponível para {n} de {total} jogos (PS3 e Vita não registram).", {
+                  n: s.gamesWithPlaytime,
+                  total: s.games,
+                })}
+              />
+            ) : null,
+          )}
+    </>
+  )}
     </>
   );
 }
 
-/** Separa o resultado de `matchPlayed` em tempo por jogo e plataforma jogada por jogo. */
 function playMaps(play: Map<string, PlayInfo>): {
   playtime: Map<string, number>;
   playedOn: PlayedOn;

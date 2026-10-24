@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useApp } from "../app";
 import { PsPlusIcon } from "../components/icons";
 import { PageHeader } from "../components/PageHeader";
+import { FriendStatsSheet } from "../components/StatsSheet";
 import { StatusDot } from "../components/StatusDot";
 import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge } from "../components/ui";
 import { presenceRank, presenceText } from "../lib/presence";
@@ -184,6 +185,7 @@ function FriendCard({ friend: f, presence }: { friend: Profile; presence?: Prese
   const [ref, onScreen] = useWhenVisible<HTMLAnchorElement>();
   const [titles, setTitles] = useState<Title[] | null>(null);
   const [loadingTitles, setLoadingTitles] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   // Plataformas e nº de jogos só quando o cartão aparece (economiza chamadas à PSN).
   useEffect(() => {
@@ -204,6 +206,7 @@ function FriendCard({ friend: f, presence }: { friend: Profile; presence?: Prese
 
   // Cartão compacto: avatar, nome, nível e status numa linha; troféus e plataformas em outra.
   return (
+    <>
     <Link
       ref={ref}
       to={`/u/${f.accountId}`}
@@ -256,9 +259,25 @@ function FriendCard({ friend: f, presence }: { friend: Profile; presence?: Prese
             )}
             {loadingTitles && !titles && t("carregando plataformas…")}
           </span>
+          {/* Estatísticas do amigo num pop-up (só com troféus públicos). */}
+          {f.level !== null && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowStats(true);
+              }}
+              className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[0.6875rem] font-semibold text-ps-blue-2 active:bg-surface-2"
+            >
+              {t("📊 Estatísticas")}
+            </button>
+          )}
         </div>
       )}
     </Link>
+    {showStats && <FriendStatsSheet friend={f} onClose={() => setShowStats(false)} />}
+    </>
   );
 }
 

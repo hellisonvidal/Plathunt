@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 16,
+    items: [
+      "📊 Estatísticas dos amigos: escolha o amigo em Estatísticas → \"Estatísticas de\" ou toque em \"📊 Estatísticas\" no cartão dele, na aba Amigos.",
+      "🛒 Loja mais leve: as imagens dos jogos ficaram 15% menores e são baixadas no tamanho da tela.",
+    ],
+  },
+  {
     id: 15,
     items: [
       "🚪 Sair / trocar de conta apaga os dados da conta no celular e a próxima entrada pede o login da PSN de novo.",
