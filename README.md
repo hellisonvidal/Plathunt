@@ -77,6 +77,15 @@ Vêm ligados para quem entra com a PSN: na primeira abertura, um aviso explica o
 
 O servidor é um Cloudflare Worker com banco D1 (plano gratuito, pasta `cloudflare/`), publicado pelo GitHub Actions. O login confirma o ID da PSN com o token da própria sessão PSN (usado uma vez, não é guardado) e devolve uma sessão assinada; cada rota só lê e grava os dados de quem está logado. Em Configurações → Recursos online dá para apagar todos os seus dados do servidor. Configuração e regras em [docs/cloudflare.md](docs/cloudflare.md). Ficam guardados apenas ID e avatar da PSN, curtidas e pedidos de boost — veja a [política de privacidade](docs/privacidade.md).
 
+## Consumo de dados
+
+O app tenta baixar o mínimo possível:
+- **Listas de jogos incrementais:** a PSN devolve os jogos do mais recente ao mais antigo, então o app baixa só o começo da lista até achar um jogo que não mudou e junta com a cópia salva (em geral uma página de 100 jogos em vez de milhares). Se jogos foram escondidos ou mudou muita coisa, baixa a lista inteira (`lib/titleSync.ts`).
+- **Atividades dos amigos:** só os 5 jogos mais recentes de cada amigo, que é o que o feed usa.
+- **Imagens da loja e capas** (`image.api.playstation.com`) vêm no tamanho da tela (`?w=`), não na resolução original (até 1920 px).
+- **Configurações → Dados → Economia de dados** (padrão: nos dados móveis ou com a economia de dados do Android): verificações em segundo plano no máximo uma vez por hora (em vez de a cada 15 minutos), a loja só carrega ao abrir a aba e as imagens vêm ainda menores.
+- Estatísticas, Ranking e Loja usam os dados salvos até você puxar a tela para atualizar.
+
 ## Idiomas
 
 O app é multilíngue: português (Brasil), inglês, espanhol, francês, alemão, italiano e japonês. Na primeira abertura usa o idioma do aparelho (ou inglês, se o idioma não for um desses) e pode ser trocado em Configurações → Idioma, que vale para a interface e para os nomes de jogos e troféus da PSN. O país da loja também segue o aparelho (Brasil, Portugal, Estados Unidos, México, Argentina, Espanha, França, Alemanha, Itália, Reino Unido ou Japão). Os textos ficam em português no código e passam por `t()` (`mobile/src/i18n`); as traduções estão em `mobile/src/i18n/locales/`, e o teste `tests/i18n.test.ts` confere que todo texto tem tradução em todos os idiomas.
