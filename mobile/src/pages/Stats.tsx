@@ -500,7 +500,20 @@ export function PlayerStats({
             platform={platform}
           />
 
-          <CompletionTimes accountId={accountId} titles={filterByPlatform(data.titles, platform, data.playedOn)} />
+          <CompletionTimes
+            accountId={accountId}
+            name={names[0]}
+            titles={filterByPlatform(data.titles, platform, data.playedOn)}
+            compare={
+              friend && friendTitles && friendPlay
+                ? {
+                    accountId: friend.accountId,
+                    name: friend.onlineId,
+                    titles: filterByPlatform(friendTitles, platform, friendPlay.playedOn),
+                  }
+                : undefined
+            }
+          />
 
           {friend && friendTitles && friendPlay && (
             <CommonPlaytimeSection
