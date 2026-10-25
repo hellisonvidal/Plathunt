@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 21,
+    items: [
+      "🔃 Lista de troféus: escolha \"Ordem original\" ou \"Ordem de conquista\"; toque de novo no mesmo botão para inverter a ordem.",
+    ],
+  },
+  {
     id: 20,
     items: [
       "🗓️ Troféus em ordem de conquista: na lista de troféus de cada jogo (seus e dos amigos), escolha \"1ª conquista\" ou \"Mais recentes\".",

@@ -84,8 +84,8 @@ function GuideLink({
   );
 }
 
-/** Ordem da lista: a do jogo ou a das conquistas (mais antigas ou mais recentes primeiro). */
-type Order = "jogo" | "antigas" | "recentes";
+/** Ordem da lista: a original do jogo ou a das conquistas. */
+type Order = "jogo" | "conquista";
 
 type Filter = "todos" | "conquistados" | "bloqueados";
 /** Nos jogos de um amigo: os troféus que você tem ou não. */
@@ -99,6 +99,15 @@ export function GamePage() {
   const [filter, setFilter] = useState<Filter>("todos");
   const [mineFilter, setMineFilter] = useState<MineFilter>("todos");
   const [order, setOrder] = useState<Order>("jogo");
+  // Tocar de novo na ordem escolhida inverte a lista.
+  const [reversed, setReversed] = useState(false);
+  const pickOrder = (key: Order) => {
+    if (key === order) setReversed((r) => !r);
+    else {
+      setOrder(key);
+      setReversed(false);
+    }
+  };
   // Listas abertas (jogo base / DLCs). Fechadas por padrão; com uma lista só, ela já vem aberta.
   const [open, setOpen] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
@@ -166,7 +175,8 @@ export function GamePage() {
     .filter((t) => (mineFilter === "tenho" ? iHave.has(t.id) : mineFilter === "naoTenho" ? !iHave.has(t.id) : true))
     .sort((a, b) => a.id - b.id);
   // Ordem das conquistas: uma lista só (jogo base e DLCs juntos), numerada.
-  const timeline = order === "jogo" ? [] : chronological(visible, order === "recentes");
+  // Invertida: as mais recentes primeiro (os não conquistados continuam no fim).
+  const timeline = order === "jogo" ? [] : chronological(visible, reversed);
   const earnedTimeline = chronological(all).filter((t) => t.earned && t.earnedAt);
   const position = new Map(earnedTimeline.map((t, i) => [t.id, i + 1]));
   // As seções contam sempre todos os troféus do grupo; o filtro só esconde linhas.
@@ -318,31 +328,37 @@ export function GamePage() {
             {/* Ordem da lista: a do jogo ou a cronológica das conquistas. */}
             <div className="space-y-1">
               <p className="px-1 text-xs text-muted">{t("Ordenar troféus")}</p>
-              <div role="tablist" className="grid grid-cols-3 gap-1 rounded-full bg-surface p-1 text-sm">
+              <div role="tablist" className="grid grid-cols-2 gap-1 rounded-full bg-surface p-1 text-sm">
                 {(
                   [
-                    ["jogo", t("Do jogo")],
-                    ["antigas", t("1ª conquista")],
-                    ["recentes", t("Mais recentes")],
+                    ["jogo", t("Ordem original")],
+                    ["conquista", t("Ordem de conquista")],
                   ] as const
                 ).map(([key, label]) => (
                   <button
                     key={key}
                     role="tab"
                     aria-selected={order === key}
-                    onClick={() => setOrder(key)}
-                    className={`truncate rounded-full px-1 py-1.5 ${order === key ? "bg-ps-blue font-semibold" : "text-muted"}`}
+                    aria-label={order === key && reversed ? `${label} (${t("invertida")})` : label}
+                    onClick={() => pickOrder(key)}
+                    className={`flex items-center justify-center gap-1 truncate rounded-full px-1 py-1.5 ${
+                      order === key ? "bg-ps-blue font-semibold" : "text-muted"
+                    }`}
                   >
                     {label}
+                    {order === key && <span aria-hidden>{reversed ? "↑" : "↓"}</span>}
                   </button>
                 ))}
               </div>
+              <p className="px-1 text-[0.6875rem] text-muted">{t("Toque de novo para inverter a ordem.")}</p>
             </div>
 
             {order !== "jogo" && (
               <section className="overflow-hidden rounded-2xl border border-line bg-surface">
                 <p className="p-3 text-xs text-muted">
-                  {t("Em ordem de conquista, com o jogo base e as DLCs juntos. Os não conquistados ficam no fim.")}
+                  {reversed
+                    ? t("Das conquistas mais recentes para as primeiras, com o jogo base e as DLCs juntos. Os não conquistados ficam no fim.")
+                    : t("Em ordem de conquista, com o jogo base e as DLCs juntos. Os não conquistados ficam no fim.")}
                 </p>
                 <div className="border-t border-line bg-bg/40 p-2">
                   {timeline.length === 0 ? (
@@ -367,7 +383,8 @@ export function GamePage() {
               </section>
             )}
 
-            {order === "jogo" && sections.map((section) => (
+            {/* Ordem original invertida: as listas e os troféus de baixo para cima. */}
+            {order === "jogo" && (reversed ? [...sections].reverse() : sections).map((section) => (
               <GroupList
                 key={section.group.id}
                 section={section}
@@ -375,7 +392,11 @@ export function GamePage() {
                 guide={guide}
                 onChallenge={onChallenge}
                 mine={friend && mine.data ? iHave : null}
-                rows={visible.filter((t) => section.trophies.includes(t))}
+                rows={
+                  reversed
+                    ? visible.filter((t) => section.trophies.includes(t)).reverse()
+                    : visible.filter((t) => section.trophies.includes(t))
+                }
                 filter={filter}
                 expanded={sections.length === 1 || open.has(section.group.id)}
                 onToggle={sections.length === 1 ? undefined : () => toggle(section.group.id)}
