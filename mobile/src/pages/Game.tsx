@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
@@ -6,7 +6,9 @@ import { ErrorBox, GameIcon, ProgressBar, RemoteImage, Spinner, TrophyBadge, rar
 import type { GroupSection } from "../lib/stats";
 import { useSettings } from "../lib/settings";
 import { gameWrittenGuideUrl, trophyGuideUrl, trophyWrittenGuideUrl, type GuideSite } from "../lib/tips";
-import { formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
+import { resolveGameGuide, resolveTrophyGuide } from "../lib/guideLinks";
+import { isNativeApp, openInBrowser } from "../psn/native";
+import { chronological, formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
 import { useData } from "../lib/useData";
 import type { Title, TrophyRow } from "../psn/types";
 import { QuickChallenge } from "../components/QuickChallenge";
@@ -41,6 +43,50 @@ function SiteIcon({ domain, label, size }: { domain: string; label: string; size
 }
 import { locale, t } from "../i18n";
 
+/**
+ * Link de guia escrito: no app, procura a página do guia no próprio site e
+ * abre direto nela (enquanto procura, mostra "…"); se não achar, ou no
+ * navegador, abre a busca no Google.
+ */
+function GuideLink({
+  fallback,
+  resolve,
+  className,
+  children,
+}: {
+  fallback: string;
+  resolve: () => Promise<string>;
+  className: string;
+  children: ReactNode;
+}) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <a
+      href={fallback}
+      target="_blank"
+      rel="noreferrer"
+      aria-busy={busy}
+      className={`${className} ${busy ? "opacity-60" : ""}`}
+      onClick={(e) => {
+        if (!isNativeApp()) return;
+        e.preventDefault();
+        if (busy) return;
+        setBusy(true);
+        void resolve()
+          .catch(() => fallback)
+          .then((url) => openInBrowser(url))
+          .finally(() => setBusy(false));
+      }}
+    >
+      {children}
+      {busy && <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />}
+    </a>
+  );
+}
+
+/** Ordem da lista: a do jogo ou a das conquistas (mais antigas ou mais recentes primeiro). */
+type Order = "jogo" | "antigas" | "recentes";
+
 type Filter = "todos" | "conquistados" | "bloqueados";
 /** Nos jogos de um amigo: os troféus que você tem ou não. */
 type MineFilter = "todos" | "tenho" | "naoTenho";
@@ -52,6 +98,7 @@ export function GamePage() {
   const service: Title["service"] = params.get("service") === "trophy" ? "trophy" : "trophy2";
   const [filter, setFilter] = useState<Filter>("todos");
   const [mineFilter, setMineFilter] = useState<MineFilter>("todos");
+  const [order, setOrder] = useState<Order>("jogo");
   // Listas abertas (jogo base / DLCs). Fechadas por padrão; com uma lista só, ela já vem aberta.
   const [open, setOpen] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
@@ -118,8 +165,16 @@ export function GamePage() {
     .filter((t) => (filter === "conquistados" ? t.earned : filter === "bloqueados" ? !t.earned : true))
     .filter((t) => (mineFilter === "tenho" ? iHave.has(t.id) : mineFilter === "naoTenho" ? !iHave.has(t.id) : true))
     .sort((a, b) => a.id - b.id);
+  // Ordem das conquistas: uma lista só (jogo base e DLCs juntos), numerada.
+  const timeline = order === "jogo" ? [] : chronological(visible, order === "recentes");
+  const earnedTimeline = chronological(all).filter((t) => t.earned && t.earnedAt);
+  const position = new Map(earnedTimeline.map((t, i) => [t.id, i + 1]));
   // As seções contam sempre todos os troféus do grupo; o filtro só esconde linhas.
   const sections = data ? groupTrophies(all, data.groups) : [];
+  // Na ordem das conquistas, cada troféu de DLC mostra o nome dela.
+  const dlcOf = new Map(
+    sections.filter((s) => !s.isBase).flatMap((s) => s.trophies.map((tr) => [tr.id, s.group.name] as const)),
+  );
 
   const FILTERS: { key: Filter; label: string; count: number }[] = [
     { key: "todos", label: t("Todos"), count: all.length },
@@ -207,11 +262,10 @@ export function GamePage() {
             {guide && (
               <div className="grid grid-cols-2 gap-2">
                 {GUIDE_SITES.map(({ site, label, domain }) => (
-                  <a
+                  <GuideLink
                     key={site}
-                    href={gameWrittenGuideUrl(site, guide.game)}
-                    target="_blank"
-                    rel="noreferrer"
+                    fallback={gameWrittenGuideUrl(site, guide.game)}
+                    resolve={() => resolveGameGuide(site, guide.game)}
                     className="flex min-w-0 items-center gap-2.5 rounded-2xl border border-line bg-surface p-3 active:bg-surface-2"
                   >
                     <SiteIcon domain={domain} label={label} size="lg" />
@@ -219,7 +273,7 @@ export function GamePage() {
                       <span className="block truncate text-sm font-semibold">{t("Guia completo")}</span>
                       <span className="block truncate text-xs text-muted">{label}</span>
                     </span>
-                  </a>
+                  </GuideLink>
                 ))}
               </div>
             )}
@@ -261,7 +315,59 @@ export function GamePage() {
               </div>
             )}
 
-            {sections.map((section) => (
+            {/* Ordem da lista: a do jogo ou a cronológica das conquistas. */}
+            <div className="space-y-1">
+              <p className="px-1 text-xs text-muted">{t("Ordenar troféus")}</p>
+              <div role="tablist" className="grid grid-cols-3 gap-1 rounded-full bg-surface p-1 text-sm">
+                {(
+                  [
+                    ["jogo", t("Do jogo")],
+                    ["antigas", t("1ª conquista")],
+                    ["recentes", t("Mais recentes")],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    role="tab"
+                    aria-selected={order === key}
+                    onClick={() => setOrder(key)}
+                    className={`truncate rounded-full px-1 py-1.5 ${order === key ? "bg-ps-blue font-semibold" : "text-muted"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {order !== "jogo" && (
+              <section className="overflow-hidden rounded-2xl border border-line bg-surface">
+                <p className="p-3 text-xs text-muted">
+                  {t("Em ordem de conquista, com o jogo base e as DLCs juntos. Os não conquistados ficam no fim.")}
+                </p>
+                <div className="border-t border-line bg-bg/40 p-2">
+                  {timeline.length === 0 ? (
+                    <p className="p-3 text-center text-xs text-muted">{t("Nenhum troféu conquistado aqui ainda.")}</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {timeline.map((row) => (
+                        <TrophyItem
+                          key={row.id}
+                          trophy={row}
+                          gameName={data.title?.name ?? ""}
+                          guide={guide}
+                          onChallenge={onChallenge ? () => onChallenge(row) : undefined}
+                          iHave={friend && mine.data ? iHave.has(row.id) : null}
+                          position={position.get(row.id)}
+                          group={dlcOf.get(row.id)}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {order === "jogo" && sections.map((section) => (
               <GroupList
                 key={section.group.id}
                 section={section}
@@ -395,6 +501,8 @@ function TrophyItem({
   guide,
   onChallenge,
   iHave,
+  position,
+  group,
 }: {
   trophy: TrophyRow;
   gameName: string;
@@ -402,6 +510,10 @@ function TrophyItem({
   onChallenge?: () => void;
   /** Nos jogos de um amigo: se você também tem o troféu (null fora disso). */
   iHave: boolean | null;
+  /** Na ordem das conquistas: o número da conquista (1ª, 2ª…). */
+  position?: number;
+  /** Na ordem das conquistas: o nome da DLC do troféu. */
+  group?: string;
 }) {
   const { revealSecrets, language } = useSettings();
   const locked = !trophy.earned;
@@ -422,9 +534,15 @@ function TrophyItem({
         />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
+            {position !== undefined && (
+              <span className="rounded-full bg-ps-blue px-1.5 py-0.5 text-[0.6875rem] font-bold tabular-nums">
+                #{position}
+              </span>
+            )}
             <span className="font-medium">{secret ? t("Troféu secreto") : trophy.name}</span>
             <TrophyBadge type={trophy.type} />
           </div>
+          {group && <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-ps-blue-2">DLC · {group}</p>}
           {!secret && trophy.detail && <p className="text-sm text-muted">{trophy.detail}</p>}
           {(trophy.earnedAt || rarity) && (
             <p className="mt-1 text-xs text-ps-blue-2">
@@ -491,16 +609,17 @@ function TrophyItem({
         {/* Guias escritos do PlayStationTrophies.org e do PSNProfiles, com os nomes em inglês. */}
         {guide &&
           GUIDE_SITES.map(({ site, label, domain }) => (
-            <a
+            <GuideLink
               key={site}
-              href={trophyWrittenGuideUrl(site, guide.game, guide.trophies[trophy.id] || trophy.originalName || trophy.name)}
-              target="_blank"
-              rel="noreferrer"
+              fallback={trophyWrittenGuideUrl(site, guide.game, guide.trophies[trophy.id] || trophy.originalName || trophy.name)}
+              resolve={() =>
+                resolveTrophyGuide(site, guide.game, guide.trophies[trophy.id] || trophy.originalName || trophy.name)
+              }
               className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-ink active:bg-surface-2"
             >
               <SiteIcon domain={domain} label={label} size="sm" />
               {label}
-            </a>
+            </GuideLink>
           ))}
       </div>
     </li>
