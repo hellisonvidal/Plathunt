@@ -10,6 +10,10 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 22,
+    items: ["📌 Na lista de troféus, o jogo (ícone, nome e progresso) fica fixo no topo enquanto você rola, na ordem original e na de conquista."],
+  },
+  {
     id: 21,
     items: [
       "🔃 Lista de troféus: escolha \"Ordem original\" ou \"Ordem de conquista\"; toque de novo no mesmo botão para inverter a ordem.",
