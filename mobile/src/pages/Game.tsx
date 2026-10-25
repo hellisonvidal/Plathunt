@@ -84,6 +84,12 @@ function GuideLink({
   );
 }
 
+/**
+ * Cabeçalho da lista (ícone, nome e progresso) fixo logo abaixo do título da
+ * página enquanto a lista rola, nas duas ordens.
+ */
+const STICKY_LIST_HEADER = "sticky top-[calc(var(--sat)+3.375rem)] z-[5]";
+
 /** Ordem da lista: a original do jogo ou a das conquistas. */
 type Order = "jogo" | "conquista";
 
@@ -354,13 +360,29 @@ export function GamePage() {
             </div>
 
             {order !== "jogo" && (
-              <section className="overflow-hidden rounded-2xl border border-line bg-surface">
+              <section className="rounded-2xl border border-line bg-surface">
+                {/* O jogo continua no topo da lista, como na ordem original. */}
+                <div className={`${STICKY_LIST_HEADER} flex items-center gap-3 rounded-t-2xl border-b border-line bg-surface p-3`}>
+                  <GameIcon src={data.title?.iconUrl ?? null} size={48} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-ps-blue-2">
+                      {sections.length > 1 ? `${t("Jogo base")} + DLC` : t("Jogo base")}
+                    </p>
+                    <h3 className="truncate font-semibold">{data.title?.name}</h3>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <ProgressBar value={all.length ? (earnedCount / all.length) * 100 : 0} />
+                      <span className="shrink-0 text-xs tabular-nums text-muted">
+                        {earnedCount}/{all.length}
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <p className="p-3 text-xs text-muted">
                   {reversed
                     ? t("Das conquistas mais recentes para as primeiras, com o jogo base e as DLCs juntos. Os não conquistados ficam no fim.")
                     : t("Em ordem de conquista, com o jogo base e as DLCs juntos. Os não conquistados ficam no fim.")}
                 </p>
-                <div className="border-t border-line bg-bg/40 p-2">
+                <div className="rounded-b-2xl border-t border-line bg-bg/40 p-2">
                   {timeline.length === 0 ? (
                     <p className="p-3 text-center text-xs text-muted">{t("Nenhum troféu conquistado aqui ainda.")}</p>
                   ) : (
@@ -477,21 +499,25 @@ function GroupList({
   );
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-line bg-surface">
+    <section className="rounded-2xl border border-line bg-surface">
       {onToggle ? (
         <button
           onClick={onToggle}
           aria-expanded={expanded}
-          className="flex w-full items-center gap-3 p-3 text-left active:bg-surface-2"
+          className={`${STICKY_LIST_HEADER} flex w-full items-center gap-3 bg-surface p-3 text-left active:bg-surface-2 ${
+            expanded ? "rounded-t-2xl border-b border-line" : "rounded-2xl"
+          }`}
         >
           {header}
         </button>
       ) : (
-        <div className="flex items-center gap-3 p-3">{header}</div>
+        <div className={`${STICKY_LIST_HEADER} flex items-center gap-3 rounded-t-2xl border-b border-line bg-surface p-3`}>
+          {header}
+        </div>
       )}
 
       {expanded && (
-        <div className="border-t border-line bg-bg/40 p-2">
+        <div className="rounded-b-2xl bg-bg/40 p-2">
           {rows.length === 0 ? (
             <p className="p-3 text-center text-xs text-muted">
               {filter === "conquistados" ? t("Nenhum troféu conquistado aqui ainda.") : t("Tudo conquistado aqui! 🏆")}
