@@ -18,8 +18,13 @@ const MULTIPLAYER = new RegExp(
   "i",
 );
 
+/** O troféu depende do modo multiplayer (online, cooperativo, partidas…) para ser conquistado. */
+export function isMultiplayerTrophy(t: Pick<TrophyRow, "name" | "detail" | "originalName">): boolean {
+  return MULTIPLAYER.test(`${t.originalName ?? ""} ${t.name} ${t.detail ?? ""}`);
+}
+
 export function hasMultiplayerTrophies(trophies: Pick<TrophyRow, "name" | "detail" | "originalName">[]): boolean {
-  return trophies.some((t) => MULTIPLAYER.test(`${t.originalName ?? ""} ${t.name} ${t.detail ?? ""}`));
+  return trophies.some(isMultiplayerTrophy);
 }
 
 const KEY = "tm.multiplayer";

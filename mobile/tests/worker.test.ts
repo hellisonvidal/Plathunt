@@ -92,3 +92,22 @@ describe("servidor dos recursos online (Cloudflare)", () => {
     expect(((await (await call("POST", "/v1/profiles", { ids: ["111"] }, bruno)).json()) as { profiles: unknown[] }).profiles).toHaveLength(0);
   });
 });
+
+describe("convite de boost (link do WhatsApp)", () => {
+  it("abre o app no Android e oferece a Play Store", async () => {
+    const payload = btoa(JSON.stringify({ from: "Ana", game: { name: "<b>Jogo</b>" } })).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const res = await call("GET", `/convite?d=${payload}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("text/html");
+    const html = await res.text();
+    expect(html).toContain(`plathunt://boost?d=${payload}`);
+    expect(html).toContain("intent://boost?d=");
+    expect(html).toContain("play.google.com/store/apps/details?id=app.plathunt.trophytracker");
+    expect(html).toContain("Ana · &lt;b&gt;Jogo&lt;/b&gt;");
+    expect(html).not.toContain("<b>Jogo</b>");
+  });
+
+  it("recusa código inválido", async () => {
+    expect((await call("GET", "/convite?d=%3Cscript%3E")).status).toBe(400);
+  });
+});

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Boost } from "./boost";
-import { answerBoostRequest, myBoostRequests } from "./cloud";
+import { answerBoostRequest, cloudUrl, myBoostRequests } from "./cloud";
+import { PLAY_STORE_URL } from "../psn/native";
+import { t } from "../i18n";
 import { persistSet } from "./persist";
 
 /**
@@ -41,6 +43,25 @@ function fromBase64Url(code: string): string {
   const b64 = code.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((code.length + 3) % 4);
   const bin = atob(b64);
   return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+}
+
+/**
+ * Link de convite para mandar no WhatsApp (e outros): um endereço https, que
+ * os apps de mensagem deixam tocar. A página abre o pedido no Plathunt ou,
+ * sem o app instalado, leva para a Play Store. Sem o servidor dos recursos
+ * online neste build, vai o link do app e o da Play Store.
+ */
+export function inviteLink(b: Pick<Boost, "game" | "trophies" | "players" | "when" | "note" | "createdAt">, from: string): string {
+  const api = cloudUrl();
+  return api ? `${api}/convite?d=${boostLink(b, from).slice(LINK.length)}` : boostLink(b, from);
+}
+
+/** Linhas do convite que vão no fim da mensagem: abrir o pedido e instalar o app. */
+export function inviteLines(b: Pick<Boost, "game" | "trophies" | "players" | "when" | "note" | "createdAt">, from: string): string {
+  const link = inviteLink(b, from);
+  return link.startsWith("https://")
+    ? `📲 ${t("Responda pelo Plathunt (abre o app ou instala pela Play Store)")}: ${link}`
+    : `🔗 ${t("Abrir no Plathunt")}: ${link}\n📲 ${t("Ainda não tem o Plathunt? Instale")}: ${PLAY_STORE_URL}`;
 }
 
 /** Link do pedido, que vai junto no texto da convocação. */
@@ -171,6 +192,36 @@ export async function syncCloudInbox(now = new Date()): Promise<ReceivedBoost[]>
   }
   if (added.length) save([...added, ...list]);
   return added;
+}
+
+/** Respostas aos seus pedidos (sim/não) já avisadas. */
+const ANSWERS_KEY = "tm.boostAnswersSeen" as const;
+
+/**
+ * Respostas novas (sim ou não) aos pedidos que você enviou pelo app, para
+ * avisar. Na primeira vez só marca as que já existiam, sem avisar.
+ */
+export async function takeNewAnswers(): Promise<
+  { id: string; toAccountId: string; status: "aceito" | "recusado"; game: string }[]
+> {
+  const { sent } = await myBoostRequests();
+  let seen: string[] | null = null;
+  try {
+    const saved = JSON.parse(localStorage.getItem(ANSWERS_KEY) ?? "null");
+    seen = Array.isArray(saved) ? saved.filter((x): x is string => typeof x === "string") : null;
+  } catch {
+    seen = null;
+  }
+  const answered = sent.filter((r) => r.status === "aceito" || r.status === "recusado");
+  const fresh = seen ? answered.filter((r) => !seen!.includes(r.id)) : [];
+  if (!seen || fresh.length)
+    persistSet(ANSWERS_KEY, JSON.stringify([...new Set([...answered.map((r) => r.id), ...(seen ?? [])])].slice(0, 1000)));
+  return fresh.map((r) => ({
+    id: r.id,
+    toAccountId: r.to_account_id,
+    status: r.status as "aceito" | "recusado",
+    game: String((r.payload as { game?: { name?: unknown } }).game?.name ?? ""),
+  }));
 }
 
 /** O que vai para o servidor ao enviar um pedido direto no app. */

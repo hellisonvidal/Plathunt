@@ -19,6 +19,9 @@ export const PRIVACY_URL = "https://github.com/hellisonvidal/Plathunt/blob/main/
 /** Este build sabe o endereço do servidor dos recursos online. */
 export const cloudAvailable = () => API !== "";
 
+/** Endereço do servidor (para os links de convite que abrem o app). */
+export const cloudUrl = () => API;
+
 export interface CloudIdentity {
   accountId: string;
   onlineId: string;

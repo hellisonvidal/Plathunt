@@ -15,21 +15,21 @@ import {
 } from "../lib/boost";
 import { t } from "../i18n";
 import {
-  boostLink,
   cloudPayload,
+  inviteLines,
   removeFromInbox,
   setInboxStatus,
   syncCloudInbox,
   useInbox,
   type ReceivedBoost,
 } from "../lib/boostInbox";
-import { appUsers, myBoostRequests, sendBoostRequests, useCloud } from "../lib/cloud";
+import { appUsers, cloudAvailable, connectCloud, myBoostRequests, sendBoostRequests, useCloud } from "../lib/cloud";
 import { cancelNotification, notify } from "../lib/notify";
 import { mapLimit } from "../lib/cache";
 import { presenceRank, presenceText } from "../lib/presence";
 import { useBackInterceptor } from "../lib/backButton";
 import { useData } from "../lib/useData";
-import { shareText } from "../psn/native";
+import { isNativeApp, openInBrowser, shareText } from "../psn/native";
 import type { Title } from "../psn/types";
 import { GamePicker, TrophyPicker } from "./GamePicker";
 import { StatusDot } from "./StatusDot";
@@ -119,145 +119,333 @@ export function BoostView({
   );
 }
 
-/** "Convocar boost" em popup, subindo da parte de baixo da tela (fecha no ✕, tocando fora ou no voltar). */
-function BoostSheet({ onClose }: { onClose: () => void }) {
-  useBackInterceptor(true, onClose);
+/** Pop-up de confirmação (fica por cima do formulário; o voltar fecha só ele). */
+function ConfirmDialog({
+  title,
+  children,
+  confirmLabel,
+  cancelLabel,
+  danger = false,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  children?: React.ReactNode;
+  confirmLabel: string;
+  cancelLabel: string;
+  danger?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  useBackInterceptor(true, onCancel);
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center" data-no-pull>
-      <button aria-label={t("Fechar")} onClick={onClose} className="absolute inset-0 bg-black/60" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="safe-bottom relative max-h-[92dvh] w-full max-w-2xl animate-[sheet-up_200ms_ease-out] overflow-y-auto overscroll-contain rounded-t-3xl border border-line bg-surface shadow-2xl"
-      >
-        <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-line" aria-hidden />
-        <BoostForm onClose={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" data-no-pull>
+      <button aria-label={cancelLabel} onClick={onCancel} className="absolute inset-0 bg-black/70" />
+      <div role="alertdialog" aria-modal="true" aria-label={title} className="relative w-full max-w-sm space-y-3 rounded-2xl border border-line bg-surface p-4 shadow-2xl">
+        <h3 className="font-bold">{title}</h3>
+        {children}
+        <div className="flex gap-2 pt-1">
+          <button onClick={onCancel} className="flex-1 rounded-xl border border-line py-2.5 text-sm font-semibold">
+            {cancelLabel}
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`flex-1 rounded-xl py-2.5 text-sm font-semibold ${danger ? "bg-red-600 text-white" : "bg-ps-blue"}`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function BoostForm({ onClose }: { onClose: () => void }) {
+/**
+ * "Convocar boost" em popup, subindo da parte de baixo da tela. Passos: jogo
+ * multiplayer → troféus de multiplayer (com confirmação) → amigos para
+ * convidar (pedido e notificação no app deles) e o convite para o WhatsApp.
+ * Sair no meio (✕, tocar fora ou voltar) pede confirmação.
+ */
+function BoostSheet({ onClose }: { onClose: () => void }) {
   const [game, setGame] = useState<BoostCandidate | null>(null);
   const [players, setPlayers] = useState(1);
   const [when, setWhen] = useState<string>(BOOST_WHEN[0]);
   const [trophyIds, setTrophyIds] = useState<number[]>([]);
   const [trophies, setTrophies] = useState<string[]>([]);
   const [note, setNote] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [quitting, setQuitting] = useState(false);
+  // Depois de confirmar: o pedido criado, para convidar os amigos.
+  const [created, setCreated] = useState<Boost | null>(null);
+  const [pendingInvites, setPendingInvites] = useState(false);
+
+  // Sair sem perder nada não pergunta; com um pedido pela metade (ou amigos
+  // escolhidos e ainda não convidados), confirma a desistência.
+  const dirty = created ? pendingInvites : !!game;
+  const requestClose = () => (dirty ? setQuitting(true) : onClose());
+  useBackInterceptor(true, requestClose);
 
   const chip = (active: boolean) =>
     `rounded-full px-3 py-1 text-sm ${active ? "bg-ps-blue font-semibold" : "border border-line text-muted"}`;
 
+  const confirm = () => {
+    if (!game) return;
+    const boost = addBoost({
+      game: { id: game.title?.id ?? game.key, name: game.name, platform: game.platforms.join("/"), iconUrl: game.iconUrl },
+      players,
+      when,
+      trophies,
+      note,
+      kind: "pedido",
+    });
+    scheduleBoostReminder(boost);
+    setConfirming(false);
+    setCreated(boost);
+  };
+
   return (
-    <section className="space-y-4 p-4 pb-6" aria-label={t("Nova convocação")}>
-      <div className="flex items-center justify-between">
-        <h2 className="font-bold">{t("📣 Convocar boost")}</h2>
-        <button onClick={onClose} className="text-sm text-muted" aria-label={t("Fechar")}>
-          ✕
-        </button>
-      </div>
-
-      <p className="text-[0.6875rem] text-muted">{t("Só aparecem os troféus que você ainda não tem.")}</p>
-
-      {!game ? (
-        <div className="space-y-2">
-          <p className="text-xs text-muted">{t("1. Escolha o jogo (por plataforma ou pela busca)")}</p>
-          <GamePicker onPick={setGame} multiplayer />
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center gap-3 rounded-xl border border-line p-2">
-            <GameIcon src={game.iconUrl} size={40} />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold">{game.name}</span>
-              <span className="text-[0.6875rem] text-muted">{game.platforms.join(" · ")}</span>
-            </span>
-            <button
-              onClick={() => {
-                setGame(null);
-                setTrophyIds([]);
-                setTrophies([]);
-              }}
-              className="text-xs text-ps-blue-2 underline"
-            >
-              {t("Trocar")}
+    <div className="fixed inset-0 z-40 flex items-end justify-center" data-no-pull>
+      <button aria-label={t("Fechar")} onClick={requestClose} className="absolute inset-0 bg-black/60" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="safe-bottom relative max-h-[92dvh] w-full max-w-2xl animate-[sheet-up_200ms_ease-out] overflow-y-auto overscroll-contain rounded-t-3xl border border-line bg-surface shadow-2xl"
+      >
+        <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-line" aria-hidden />
+        <section className="space-y-4 p-4 pb-6" aria-label={t("Nova convocação")}>
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold">{created ? t("📨 Convidar amigos") : t("📣 Convocar boost")}</h2>
+            <button onClick={requestClose} className="text-sm text-muted" aria-label={t("Fechar")}>
+              ✕
             </button>
           </div>
 
-          <div>
-            <p className="mb-1.5 text-xs text-muted">
-              {t("2. Troféus que precisam de boost")}
-              {trophies.length > 0 && ` · ${t("{n} escolhidos", { n: trophies.length })}`}
-            </p>
-            <TrophyPicker
-              game={game}
-              earned="hide"
-              selected={trophyIds}
-              onChange={(ids, rows) => {
-                setTrophyIds(ids);
-                setTrophies(rows.map((r) => r.name));
-              }}
-            />
-          </div>
-
-          <div>
-            <p className="mb-1.5 text-xs text-muted">{t("3. Quantos jogadores faltam?")}</p>
-            <div className="flex items-center gap-3">
-              <button onClick={() => setPlayers((n) => Math.max(1, n - 1))} className={chip(false)} aria-label={t("Menos")}>
-                −
-              </button>
-              <span className="w-8 text-center text-lg font-bold" aria-live="polite">
-                {players}
-              </span>
-              <button onClick={() => setPlayers((n) => Math.min(15, n + 1))} className={chip(false)} aria-label={t("Mais")}>
-                +
-              </button>
+          {created ? (
+            <InviteStep boost={created} onPendingChange={setPendingInvites} onDone={onClose} />
+          ) : !game ? (
+            <div className="space-y-2">
+              <p className="text-xs text-muted">{t("1. Escolha o jogo multiplayer")}</p>
+              <GamePicker onPick={setGame} multiplayer />
             </div>
-          </div>
-
-          <div>
-            <p className="mb-1.5 text-xs text-muted">{t("4. Quando?")}</p>
-            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("Quando")}>
-              {BOOST_WHEN.map((w) => (
-                <button key={w} role="radio" aria-checked={when === w} onClick={() => setWhen(w)} className={chip(when === w)}>
-                  {t(w)}
+          ) : (
+            <>
+              <div className="flex items-center gap-3 rounded-xl border border-line p-2">
+                <GameIcon src={game.iconUrl} size={40} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold">{game.name}</span>
+                  <span className="text-[0.6875rem] text-muted">{game.platforms.join(" · ")}</span>
+                </span>
+                <button
+                  onClick={() => {
+                    setGame(null);
+                    setTrophyIds([]);
+                    setTrophies([]);
+                  }}
+                  className="text-xs text-ps-blue-2 underline"
+                >
+                  {t("Trocar")}
                 </button>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          <div>
-            <p className="mb-1.5 text-xs text-muted">{t("5. Recado (opcional)")}</p>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={2}
-              maxLength={300}
-              placeholder={t("Ex.: preciso de 2 vitórias no online, tenho microfone")}
-              className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-ps-blue-2"
-            />
-          </div>
+              <div>
+                <p className="mb-1.5 text-xs text-muted">
+                  {t("2. Troféus que dependem do multiplayer")}
+                  {trophies.length > 0 && ` · ${t("{n} escolhidos", { n: trophies.length })}`}
+                </p>
+                <p className="mb-1.5 text-[0.6875rem] text-muted">
+                  {t("Só aparecem os troféus online ou cooperativos que você ainda não tem.")}
+                </p>
+                <TrophyPicker
+                  game={game}
+                  earned="hide"
+                  onlyMultiplayer
+                  selected={trophyIds}
+                  onChange={(ids, rows) => {
+                    setTrophyIds(ids);
+                    setTrophies(rows.map((r) => r.name));
+                  }}
+                />
+              </div>
 
-          <button
-            onClick={() => {
-              const boost = addBoost({
-                game: { id: game.title?.id ?? game.key, name: game.name, platform: game.platforms.join("/"), iconUrl: game.iconUrl },
-                players,
-                when,
-                trophies,
-                note,
-                kind: "pedido",
-              });
-              scheduleBoostReminder(boost);
-              onClose();
-            }}
-            className="w-full rounded-xl bg-ps-blue py-3 font-semibold"
-          >
-            {t("Criar convocação")}
-          </button>
-        </>
+              <div>
+                <p className="mb-1.5 text-xs text-muted">{t("3. Quantos jogadores faltam?")}</p>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setPlayers((n) => Math.max(1, n - 1))} className={chip(false)} aria-label={t("Menos")}>
+                    −
+                  </button>
+                  <span className="w-8 text-center text-lg font-bold" aria-live="polite">
+                    {players}
+                  </span>
+                  <button onClick={() => setPlayers((n) => Math.min(15, n + 1))} className={chip(false)} aria-label={t("Mais")}>
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-1.5 text-xs text-muted">{t("4. Quando?")}</p>
+                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("Quando")}>
+                  {BOOST_WHEN.map((w) => (
+                    <button key={w} role="radio" aria-checked={when === w} onClick={() => setWhen(w)} className={chip(when === w)}>
+                      {t(w)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-1.5 text-xs text-muted">{t("5. Recado (opcional)")}</p>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  maxLength={300}
+                  placeholder={t("Ex.: preciso de 2 vitórias no online, tenho microfone")}
+                  className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-ps-blue-2"
+                />
+              </div>
+
+              <button
+                disabled={!trophies.length}
+                onClick={() => setConfirming(true)}
+                className="w-full rounded-xl bg-ps-blue py-3 font-semibold disabled:opacity-50"
+              >
+                {trophies.length === 1
+                  ? t("Continuar (1 troféu)")
+                  : trophies.length
+                    ? t("Continuar ({n} troféus)", { n: trophies.length })
+                    : t("Escolha ao menos um troféu")}
+              </button>
+            </>
+          )}
+        </section>
+      </div>
+
+      {confirming && game && (
+        <ConfirmDialog
+          title={t("Confirmar os troféus do boost?")}
+          confirmLabel={t("Confirmar")}
+          cancelLabel={t("Revisar")}
+          onConfirm={confirm}
+          onCancel={() => setConfirming(false)}
+        >
+          <p className="text-sm">
+            <span className="font-semibold">{game.name}</span>
+            <span className="text-muted">
+              {" · "}
+              {players === 1 ? t("👥 {n} jogador", { n: players }) : t("👥 {n} jogadores", { n: players })} · 🕒 {t(when)}
+            </span>
+          </p>
+          <ul className="max-h-48 space-y-1 overflow-y-auto text-sm">
+            {trophies.map((name) => (
+              <li key={name} className="rounded-lg bg-surface-2 px-2 py-1">
+                🏆 {name}
+              </li>
+            ))}
+          </ul>
+          <p className="text-[0.6875rem] text-muted">{t("Depois você escolhe os amigos que vão receber o convite.")}</p>
+        </ConfirmDialog>
       )}
-    </section>
+      {quitting && (
+        <ConfirmDialog
+          title={created ? t("Sair sem enviar o convite?") : t("Desistir do pedido de boost?")}
+          confirmLabel={created ? t("Sair") : t("Desistir")}
+          cancelLabel={t("Continuar")}
+          danger
+          onConfirm={onClose}
+          onCancel={() => setQuitting(false)}
+        >
+          <p className="text-sm text-muted">
+            {created
+              ? t("O pedido fica salvo em Meus pedidos, mas os amigos escolhidos não serão avisados.")
+              : t("O que você preencheu será perdido.")}
+          </p>
+        </ConfirmDialog>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Depois de confirmar os troféus: escolher os amigos (que usam o Plathunt)
+ * que recebem o pedido e a notificação, e responder sim ou não no app. O
+ * convite pelo WhatsApp fica sempre à mão, para quem ainda não tem o app.
+ */
+function InviteStep({
+  boost: b,
+  onPendingChange,
+  onDone,
+}: {
+  boost: Boost;
+  onPendingChange: (pending: boolean) => void;
+  onDone: () => void;
+}) {
+  const { client } = useApp();
+  const me = useData((force) => client.me(force), [client]);
+  const myId = me.data?.onlineId ?? t("eu");
+  const text = `${boostMessage(b, myId)}\n${inviteLines(b, myId)}`;
+  const [sent, setSent] = useState(0);
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 rounded-xl border border-line p-2">
+        <GameIcon src={b.game.iconUrl} size={40} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold">{b.game.name}</span>
+          <span className="block truncate text-[0.6875rem] text-muted">{b.trophies.join(" · ")}</span>
+        </span>
+        <span className="shrink-0 text-xs font-semibold text-online">{t("✔ Criado")}</span>
+      </div>
+
+      <SendInApp
+        boost={b}
+        myId={myId}
+        onPendingChange={onPendingChange}
+        onSent={(n) => setSent((s) => s + n)}
+      />
+      {sent > 0 && (
+        <p className="rounded-xl bg-online/15 p-3 text-sm font-semibold text-online" role="status">
+          {sent === 1
+            ? t("✔ Convite enviado para 1 amigo. Ele recebe uma notificação e responde sim ou não.")
+            : t("✔ Convite enviado para {n} amigos. Eles recebem uma notificação e respondem sim ou não.", { n: sent })}
+        </p>
+      )}
+
+      <div className="space-y-2 rounded-xl border border-line p-3">
+        <p className="text-sm font-semibold">{t("💬 Convidar pelo WhatsApp")}</p>
+        <p className="text-[0.6875rem] text-muted">
+          {t("O convite leva um link: abre o pedido no Plathunt ou, para quem não tem o app, a página de instalação.")}
+        </p>
+        <WhatsAppButton text={text} />
+      </div>
+
+      <button onClick={onDone} className="w-full rounded-xl border border-line py-3 font-semibold">
+        {t("Concluir")}
+      </button>
+    </div>
+  );
+}
+
+/** Botão do WhatsApp (abre o app com o texto pronto; escolhe a conversa lá). */
+function WhatsAppButton({ text, small = false }: { text: string; small?: boolean }) {
+  return (
+    <a
+      href={shareLinks(text).whatsapp}
+      target="_blank"
+      rel="noreferrer"
+      onClick={(e) => {
+        if (!isNativeApp()) return;
+        e.preventDefault();
+        void openInBrowser(shareLinks(text).whatsapp);
+      }}
+      className={`flex items-center justify-center gap-2 rounded-xl bg-[#25d366] font-semibold text-black ${
+        small ? "px-3 py-1.5 text-xs" : "w-full py-2.5 text-sm"
+      }`}
+    >
+      <svg viewBox="0 0 24 24" className={small ? "h-4 w-4" : "h-5 w-5"} fill="currentColor" aria-hidden>
+        <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3Z" />
+      </svg>
+      {t("Enviar convite pelo WhatsApp")}
+    </a>
   );
 }
 
@@ -268,9 +456,7 @@ function BoostCard({ boost: b }: { boost: Boost }) {
   const [copied, setCopied] = useState(false);
   const myId = me.data?.onlineId ?? t("eu");
   // O link leva o pedido junto: quem recebe abre no app e vê em "Pedidos recebidos".
-  const text =
-    boostMessage(b, myId) +
-    (b.kind === "ajuda" ? "" : `\n🔗 ${t("Abrir no Plathunt")}: ${boostLink(b, myId)}`);
+  const text = boostMessage(b, myId) + (b.kind === "ajuda" ? "" : `\n${inviteLines(b, myId)}`);
   const links = shareLinks(text);
 
   const copy = async () => {
@@ -307,11 +493,13 @@ function BoostCard({ boost: b }: { boost: Boost }) {
 
       <pre
         id={`boost-text-${b.id}`}
-        className="whitespace-pre-wrap rounded-xl bg-surface-2 p-3 font-sans text-xs leading-relaxed"
+        className="whitespace-pre-wrap break-all rounded-xl bg-surface-2 p-3 font-sans text-xs leading-relaxed"
       >
         {text}
       </pre>
 
+      {/* O botão de compartilhar fica sempre no pedido: WhatsApp em destaque, depois os outros. */}
+      <WhatsAppButton text={text} />
       <ShareButtons text={text} links={links} copied={copied} onCopy={copy} />
 
       <button
@@ -453,7 +641,7 @@ function ShareButtons({
   onCopy,
 }: {
   text: string;
-  links: { whatsapp: string; telegram: string };
+  links: { telegram: string };
   copied: boolean;
   onCopy: () => void;
 }) {
@@ -468,9 +656,6 @@ function ShareButtons({
       >
         {t("📤 Compartilhar")}
       </button>
-      <a href={links.whatsapp} target="_blank" rel="noreferrer" className={btn}>
-        WhatsApp
-      </a>
       <a href={links.telegram} target="_blank" rel="noreferrer" className={btn}>
         Telegram
       </a>
@@ -587,10 +772,10 @@ function ReceivedCard({ request: r, highlight }: { request: ReceivedBoost; highl
               onClick={() => setInboxStatus(r.id, "aceito")}
               className="flex-1 rounded-xl bg-ps-blue py-2.5 text-sm font-semibold"
             >
-              {t("🤝 Aceitar e ajudar")}
+              {t("👍 Sim, eu topo")}
             </button>
-            <button onClick={() => removeFromInbox(r.id)} className="rounded-xl border border-line px-4 py-2.5 text-sm text-muted">
-              {t("Recusar")}
+            <button onClick={() => removeFromInbox(r.id)} className="flex-1 rounded-xl border border-line py-2.5 text-sm text-muted">
+              {t("👎 Não posso")}
             </button>
           </div>
         ) : (
@@ -613,13 +798,28 @@ function ReceivedCard({ request: r, highlight }: { request: ReceivedBoost; highl
 
 /**
  * Recursos online: envia o pedido direto para o app dos amigos que também
- * usam o Plathunt e mostra quem já respondeu.
+ * usam o Plathunt (eles recebem uma notificação e respondem sim ou não) e
+ * mostra quem já respondeu.
  */
-function SendInApp({ boost: b, myId }: { boost: Boost; myId: string }) {
+function SendInApp({
+  boost: b,
+  myId,
+  onPendingChange,
+  onSent,
+}: {
+  boost: Boost;
+  myId: string;
+  /** Há amigos marcados e ainda não convidados. */
+  onPendingChange?: (pending: boolean) => void;
+  onSent?: (count: number) => void;
+}) {
   const { client } = useApp();
-  const { identity } = useCloud();
+  const { identity, ready } = useCloud();
   const [chosen, setChosen] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  useEffect(() => onPendingChange?.(chosen.length > 0), [chosen.length, onPendingChange]);
   const data = useData(async () => {
     if (!identity) return null;
     const [ids, { sent }] = await Promise.all([client.friendIds(), myBoostRequests()]);
@@ -627,46 +827,91 @@ function SendInApp({ boost: b, myId }: { boost: Boost; myId: string }) {
     const answers = new Map(
       sent.filter((r) => (r.payload as { boostId?: string }).boostId === b.id).map((r) => [r.to_account_id, r.status]),
     );
-    return { users: [...users].sort((x, y) => x[1].localeCompare(y[1])), answers };
+    // Avatar de cada amigo (perfis da PSN, guardados por 30 minutos).
+    const list = [...users].sort((x, y) => x[1].localeCompare(y[1]));
+    const profiles = await mapLimit(list, 5, ([id]) => client.profile(id).catch(() => null));
+    return { users: list.map(([id, name], i) => ({ id, name, avatarUrl: profiles[i]?.avatarUrl ?? null })), answers };
   }, [client, identity?.accountId, b.id]);
 
+  if (!ready) return null;
   if (!identity) {
+    if (!cloudAvailable())
+      return (
+        <p className="rounded-xl bg-surface-2 p-2.5 text-[0.6875rem] text-muted">
+          {t("Esta versão do app não envia pedidos direto no app dos amigos. Use o convite pelo WhatsApp.")}
+        </p>
+      );
     return (
-      <p className="rounded-xl bg-surface-2 p-2.5 text-[0.6875rem] text-muted">
-        {t("Ligue os recursos online em Configurações para enviar o pedido direto no app dos amigos.")}
-      </p>
+      <div className="space-y-2 rounded-xl bg-surface-2 p-3">
+        <p className="text-xs text-muted">
+          {t("Para enviar o pedido direto no app dos amigos (com notificação e resposta sim ou não), ligue os recursos online.")}
+        </p>
+        <button
+          disabled={connecting}
+          onClick={async () => {
+            setConnecting(true);
+            try {
+              await connectCloud();
+            } catch {
+              setFailed(true);
+            } finally {
+              setConnecting(false);
+            }
+          }}
+          className="w-full rounded-xl bg-ps-blue py-2 text-sm font-semibold disabled:opacity-50"
+        >
+          {connecting ? t("Conectando…") : t("Ligar recursos online")}
+        </button>
+        {failed && <p className="text-[0.6875rem] text-red-400">{t("Não foi possível conectar. Tente de novo.")}</p>}
+      </div>
     );
   }
-  if (data.loading && !data.data) return <p className="text-xs text-muted">{t("Procurando amigos que usam o app…")}</p>;
+  if (data.loading && !data.data) return <Spinner label={t("Procurando amigos que usam o app…")} />;
   const users = data.data?.users ?? [];
   const answers = data.data?.answers ?? new Map<string, string>();
   const label = (status: string | undefined) =>
-    status === "aceito" ? t("✔ Aceitou") : status === "recusado" ? t("Recusou") : status ? t("Enviado") : null;
+    status === "aceito" ? t("👍 Topou") : status === "recusado" ? t("👎 Não pode") : status ? t("Aguardando resposta") : null;
+  const free = users.filter((u) => !answers.has(u.id));
+  const allOn = free.length > 0 && free.every((u) => chosen.includes(u.id));
 
   return (
     <section className="space-y-2 rounded-xl border border-line p-3">
-      <p className="text-sm font-semibold">{t("📲 Enviar direto no app")}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold">{t("📲 Enviar direto no app")}</p>
+        {free.length > 1 && (
+          <button onClick={() => setChosen(allOn ? [] : free.map((u) => u.id))} className="text-xs text-ps-blue-2 underline">
+            {allOn ? t("Desmarcar todos") : t("Marcar todos")}
+          </button>
+        )}
+      </div>
       {users.length === 0 ? (
-        <p className="text-xs text-muted">{t("Nenhum amigo seu usa o Plathunt com recursos online ainda.")}</p>
+        <p className="text-xs text-muted">
+          {t("Nenhum amigo seu usa o Plathunt com recursos online ainda. Convide pelo WhatsApp: o link leva para a instalação.")}
+        </p>
       ) : (
         <>
           <ul className="space-y-1">
-            {users.map(([accountId, name]) => {
-              const status = answers.get(accountId);
-              const on = chosen.includes(accountId);
+            {users.map(({ id, name, avatarUrl }) => {
+              const status = answers.get(id);
+              const on = chosen.includes(id);
               return (
-                <li key={accountId}>
-                  <label className="flex items-center gap-2 text-sm">
+                <li key={id}>
+                  <label className={`flex items-center gap-2.5 rounded-xl px-1 py-1 text-sm ${status ? "" : "active:bg-surface-2"}`}>
                     <input
                       type="checkbox"
                       disabled={!!status}
                       checked={on || !!status}
-                      onChange={() => setChosen((l) => (on ? l.filter((x) => x !== accountId) : [...l, accountId]))}
-                      className="h-4 w-4 accent-[var(--color-ps-blue)]"
+                      onChange={() => setChosen((l) => (on ? l.filter((x) => x !== id) : [...l, id]))}
+                      className="h-4 w-4 shrink-0 accent-[var(--color-ps-blue)]"
                     />
+                    <Avatar src={avatarUrl} name={name} size={32} />
                     <span className="flex-1 truncate">{name}</span>
                     {status && (
-                      <span className={`text-[0.6875rem] ${status === "aceito" ? "font-semibold text-online" : "text-muted"}`}>
+                      <span
+                        className={`shrink-0 text-[0.6875rem] ${
+                          status === "aceito" ? "font-semibold text-online" : status === "recusado" ? "text-red-400" : "text-muted"
+                        }`}
+                      >
                         {label(status)}
                       </span>
                     )}
@@ -679,20 +924,23 @@ function SendInApp({ boost: b, myId }: { boost: Boost; myId: string }) {
             disabled={!chosen.length || sending}
             onClick={async () => {
               setSending(true);
+              setFailed(false);
               try {
-                await sendBoostRequests(chosen, cloudPayload(b, myId));
+                const count = await sendBoostRequests(chosen, cloudPayload(b, myId));
+                onSent?.(count || chosen.length);
                 setChosen([]);
                 data.refresh();
               } catch {
-                // Sem conexão: o usuário pode tentar de novo.
+                setFailed(true);
               } finally {
                 setSending(false);
               }
             }}
             className="w-full rounded-xl bg-ps-blue py-2 text-sm font-semibold disabled:opacity-50"
           >
-            {sending ? t("Enviando…") : t("Enviar pedido ({n})", { n: chosen.length })}
+            {sending ? t("Enviando…") : t("Enviar convite ({n})", { n: chosen.length })}
           </button>
+          {failed && <p className="text-[0.6875rem] text-red-400">{t("Não foi possível enviar. Verifique a internet e tente de novo.")}</p>}
         </>
       )}
     </section>

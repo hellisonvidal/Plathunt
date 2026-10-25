@@ -20,8 +20,8 @@ import { getSettings, VERSION_CODE } from "./settings";
 import { matchPlayed } from "./stats";
 import { checkForUpdate } from "./updates";
 import { isPlayStoreBuild } from "../psn/native";
-import { syncCloudInbox } from "./boostInbox";
-import { cloudIdentity, likesOnMine } from "./cloud";
+import { syncCloudInbox, takeNewAnswers } from "./boostInbox";
+import { appUsers, cloudIdentity, likesOnMine } from "./cloud";
 
 type TrophyCheck = { earned: boolean; earnedAt: string | null } | "sem-jogo" | "privado";
 
@@ -209,6 +209,22 @@ async function checkSocial(since: string | null, now: number): Promise<string | 
       undefined,
       `/activity?view=boost-inbox&pedido=${encodeURIComponent(r.id)}`,
     );
+  }
+  // Respostas (sim ou não) aos pedidos que você enviou.
+  const answers = await takeNewAnswers().catch(() => []);
+  if (answers.length) {
+    const names = await appUsers(answers.map((a) => a.toAccountId)).catch(() => new Map<string, string>());
+    for (const a of answers.slice(0, 3)) {
+      const name = names.get(a.toAccountId) ?? t("Um amigo");
+      await notify(
+        "social",
+        `boost-answer:${a.id}`,
+        a.status === "aceito" ? t("👍 {name} topou seu boost", { name }) : t("👎 {name} não pode no boost", { name }),
+        a.game,
+        undefined,
+        "/activity?view=boost",
+      );
+    }
   }
   if (!since) return stamp;
   const likes = await likesOnMine(since).catch(() => []);
