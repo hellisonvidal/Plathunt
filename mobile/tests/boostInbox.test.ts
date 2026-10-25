@@ -92,13 +92,20 @@ describe("links com o nome antigo", () => {
 });
 
 describe("convite pelo WhatsApp", () => {
-  it("sem o servidor no build, leva o link do app e o da Play Store", async () => {
+  it("leva um link que abre o app ou instala pela Play Store", async () => {
     const { inviteLines } = await import("../src/lib/boostInbox");
+    const { cloudUrl } = await import("../src/lib/cloud");
     const text = inviteLines(
       { game: { id: "1", name: "Jogo", platform: "PS5", iconUrl: null }, trophies: ["T"], players: 1, when: "Agora", note: "", createdAt: "2026-01-01T00:00:00Z" },
       "Ana",
     );
-    expect(text).toContain("plathunt://boost?d=");
-    expect(text).toContain("https://play.google.com/store/apps/details?id=app.plathunt.trophytracker");
+    if (cloudUrl()) {
+      // Build com o servidor (o do GitHub): a página https do convite faz os dois.
+      expect(text).toContain(`${cloudUrl()}/convite?d=`);
+    } else {
+      // Sem o servidor: o link do app e o da Play Store.
+      expect(text).toContain("plathunt://boost?d=");
+      expect(text).toContain("https://play.google.com/store/apps/details?id=app.plathunt.trophytracker");
+    }
   });
 });
