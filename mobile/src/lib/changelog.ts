@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 23,
+    items: [
+      "📖 Guias: o PlayStationTrophies abre direto no guia do jogo ou do troféu, e o PSNProfiles no guia ou no próprio site; a busca no Google fica só para jogos que o site não tem.",
+    ],
+  },
+  {
     id: 22,
     items: ["📌 Na lista de troféus, o jogo (ícone, nome e progresso) fica fixo no topo enquanto você rola, na ordem original e na de conquista."],
   },
