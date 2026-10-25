@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasMultiplayerTrophies } from "../src/lib/multiplayer";
+import { hasMultiplayerTrophies, isMultiplayerTrophy } from "../src/lib/multiplayer";
 import { resolveTheme } from "../src/lib/theme";
 
 const row = (name: string, detail = "") => ({ name, detail });
@@ -11,6 +11,19 @@ describe("jogos com multiplayer", () => {
     expect(hasMultiplayerTrophies([row("Champion", "Gagnez un match en ligne")])).toBe(true);
     expect(hasMultiplayerTrophies([row("仲間", "オンラインで10勝する")])).toBe(true);
     expect(hasMultiplayerTrophies([row("Ratchet & Clank", "Conclua o prólogo"), row("Ferreiro", "Melhore uma arma")])).toBe(false);
+  });
+});
+
+describe("troféus do boost", () => {
+  it("só os troféus que dependem do multiplayer entram no pedido", () => {
+    const list = [
+      row("Caçada em grupo", "Derrote um chefe em modo cooperativo com outro caçador"),
+      row("Rei do multijogador", "Vença 10 partidas online"),
+      row("Primeiros passos", "Conclua o prólogo"),
+      { name: "Lobo solitário", detail: "Termine a campanha", originalName: "Lone Wolf" },
+      { name: "Parceiro", detail: "Jogue junto", originalName: "Co-op Partner" },
+    ];
+    expect(list.filter(isMultiplayerTrophy).map((r) => r.name)).toEqual(["Caçada em grupo", "Rei do multijogador", "Parceiro"]);
   });
 });
 

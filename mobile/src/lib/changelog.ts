@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 24,
+    items: [
+      "🎮 Boost redesenhado: só jogos e troféus de multiplayer, confirmação dos troféus e da desistência, convite aos amigos com notificação e resposta sim ou não, e convite pelo WhatsApp com link para instalar o app.",
+    ],
+  },
+  {
     id: 23,
     items: [
       "📖 Guias: o PlayStationTrophies abre direto no guia do jogo ou do troféu, e o PSNProfiles no guia ou no próprio site; a busca no Google fica só para jogos que o site não tem.",

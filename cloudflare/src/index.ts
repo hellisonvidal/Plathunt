@@ -241,12 +241,67 @@ async function deleteAccount(env: Env, me: Session) {
   return json({ ok: true });
 }
 
+const PLAY_STORE = "https://play.google.com/store/apps/details?id=app.plathunt.trophytracker";
+const APP_PACKAGE = "app.plathunt.trophytracker";
+
+const escapeHtml = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+/** Jogo do pedido (só para mostrar na página); qualquer erro vira "". */
+function inviteGame(code: string): string {
+  try {
+    const b64 = code.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((code.length + 3) % 4);
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const p = JSON.parse(new TextDecoder().decode(bytes)) as { from?: unknown; game?: { name?: unknown } };
+    const game = typeof p.game?.name === "string" ? p.game.name.slice(0, 120) : "";
+    const from = typeof p.from === "string" ? p.from.slice(0, 32) : "";
+    return game ? (from ? `${from} · ${game}` : game) : "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * GET /convite?d=…: link de convite de boost mandado no WhatsApp (os apps de
+ * mensagem só deixam tocar em links https). No Android, abre o pedido no
+ * Plathunt; sem o app, o próprio Android leva para a Play Store. A página
+ * também tem os dois botões, para outros aparelhos.
+ */
+function invitePage(url: URL): Response {
+  const code = url.searchParams.get("d") ?? "";
+  if (!/^[A-Za-z0-9_-]{1,8000}$/.test(code)) return new Response("Convite inválido.", { status: 400 });
+  const appLink = `plathunt://boost?d=${code}`;
+  const intent = `intent://boost?d=${code}#Intent;scheme=plathunt;package=${APP_PACKAGE};S.browser_fallback_url=${encodeURIComponent(PLAY_STORE)};end`;
+  const game = escapeHtml(inviteGame(code));
+  const html = `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Convite de boost · Plathunt</title>
+<style>body{margin:0;font-family:system-ui,sans-serif;background:#0b0d12;color:#e8ecf3;display:flex;min-height:100vh;align-items:center;justify-content:center}
+main{max-width:420px;padding:24px;text-align:center}h1{font-size:1.4rem}p{color:#9aa4b5}
+a{display:block;margin:12px 0;padding:14px;border-radius:14px;font-weight:600;text-decoration:none;color:#fff;background:#0070d1}
+a.alt{background:#1c2230;border:1px solid #2c3446}</style></head>
+<body><main><h1>📣 Convite de boost</h1>${game ? `<p>${game}</p>` : ""}
+<p>Responda sim ou não pelo Plathunt.</p>
+<a href="${escapeHtml(appLink)}">Abrir no Plathunt</a>
+<a class="alt" href="${PLAY_STORE}">Instalar o Plathunt (Google Play)</a>
+</main><script>if(/Android/i.test(navigator.userAgent))location.href=${JSON.stringify(intent)};</script></body></html>`;
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'",
+      "Referrer-Policy": "no-referrer",
+    },
+  });
+}
+
 export async function handle(request: Request, env: Env, fetcher: typeof fetch = fetch): Promise<Response> {
   const url = new URL(request.url);
   const route = `${request.method} ${url.pathname}`;
   try {
     if (route === "POST /v1/login") return await login(request, env, fetcher);
     if (route === "GET /v1/health") return json({ ok: true });
+    if (route === "GET /convite") return invitePage(url);
 
     const me = await requireSession(request, env);
     switch (route) {

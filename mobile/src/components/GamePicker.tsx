@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../app";
 import { browseCatalog, buildBoostCatalog, catalogPlatforms, myGames, type BoostCandidate } from "../lib/boost";
 import { catalogProgress, useCatalog, type CatalogLoaders } from "../lib/gameCatalog";
-import { knownMultiplayer, scanMultiplayer, useMultiplayerScan } from "../lib/multiplayer";
+import { isMultiplayerTrophy, knownMultiplayer, scanMultiplayer, useMultiplayerScan } from "../lib/multiplayer";
 import { t } from "../i18n";
 import { useSettings } from "../lib/settings";
 import { ALL_ID } from "../lib/store";
@@ -59,12 +59,12 @@ export function GamePicker({
 }: {
   onPick: (game: BoostCandidate) => void;
   onlyWithTrophies?: boolean;
-  /** Boost: filtro "só jogos multiplayer" (ligado por padrão). */
+  /** Boost: só jogos com troféus de multiplayer ("Jogos multiplayer" no lugar de "Todo o catálogo"). */
   multiplayer?: boolean;
 }) {
   const { client } = useApp();
   const catalog = useGameCatalog();
-  const [mpOnly, setMpOnly] = useState(multiplayer);
+  const mpOnly = multiplayer;
   const scan = useMultiplayerScan();
   const { state } = catalog;
   const [platform, setPlatform] = useState<string | null>(null);
@@ -114,7 +114,11 @@ export function GamePicker({
       <div className="grid grid-cols-2 gap-1 rounded-xl border border-line p-1 text-xs" role="radiogroup" aria-label={t("Origem dos jogos")}>
         {(
           [
-            ["todos", <PlayStationLogo key="i" size={16} />, t("Todo o catálogo")],
+            [
+              "todos",
+              multiplayer ? <span key="i" aria-hidden>👥</span> : <PlayStationLogo key="i" size={16} />,
+              multiplayer ? t("Jogos multiplayer") : t("Todo o catálogo"),
+            ],
             ["meus", <span key="i" aria-hidden>🎮</span>, t("Só os meus jogos")],
           ] as const
         ).map(([k, icon, label]) => (
@@ -133,23 +137,13 @@ export function GamePicker({
         ))}
       </div>
 
+      {/* Boost: só entram jogos com troféus online ou cooperativos (verificados em segundo plano). */}
       {multiplayer && (
-        <label className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-2 text-sm">
-          <span>
-            {t("👥 Só jogos com multiplayer")}
-            <span className="block text-[0.6875rem] text-muted">
-              {mpOnly && scan.pending > 0
-                ? t("Verificando os troféus online… faltam {n} jogos", { n: scan.pending })
-                : t("Jogos com troféus online ou cooperativos")}
-            </span>
-          </span>
-          <input
-            type="checkbox"
-            checked={mpOnly}
-            onChange={(e) => setMpOnly(e.target.checked)}
-            className="h-5 w-5 shrink-0 accent-[var(--color-ps-blue)]"
-          />
-        </label>
+        <p className="text-[0.6875rem] text-muted" aria-live="polite">
+          {scan.pending > 0
+            ? t("Verificando os troféus online… faltam {n} jogos", { n: scan.pending })
+            : t("Jogos com troféus online ou cooperativos")}
+        </p>
       )}
 
       {!ready ? (
@@ -211,7 +205,13 @@ export function GamePicker({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={source === "meus" ? t("Buscar nos seus jogos") : t("Buscar em todo o catálogo PlayStation")}
+            placeholder={
+              source === "meus"
+                ? t("Buscar nos seus jogos")
+                : multiplayer
+                  ? t("Buscar nos jogos multiplayer")
+                  : t("Buscar em todo o catálogo PlayStation")
+            }
             className="w-full rounded-full border border-line bg-surface-2 px-4 py-2 text-sm outline-none focus:border-ps-blue-2"
           />
           <p className="text-[0.6875rem] text-muted">
@@ -294,12 +294,15 @@ export function TrophyPicker({
   onChange,
   multiple = true,
   earned = "toggle",
+  onlyMultiplayer = false,
 }: {
   game: BoostCandidate;
   selected: number[];
   onChange: (ids: number[], rows: TrophyRow[]) => void;
   multiple?: boolean;
   earned?: "hide" | "show" | "toggle";
+  /** Boost: só os troféus que dependem do multiplayer. */
+  onlyMultiplayer?: boolean;
 }) {
   const trophies = useTrophyList(game);
   const [showEarned, setShowEarned] = useState(earned === "show");
@@ -315,7 +318,9 @@ export function TrophyPicker({
   if (trophies.loading && !trophies.data) return <Spinner label={t("Carregando a lista de troféus…")} />;
   if (!trophies.data) return <p className="text-sm text-muted">{t("Não foi possível carregar a lista de troféus.")}</p>;
 
-  const all = trophies.data.trophies;
+  const all = onlyMultiplayer ? trophies.data.trophies.filter(isMultiplayerTrophy) : trophies.data.trophies;
+  if (onlyMultiplayer && all.length === 0)
+    return <p className="text-sm text-muted">{t("Este jogo não tem troféus que dependem do multiplayer.")}</p>;
   const earnedCount = all.filter((tr) => tr.earned).length;
   const visible = (tr: TrophyRow) =>
     (earned === "show" || (earned === "toggle" && showEarned) || !tr.earned) && (type === "todos" || tr.type === type);
@@ -341,7 +346,13 @@ export function TrophyPicker({
     `shrink-0 rounded-full px-2.5 py-1 text-xs ${active ? "bg-ps-blue font-semibold" : "border border-line text-muted"}`;
 
   if (earned === "hide" && all.length > 0 && earnedCount === all.length)
-    return <p className="text-sm text-muted">{t("Você já tem todos os troféus deste jogo.")}</p>;
+    return (
+      <p className="text-sm text-muted">
+        {onlyMultiplayer
+          ? t("Você já tem todos os troféus de multiplayer deste jogo.")
+          : t("Você já tem todos os troféus deste jogo.")}
+      </p>
+    );
 
   return (
     <div className="space-y-2">

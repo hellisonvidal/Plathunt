@@ -90,3 +90,15 @@ describe("links com o nome antigo", () => {
     expect(parseBoostText(link.replace("plathunt://", "trophymania://"))?.game.name).toBe("Jogo");
   });
 });
+
+describe("convite pelo WhatsApp", () => {
+  it("sem o servidor no build, leva o link do app e o da Play Store", async () => {
+    const { inviteLines } = await import("../src/lib/boostInbox");
+    const text = inviteLines(
+      { game: { id: "1", name: "Jogo", platform: "PS5", iconUrl: null }, trophies: ["T"], players: 1, when: "Agora", note: "", createdAt: "2026-01-01T00:00:00Z" },
+      "Ana",
+    );
+    expect(text).toContain("plathunt://boost?d=");
+    expect(text).toContain("https://play.google.com/store/apps/details?id=app.plathunt.trophytracker");
+  });
+});
