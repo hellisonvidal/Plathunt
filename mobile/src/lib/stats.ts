@@ -394,6 +394,20 @@ export function hasOwnFullTime(title: Title): boolean {
   return title.hasGroups || title.defined.platinum === 0;
 }
 
+/**
+ * Troféus na ordem em que foram conquistados (os mais antigos primeiro, ou os
+ * mais recentes com `newestFirst`); os ainda não conquistados vêm depois, na
+ * ordem do jogo.
+ */
+export function chronological(trophies: TrophyRow[], newestFirst = false): TrophyRow[] {
+  const at = (t: TrophyRow) => (t.earnedAt ? Date.parse(t.earnedAt) : NaN);
+  const earned = trophies
+    .filter((t) => t.earned && Number.isFinite(at(t)))
+    .sort((a, b) => (newestFirst ? at(b) - at(a) : at(a) - at(b)) || a.id - b.id);
+  const rest = trophies.filter((t) => !earned.includes(t)).sort((a, b) => a.id - b.id);
+  return [...earned, ...rest];
+}
+
 /** Do primeiro troféu à platina (ou ao último troféu, no 100%). */
 export interface CompletionSpan {
   start: string;

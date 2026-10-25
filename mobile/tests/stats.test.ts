@@ -325,3 +325,13 @@ describe("tempo até o 100%", () => {
     expect(hasOwnFullTime({ ...base, defined: c(0, 1, 2, 10), earned: c(0, 1, 2, 10) })).toBe(true);
   });
 });
+
+describe("ordem das conquistas", () => {
+  it("conquistados por data (antigos ou recentes primeiro) e os bloqueados no fim, na ordem do jogo", async () => {
+    const { chronological } = await import("../src/lib/stats");
+    const row = (id: number, earnedAt: string | null): TrophyRow => ({ ...trophy(id, "default", !!earnedAt), earnedAt });
+    const list = [row(0, "2026-03-01T00:00:00Z"), row(1, null), row(2, "2026-01-01T00:00:00Z"), row(3, "2026-02-01T00:00:00Z"), row(4, null)];
+    expect(chronological(list).map((t) => t.id)).toEqual([2, 3, 0, 1, 4]);
+    expect(chronological(list, true).map((t) => t.id)).toEqual([0, 3, 2, 1, 4]);
+  });
+});

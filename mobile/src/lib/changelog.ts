@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 20,
+    items: [
+      "🗓️ Troféus em ordem de conquista: na lista de troféus de cada jogo (seus e dos amigos), escolha \"1ª conquista\" ou \"Mais recentes\".",
+      "📖 Guias do PlayStationTrophies e do PSNProfiles abrem direto na página do guia, sem passar pela busca do Google.",
+    ],
+  },
+  {
     id: 19,
     items: ["⏱️ Tempo até o 100% agora inclui os jogos sem platina, e os números da comparação ficam alinhados."],
   },
