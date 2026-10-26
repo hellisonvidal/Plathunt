@@ -91,15 +91,16 @@ export function boostMessage(
     help.push(t("🎮 Me chama na PSN: {me}", { me }));
     return help.join("\n");
   }
+  // Curto, para caber numa olhada no WhatsApp: jogo, troféus, vagas e horário, recado e o ID da PSN.
   const lines = [
-    t("📣 BOOST: {game} ({platform})", { game: b.game.name, platform: b.game.platform }),
+    t("📣 Boost em {game} ({platform})", { game: b.game.name, platform: b.game.platform }),
+    ...(b.trophies.length ? [`🏆 ${b.trophies.join(", ")}`] : []),
     b.players === 1
       ? t("👥 Procuro {n} jogador · 🕒 {when}", { n: b.players, when: t(b.when) })
       : t("👥 Procuro {n} jogadores · 🕒 {when}", { n: b.players, when: t(b.when) }),
   ];
-  if (b.trophies.length) lines.push(t("🏆 Troféus: {list}", { list: b.trophies.join(", ") }));
   if (b.note.trim()) lines.push(`📝 ${b.note.trim()}`);
-  lines.push(t("🎮 Me chama na PSN: {me}", { me }));
+  lines.push(t("🎮 PSN: {me}", { me }));
   return lines.join("\n");
 }
 

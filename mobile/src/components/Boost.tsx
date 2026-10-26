@@ -17,6 +17,8 @@ import { t } from "../i18n";
 import {
   cloudPayload,
   inviteLines,
+  savedShortLink,
+  shortInviteLink,
   removeFromInbox,
   setInboxStatus,
   syncCloudInbox,
@@ -383,7 +385,7 @@ function InviteStep({
   const { client } = useApp();
   const me = useData((force) => client.me(force), [client]);
   const myId = me.data?.onlineId ?? t("eu");
-  const text = `${boostMessage(b, myId)}\n${inviteLines(b, myId)}`;
+  const text = useInviteText(b, myId);
   const [sent, setSent] = useState(0);
   return (
     <div className="space-y-4">
@@ -425,6 +427,25 @@ function InviteStep({
   );
 }
 
+/**
+ * Texto do convite com o link curto (https://…/c/código), criado uma vez por
+ * pedido; enquanto ele não chega (ou sem os recursos online), vai o link longo.
+ */
+function useInviteText(b: Boost, myId: string): string {
+  const [link, setLink] = useState<string | null>(() => savedShortLink(b));
+  const { identity } = useCloud();
+  useEffect(() => {
+    if (b.kind === "ajuda" || savedShortLink(b)) return;
+    let alive = true;
+    void shortInviteLink(b, myId).then((l) => alive && setLink(l));
+    return () => {
+      alive = false;
+    };
+  }, [b, myId, identity?.accountId]);
+  if (b.kind === "ajuda") return boostMessage(b, myId);
+  return `${boostMessage(b, myId)}\n${inviteLines(b, myId, link ?? undefined)}`;
+}
+
 /** Botão do WhatsApp (abre o app com o texto pronto; escolhe a conversa lá). */
 function WhatsAppButton({ text, small = false }: { text: string; small?: boolean }) {
   return (
@@ -456,7 +477,7 @@ function BoostCard({ boost: b }: { boost: Boost }) {
   const [copied, setCopied] = useState(false);
   const myId = me.data?.onlineId ?? t("eu");
   // O link leva o pedido junto: quem recebe abre no app e vê em "Pedidos recebidos".
-  const text = boostMessage(b, myId) + (b.kind === "ajuda" ? "" : `\n${inviteLines(b, myId)}`);
+  const text = useInviteText(b, myId);
   const links = shareLinks(text);
 
   const copy = async () => {

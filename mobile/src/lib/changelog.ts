@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 25,
+    items: [
+      "✉️ Convite do boost no WhatsApp mais curto, com link curto do Plathunt.",
+      "⬆️ Aviso de nova versão ao abrir o app, com atalho para atualizar pela Play Store.",
+      "🛠️ Pedidos de boost não chegam mais em dobro.",
+    ],
+  },
+  {
     id: 24,
     items: [
       "🎮 Boost redesenhado: só jogos e troféus de multiplayer, confirmação dos troféus e da desistência, convite aos amigos com notificação e resposta sim ou não, e convite pelo WhatsApp com link para instalar o app.",

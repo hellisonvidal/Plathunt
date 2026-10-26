@@ -23,9 +23,10 @@ Os recursos online vêm ligados. Na primeira vez que você entra com a PSN, um a
 
 - seu accountId e seu ID online da PSN, e a URL do seu avatar;
 - as curtidas que você dá: em qual conquista, de quem é a conquista e qual emoji;
-- os pedidos de boost que você envia e as respostas: jogo, troféus, horário, recado e destinatário.
+- os pedidos de boost que você envia e as respostas: jogo, troféus, horário, recado e destinatário;
+- os convites de boost que você compartilha (WhatsApp e outros): jogo, troféus, horário, recado e seu ID online, guardados para o link curto do convite.
 
-**Quem vê esses dados:** curtidas e perfis são visíveis para outros usuários do app com recursos online. Cada pedido de boost só é visível para quem enviou e quem recebeu.
+**Quem vê esses dados:** curtidas e perfis são visíveis para outros usuários do app com recursos online. Cada pedido de boost só é visível para quem enviou e quem recebeu. Um convite compartilhado pode ser aberto por qualquer pessoa que receba o link.
 
 **Onde e por quanto tempo:** os dados ficam em um banco de dados Cloudflare D1 (região leste dos Estados Unidos) e permanecem lá enquanto os recursos online estiverem em uso.
 

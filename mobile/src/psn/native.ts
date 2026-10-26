@@ -47,6 +47,16 @@ export const isPlayStoreBuild = () => isNativeApp() && !Capacitor.isPluginAvaila
 
 export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.plathunt.trophytracker";
 
+/** Plugin nativo da versão da Play Store (android/app/src/play/.../PlayUpdatePlugin.java). */
+interface PlayUpdatePlugin {
+  /** Pergunta à Play Store se há versão mais nova publicada. */
+  check(): Promise<{ available: boolean; versionCode: number }>;
+  /** Abre a tela de atualização do Google Play (false se a loja não deixou). */
+  update(): Promise<{ started: boolean }>;
+}
+
+export const PlayUpdate = registerPlugin<PlayUpdatePlugin>("PlayUpdate");
+
 /** Plugin nativo (android/.../ExternalBrowserPlugin.java). */
 interface ExternalBrowserPlugin {
   /** Abre o endereço no navegador, sem deixar outro app (ex.: o da PlayStation) capturar o link. */

@@ -191,6 +191,19 @@ async function sendBoosts(request: Request, env: Env, me: Session) {
     .first<{ n: number }>();
   if ((recent?.n ?? 0) + recipients.length > BOOST_LIMIT_PER_HOUR) throw new HttpError(429, "limit");
 
+  // O mesmo pedido (boostId) não vai duas vezes para a mesma pessoa (toque
+  // duplo, nova tentativa depois de falha de rede, os dois seletores da tela).
+  const boostId = typeof (payload as { boostId?: unknown }).boostId === "string" ? (payload as { boostId: string }).boostId : null;
+  if (boostId) {
+    const { results } = await env.DB.prepare(
+      "select to_account_id from boost_requests where from_account_id = ?1 and json_extract(payload, '$.boostId') = ?2",
+    )
+      .bind(me.sub, boostId)
+      .all<{ to_account_id: string }>();
+    const already = new Set(results.map((r) => r.to_account_id));
+    for (let i = recipients.length - 1; i >= 0; i--) if (already.has(recipients[i])) recipients.splice(i, 1);
+  }
+
   const now = new Date().toISOString();
   const insert = env.DB.prepare(
     "insert into boost_requests (id, from_account_id, to_account_id, payload, status, created_at) values (?1, ?2, ?3, ?4, 'novo', ?5)",
@@ -236,9 +249,56 @@ async function deleteAccount(env: Env, me: Session) {
   await env.DB.batch([
     env.DB.prepare("delete from likes where liker_account_id = ?1 or owner_account_id = ?1").bind(me.sub),
     env.DB.prepare("delete from boost_requests where from_account_id = ?1 or to_account_id = ?1").bind(me.sub),
+    env.DB.prepare("delete from invites where from_account_id = ?1").bind(me.sub),
     env.DB.prepare("delete from profiles where account_id = ?1").bind(me.sub),
   ]);
   return json({ ok: true });
+}
+
+/** Convites com link curto por jogador por hora. */
+export const INVITE_LIMIT_PER_HOUR = 60;
+const INVITE_ID = /^[A-Za-z0-9]{6,12}$/;
+
+function newInviteId(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(7));
+  return [...bytes].map((b) => chars[b % chars.length]).join("");
+}
+
+/** POST /v1/invites: guarda o pedido e devolve o código do link curto. */
+async function createInvite(request: Request, env: Env, me: Session) {
+  const { payload } = await readBody(request);
+  const text = JSON.stringify(payload ?? null);
+  if (!payload || typeof payload !== "object" || Array.isArray(payload) || text.length > MAX_PAYLOAD_CHARS) {
+    throw new HttpError(400, "payload");
+  }
+  const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
+  const recent = await env.DB.prepare("select count(*) as n from invites where from_account_id = ?1 and created_at > ?2")
+    .bind(me.sub, hourAgo)
+    .first<{ n: number }>();
+  if ((recent?.n ?? 0) >= INVITE_LIMIT_PER_HOUR) throw new HttpError(429, "limit");
+  // O nome de quem convida vem da sessão (confirmado pela PSN), não do pedido.
+  const stored = JSON.stringify({ ...(payload as Record<string, unknown>), from: me.oid });
+  const id = newInviteId();
+  await env.DB.prepare("insert into invites (id, from_account_id, payload, created_at) values (?1, ?2, ?3, ?4)")
+    .bind(id, me.sub, stored, new Date().toISOString())
+    .run();
+  return json({ id });
+}
+
+/** Texto em base64url (o formato do link plathunt://boost?d=…). */
+function toBase64Url(text: string): string {
+  let bin = "";
+  new TextEncoder().encode(text).forEach((b) => (bin += String.fromCharCode(b)));
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** GET /c/<id>: o link curto do WhatsApp; mostra a mesma página do convite. */
+async function shortInvite(id: string, env: Env): Promise<Response> {
+  if (!INVITE_ID.test(id)) return new Response("Convite inválido.", { status: 404 });
+  const row = await env.DB.prepare("select payload from invites where id = ?1").bind(id).first<{ payload: string }>();
+  if (!row) return new Response("Convite não encontrado.", { status: 404 });
+  return invitePage(new URL(`https://x/convite?d=${toBase64Url(row.payload)}`));
 }
 
 const PLAY_STORE = "https://play.google.com/store/apps/details?id=app.plathunt.trophytracker";
@@ -302,6 +362,7 @@ export async function handle(request: Request, env: Env, fetcher: typeof fetch =
     if (route === "POST /v1/login") return await login(request, env, fetcher);
     if (route === "GET /v1/health") return json({ ok: true });
     if (route === "GET /convite") return invitePage(url);
+    if (request.method === "GET" && url.pathname.startsWith("/c/")) return await shortInvite(url.pathname.slice(3), env);
 
     const me = await requireSession(request, env);
     switch (route) {
@@ -313,6 +374,8 @@ export async function handle(request: Request, env: Env, fetcher: typeof fetch =
         return await likesFor(request, env);
       case "GET /v1/likes/mine":
         return await likesOnMine(url, env, me);
+      case "POST /v1/invites":
+        return await createInvite(request, env, me);
       case "POST /v1/boosts":
         return await sendBoosts(request, env, me);
       case "GET /v1/boosts":

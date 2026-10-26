@@ -1,11 +1,17 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import type { Database, Statement } from "../../../cloudflare/src/index";
 
 // O servidor (Cloudflare Worker) roda nos testes contra um SQLite de verdade,
 // com as mesmas migrações do D1.
 const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite");
-const MIGRATION = readFileSync(new URL("../../../cloudflare/migrations/0001_init.sql", import.meta.url), "utf8");
+// Todas as migrações, em ordem (0001_init.sql, 0002_invites.sql…).
+const MIGRATIONS_DIR = new URL("../../../cloudflare/migrations/", import.meta.url);
+const MIGRATION = readdirSync(MIGRATIONS_DIR)
+  .filter((f) => f.endsWith(".sql"))
+  .sort()
+  .map((f) => readFileSync(new URL(f, MIGRATIONS_DIR), "utf8"))
+  .join("\n");
 export const SECRET = "segredo-de-teste-com-mais-de-32-caracteres";
 
 type Sqlite = {

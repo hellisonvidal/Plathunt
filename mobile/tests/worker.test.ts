@@ -111,3 +111,30 @@ describe("convite de boost (link do WhatsApp)", () => {
     expect((await call("GET", "/convite?d=%3Cscript%3E")).status).toBe(400);
   });
 });
+
+describe("convite com link curto e pedidos sem duplicidade", () => {
+  it("guarda o convite e o link curto abre a página do convite com o nome confirmado", async () => {
+    const ana = await login("token-da-ana-xxxxxxxxxxxxxxxx");
+    const res = await call("POST", "/v1/invites", { payload: { from: "Falso", game: { name: "Jogo X" }, trophies: [] } }, ana);
+    expect(res.status).toBe(200);
+    const { id } = (await res.json()) as { id: string };
+    expect(id).toMatch(/^[A-Za-z0-9]{7}$/);
+    const page = await call("GET", `/c/${id}`);
+    expect(page.status).toBe(200);
+    const html = await page.text();
+    expect(html).toContain("Ana · Jogo X");
+    expect(html).toContain("plathunt://boost?d=");
+    expect((await call("GET", "/c/naoexiste1")).status).toBe(404);
+    expect((await call("POST", "/v1/invites", { payload: {} })).status).toBe(401);
+  });
+
+  it("o mesmo pedido não vai duas vezes para a mesma pessoa", async () => {
+    const ana = await login("token-da-ana-xxxxxxxxxxxxxxxx");
+    const payload = { boostId: "b-1", game: { name: "Jogo" }, trophies: [] };
+    expect(await (await call("POST", "/v1/boosts", { to: ["222"], payload }, ana)).json()).toEqual({ count: 1 });
+    expect(await (await call("POST", "/v1/boosts", { to: ["222", "222"], payload }, ana)).json()).toEqual({ count: 0 });
+    expect(await (await call("POST", "/v1/boosts", { to: ["222"], payload: { ...payload, boostId: "b-2" } }, ana)).json()).toEqual({ count: 1 });
+    const { requests } = (await (await call("GET", "/v1/boosts", undefined, ana)).json()) as { requests: unknown[] };
+    expect(requests).toHaveLength(2);
+  });
+});

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Boost } from "./boost";
-import { answerBoostRequest, cloudUrl, myBoostRequests } from "./cloud";
+import { answerBoostRequest, cloudIdentity, cloudUrl, createInvite, myBoostRequests } from "./cloud";
 import { PLAY_STORE_URL } from "../psn/native";
 import { t } from "../i18n";
 import { persistSet } from "./persist";
@@ -56,12 +56,69 @@ export function inviteLink(b: Pick<Boost, "game" | "trophies" | "players" | "whe
   return api ? `${api}/convite?d=${boostLink(b, from).slice(LINK.length)}` : boostLink(b, from);
 }
 
-/** Linhas do convite que vão no fim da mensagem: abrir o pedido e instalar o app. */
-export function inviteLines(b: Pick<Boost, "game" | "trophies" | "players" | "when" | "note" | "createdAt">, from: string): string {
-  const link = inviteLink(b, from);
+/** Linhas do convite que vão no fim da mensagem: responder no app (ou instalar). */
+export function inviteLines(
+  b: Pick<Boost, "game" | "trophies" | "players" | "when" | "note" | "createdAt">,
+  from: string,
+  link = inviteLink(b, from),
+): string {
   return link.startsWith("https://")
-    ? `📲 ${t("Responda pelo Plathunt (abre o app ou instala pela Play Store)")}: ${link}`
+    ? t("👉 Topa? Responda no Plathunt: {link}", { link })
     : `🔗 ${t("Abrir no Plathunt")}: ${link}\n📲 ${t("Ainda não tem o Plathunt? Instale")}: ${PLAY_STORE_URL}`;
+}
+
+const SHORT_KEY = "tm.inviteLinks";
+
+function shortLinks(): Record<string, string> {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SHORT_KEY) ?? "{}");
+    return saved && typeof saved === "object" && !Array.isArray(saved) ? saved : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Link curto já criado para este pedido (sem rede). */
+export function savedShortLink(b: Pick<Boost, "id">): string | null {
+  return shortLinks()[b.id] ?? null;
+}
+
+/**
+ * Link curto do convite (https://…/c/Ab3dE9x), criado uma vez por pedido e
+ * guardado. Sem os recursos online (ou sem rede), fica o link longo.
+ */
+export async function shortInviteLink(b: Boost, from: string): Promise<string> {
+  const saved = savedShortLink(b);
+  if (saved) return saved;
+  const api = cloudUrl();
+  if (!api || !(await cloudIdentity())) return inviteLink(b, from);
+  try {
+    const id = await createInvite({
+      from,
+      game: { ...b.game, iconUrl: null },
+      trophies: b.trophies,
+      players: b.players,
+      when: b.when,
+      note: b.note,
+      createdAt: b.createdAt,
+    });
+    const link = `${api}/c/${id}`;
+    const all = Object.entries({ ...shortLinks(), [b.id]: link }).slice(-200);
+    try {
+      localStorage.setItem(SHORT_KEY, JSON.stringify(Object.fromEntries(all)));
+    } catch {}
+    return link;
+  } catch {
+    return inviteLink(b, from);
+  }
+}
+
+/**
+ * Identidade do pedido: o mesmo pedido pode chegar pelo app (recursos
+ * online) e pelo link do WhatsApp; os dois viram um só no painel.
+ */
+export function requestKey(p: Pick<ReceivedBoost, "from" | "createdAt" | "game">): string {
+  return `${p.from.toLowerCase()}:${p.createdAt}:${p.game.name}`;
 }
 
 /** Link do pedido, que vai junto no texto da convocação. */
@@ -126,7 +183,8 @@ export function importBoost(text: string, me: string | null, now = new Date()): 
   if (me && p.from.toLowerCase() === me.toLowerCase()) return { ok: false, reason: "meu" };
   const id = `${p.from}:${p.createdAt}:${p.game.name}`;
   const list = getInbox();
-  const found = list.find((r) => r.id === id);
+  // Já chegou pelo app (ou pelo mesmo link antes): não duplica.
+  const found = list.find((r) => r.id === id || requestKey(r) === requestKey(p));
   if (found) return { ok: true, request: found, duplicate: true };
   const request: ReceivedBoost = { ...p, id, receivedAt: now.toISOString(), status: "novo" };
   save([request, ...list]);
@@ -169,28 +227,44 @@ export async function syncCloudInbox(now = new Date()): Promise<ReceivedBoost[]>
   const { received } = await myBoostRequests();
   const list = getInbox();
   const known = new Set([...list.map((r) => r.cloudId).filter(Boolean), ...getDismissed()]);
+  const keys = new Set(list.map(requestKey));
   const added: ReceivedBoost[] = [];
+  // O mesmo pedido que já chegou pelo link do WhatsApp: liga ao do app (para
+  // a resposta sim/não chegar a quem pediu) em vez de duplicar.
+  const linked = new Map<string, string>();
   for (const r of received) {
     if (known.has(r.id) || r.status === "recusado") continue;
     const p = r.payload as Partial<Payload>;
     if (!p.game?.name) continue;
+    const from = r.from_online_id ?? String(p.from ?? "");
+    // A data do pedido (a mesma que vai no link do WhatsApp), não a do envio.
+    const createdAt = String(p.createdAt ?? r.created_at);
+    const key = requestKey({ from, createdAt, game: { ...p.game, name: String(p.game.name) } as Boost["game"] });
+    if (keys.has(key)) {
+      linked.set(key, r.id);
+      continue;
+    }
+    keys.add(key);
     added.push({
       id: `cloud:${r.id}`,
       cloudId: r.id,
       // O nome vem do perfil confirmado pela PSN, não do texto do pedido (que
       // quem envia poderia trocar para se passar por um amigo).
-      from: r.from_online_id ?? String(p.from ?? ""),
+      from,
       game: { id: String(p.game.id ?? ""), name: String(p.game.name), platform: String(p.game.platform ?? ""), iconUrl: null },
       trophies: Array.isArray(p.trophies) ? p.trophies.map(String) : [],
       players: Number(p.players) || 1,
       when: String(p.when ?? ""),
       note: String(p.note ?? ""),
-      createdAt: r.created_at,
+      createdAt,
       receivedAt: now.toISOString(),
       status: r.status === "aceito" ? "aceito" : "novo",
     });
   }
-  if (added.length) save([...added, ...list]);
+  const merged = linked.size
+    ? list.map((r) => (!r.cloudId && linked.has(requestKey(r)) ? { ...r, cloudId: linked.get(requestKey(r)) } : r))
+    : list;
+  if (added.length || linked.size) save([...added, ...merged]);
   return added;
 }
 

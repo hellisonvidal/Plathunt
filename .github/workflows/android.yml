@@ -42,16 +42,16 @@ jobs:
           echo "APP_VERSION=$(node -p "require('./mobile/package.json').version")" >> "$GITHUB_ENV"
 
       # Endereço do servidor dos recursos online (Cloudflare Worker), gravado no
-      # app. Vem da variável PLATHUNT_API_URL ou, com os segredos da Cloudflare,
-      # do subdomínio workers.dev da conta. Sem nenhum dos dois, o app sai com
-      # os recursos online indisponíveis (o resto funciona normalmente).
+      # app e usado nos links de convite do WhatsApp. Vem da variável
+      # PLATHUNT_API_URL ou, sem ela, do domínio do app (plathunt.mytrophies.app,
+      # que repassa para o Worker; docs/cloudflare.md).
       - name: Endereço do servidor
         env:
           API_URL: ${{ vars.PLATHUNT_API_URL }}
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          url="$API_URL"
+          url="${API_URL:-https://plathunt.mytrophies.app}"
           if [ -z "$url" ] && [ -n "$CF_TOKEN" ] && [ -n "$CF_ACCOUNT" ]; then
             sub=$(curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
               "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/subdomain" | jq -r '.result.subdomain // empty' || true)
