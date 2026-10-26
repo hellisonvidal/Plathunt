@@ -193,22 +193,107 @@ async function psnpGame(name: string): Promise<{ path: string; html: string } | 
   return { path, html: page.html };
 }
 
+/**
+ * Buscadores (DuckDuckGo e Bing, nas versões em HTML simples), para quando o
+ * PSNProfiles não deixa o app ler as páginas dele (proteção contra robôs): as
+ * páginas de guia e de troféu do site estão indexadas com o endereço direto.
+ */
+const ENGINES = [
+  (q: string) => `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`,
+  (q: string) => `https://www.bing.com/search?q=${encodeURIComponent(q)}&setlang=en`,
+];
+
+/** Caminhos do PSNProfiles (ex.: "/guide/123-nome") nos resultados de busca, na ordem. */
+export function psnpPathsIn(html: string, kind: "guide" | "trophy"): string[] {
+  // Os buscadores trazem o endereço às vezes codificado (uddg=https%3A%2F%2F…).
+  const text = html.replace(/%2F/gi, "/").replace(/%3A/gi, ":").replace(/&amp;/g, "&");
+  const re =
+    kind === "guide"
+      ? /psnprofiles\.com\/guide\/(\d+-[A-Za-z0-9%-]+)/g
+      : /psnprofiles\.com\/trophy\/(\d+-[A-Za-z0-9%-]+\/\d+-[A-Za-z0-9%-]+)/g;
+  const out: string[] = [];
+  for (const m of text.matchAll(re)) {
+    const path = `/${kind}/${m[1]}`;
+    if (!out.includes(path)) out.push(path);
+  }
+  return out;
+}
+
+/**
+ * Primeiro resultado aceito pelos buscadores. `rank` devolve null para
+ * descartar e um número para ordenar (menor = melhor).
+ */
+async function searchPsnp(
+  query: string,
+  kind: "guide" | "trophy",
+  rank: (path: string) => number | null,
+): Promise<string | null> {
+  for (const engine of ENGINES) {
+    const page = await getPage(engine(query));
+    if (page === "blocked" || page === "missing") continue;
+    const best = psnpPathsIn(page.html, kind)
+      .map((path, i) => ({ path, score: rank(path), i }))
+      .filter((c): c is { path: string; score: number; i: number } => c.score !== null)
+      .sort((a, b) => a.score - b.score || a.i - b.i)[0];
+    if (best) return `${PSNP}${best.path}`;
+  }
+  return null;
+}
+
+/**
+ * O guia é deste jogo: o guia principal ("<jogo>-trophy-guide") primeiro,
+ * depois guias que começam com o nome do jogo e, por último, os que o citam
+ * (ex.: "God of War" não pega o guia de "God of War Ragnarök" se o dele existir).
+ */
+export const guideOf = (name: string) => (path: string) => {
+  const key = guideKey(path.replace(/^\/guide\/\d+-/, ""));
+  const game = guideKey(guideGameName(name));
+  if (!game || !key.includes(game)) return null;
+  if (key === `${game}trophyguide`) return 0;
+  if (key.startsWith(`${game}trophyguide`)) return 1;
+  return key.startsWith(game) ? 2 : 3;
+};
+
+/** Guia do jogo achado pelos buscadores (o mesmo da aba "Trophy Guide" da página do jogo). */
+const psnpGuideBySearch = (name: string) =>
+  searchPsnp(`site:psnprofiles.com/guide ${guideGameName(name)} trophy guide`, "guide", guideOf(name));
+
 async function psnpGuide(name: string): Promise<Found> {
   const game = await psnpGame(name);
-  if (game === "missing") return "missing";
-  if (game === "blocked") return { guess: psnpSearch(name) };
-  const guide = pageLinks(game.html, /^\/guide\/\d+-[^/]+$/)[0];
-  return { url: guide ? `${PSNP}${guide}` : `${PSNP}${game.path}` };
+  if (game !== "missing" && game !== "blocked") {
+    // A aba "Trophy Guide" da página do jogo.
+    const guide = pageLinks(game.html, /^\/guide\/\d+-[^/]+$/)[0];
+    if (guide) return { url: `${PSNP}${guide}` };
+    const found = await psnpGuideBySearch(name);
+    return { url: found ?? `${PSNP}${game.path}` };
+  }
+  const found = await psnpGuideBySearch(name);
+  if (found) return { url: found };
+  return game === "blocked" ? { guess: psnpSearch(name) } : "missing";
 }
 
 async function psnpTrophy(name: string, trophyName: string): Promise<Found> {
   const game = await psnpGame(name);
-  if (game === "missing") return "missing";
-  if (game === "blocked") return { guess: psnpSearch(name) };
-  const id = game.path.replace(/^\/trophies\//, "");
-  const links = pageLinks(game.html, new RegExp(`^/trophy/${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/\\d+-[^/]+$`));
-  const href = findTrophyLink(links, trophyName);
-  return { url: href ? `${PSNP}${href}` : `${PSNP}${game.path}` };
+  if (game !== "missing" && game !== "blocked") {
+    const id = game.path.replace(/^\/trophies\//, "");
+    const links = pageLinks(game.html, new RegExp(`^/trophy/${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/\\d+-[^/]+$`));
+    const href = findTrophyLink(links, trophyName);
+    return { url: href ? `${PSNP}${href}` : `${PSNP}${game.path}` };
+  }
+  // Sem ler o site: a página do troféu pelos buscadores; senão, o guia do jogo.
+  const gameKey = guideKey(guideGameName(name));
+  const trophy = await searchPsnp(`site:psnprofiles.com/trophy "${trophyName}" ${guideGameName(name)}`, "trophy", (path) => {
+    const [, gamePart = ""] = path.match(/^\/trophy\/\d+-([^/]+)\//) ?? [];
+    return guideKey(gamePart).includes(gameKey) && findTrophyLink([path], trophyName) !== null
+      ? guideKey(gamePart) === gameKey
+        ? 0
+        : 1
+      : null;
+  });
+  if (trophy) return { url: trophy };
+  const guide = await psnpGuideBySearch(name);
+  if (guide) return { url: guide };
+  return game === "blocked" ? { guess: psnpSearch(name) } : "missing";
 }
 
 /**

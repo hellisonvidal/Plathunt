@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { findTrophyLink, guideKey, pageLinks, pstSlugs, resolveGameGuide, resolveTrophyGuide } from "../src/lib/guideLinks";
+import { findTrophyLink, guideKey, guideOf, pageLinks, psnpPathsIn, pstSlugs, resolveGameGuide, resolveTrophyGuide } from "../src/lib/guideLinks";
 
 describe("links diretos dos guias", () => {
   it("monta o endereço do PlayStationTrophies pelo nome do jogo", () => {
@@ -81,5 +81,51 @@ describe("abrir o guia certo", () => {
   it("PSNProfiles bloqueado: abre a busca do próprio site", async () => {
     sites({ "https://psnprofiles.com/search/games?q=Echo%20Night": "<title>Just a moment...</title>" });
     expect(await resolveGameGuide("psnp", game("Echo Night"))).toBe("https://psnprofiles.com/search/games?q=Echo%20Night");
+  });
+});
+
+describe("PSNProfiles pelos buscadores (quando o site bloqueia o app)", () => {
+  const game = (name: string) => ({ name, platform: "PS5" });
+  function sites(pages: Record<string, string | number>) {
+    vi.stubGlobal("fetch", async (url: string) => {
+      const key = Object.keys(pages).find((k) => url.startsWith(k));
+      const page = key === undefined ? undefined : pages[key];
+      if (page === undefined) return new Response("", { status: 404 });
+      return typeof page === "number" ? new Response("", { status: page }) : new Response(page, { status: 200 });
+    });
+  }
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("lê os endereços nos resultados, inclusive codificados", () => {
+    const html = `<a href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fpsnprofiles.com%2Fguide%2F18144-god-of-war-ragnarok-trophy-guide&amp;rut=x">x</a>
+      <a href="https://psnprofiles.com/trophy/19260-god-of-war-ragnar%C3%B6k/1-the-bear-and-the-wolf">y</a>`;
+    expect(psnpPathsIn(html, "guide")).toEqual(["/guide/18144-god-of-war-ragnarok-trophy-guide"]);
+    expect(psnpPathsIn(html, "trophy")).toEqual(["/trophy/19260-god-of-war-ragnar%C3%B6k/1-the-bear-and-the-wolf"]);
+  });
+
+  it("prefere o guia principal do jogo certo", () => {
+    const rank = guideOf("God of War");
+    expect(rank("/guide/1-god-of-war-ragnarok-trophy-guide")).toBe(2);
+    expect(rank("/guide/2-god-of-war-trophy-guide")).toBe(0);
+    expect(rank("/guide/3-spider-man-trophy-guide")).toBeNull();
+  });
+
+  it("site bloqueado: abre o guia achado no DuckDuckGo, não a busca", async () => {
+    sites({
+      "https://psnprofiles.com/search/games": 403,
+      "https://html.duckduckgo.com/html/": `<a href="https://psnprofiles.com/guide/9-zeta-run-collectibles">a</a><a href="https://psnprofiles.com/guide/7-zeta-run-trophy-guide">b</a>`,
+    });
+    expect(await resolveGameGuide("psnp", game("Zeta Run"))).toBe("https://psnprofiles.com/guide/7-zeta-run-trophy-guide");
+  });
+
+  it("site bloqueado e DuckDuckGo sem resposta: tenta o Bing; troféu vai para a página do troféu", async () => {
+    sites({
+      "https://psnprofiles.com/search/games": 403,
+      "https://html.duckduckgo.com/html/": 429,
+      "https://www.bing.com/search": `<a href="https://psnprofiles.com/trophy/55-omega-quest/4-team-player">t</a>`,
+    });
+    expect(await resolveTrophyGuide("psnp", game("Omega Quest"), "Team Player")).toBe(
+      "https://psnprofiles.com/trophy/55-omega-quest/4-team-player",
+    );
   });
 });

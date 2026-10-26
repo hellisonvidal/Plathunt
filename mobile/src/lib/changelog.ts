@@ -10,6 +10,10 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 27,
+    items: ["📖 PSNProfiles: o botão de guia abre direto o Trophy Guide do jogo, mesmo quando o site não deixa o app consultá-lo."],
+  },
+  {
     id: 26,
     items: [
       "🚀 Na tela de cada jogo, o botão Convocar boost já abre o pedido com os troféus de multiplayer que faltam.",
