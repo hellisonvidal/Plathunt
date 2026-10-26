@@ -3,6 +3,9 @@ import { useParams } from "react-router-dom";
 import { useApp } from "../app";
 import { CompletionSummary } from "../components/Completion";
 import { PageHeader } from "../components/PageHeader";
+import { AccountSwitcherDialog } from "../components/AccountSwitcher";
+import { addAccount } from "../lib/accounts";
+import { signOut as signOutPsn } from "../psn/auth";
 import { TitleList } from "../components/TitleList";
 import { Avatar, ErrorBox, ProgressBar, Spinner, TrophyBadge, TrophyStack } from "../components/ui";
 import {
@@ -37,7 +40,8 @@ const FILTERS: { key: Filter; label: string; test: (t: Title) => boolean }[] = [
 
 /** Perfil: o seu (aba 1) ou o de um amigo (/u/:accountId). */
 export function ProfilePage() {
-  const { client } = useApp();
+  const { client, mode } = useApp();
+  const [switcher, setSwitcher] = useState(false);
   const { accountId = "me" } = useParams();
   const isMe = accountId === "me";
   const [query, setQuery] = useState("");
@@ -93,8 +97,23 @@ export function ProfilePage() {
                   {data.realName && <p className="truncate text-sm font-medium text-muted">{data.realName}</p>}
                   <PsPlusInfo isPlus={data.profile.isPlus} />
                   {data.profile.aboutMe && <p className="mt-0.5 text-sm text-muted">{data.profile.aboutMe}</p>}
+                  {isMe && mode === "psn" && (
+                    <button
+                      onClick={() => setSwitcher(true)}
+                      className="mt-2 rounded-full border border-line px-3 py-1 text-xs font-semibold active:bg-surface-2"
+                    >
+                      {t("⇄ Trocar de conta")}
+                    </button>
+                  )}
                 </div>
               </div>
+              {switcher && (
+                <AccountSwitcherDialog
+                  me={() => client.me()}
+                  onAdd={() => addAccount(() => client.me(), () => signOutPsn(true))}
+                  onClose={() => setSwitcher(false)}
+                />
+              )}
 
               {data.profile.earned ? (
                 <>

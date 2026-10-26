@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 27,
+    items: [
+      "👥 Várias contas da PSN no mesmo celular: adicione outra conta em Configurações → Conta e troque entre elas com um toque, também no Perfil.",
+    ],
+  },
+  {
     id: 26,
     items: [
       "🚀 Na tela de cada jogo, o botão Convocar boost já abre o pedido com os troféus de multiplayer que faltam.",

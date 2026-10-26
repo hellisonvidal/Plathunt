@@ -63,7 +63,7 @@ Os troféus de cada jogo aparecem na **ordem original da PlayStation** (a do jog
 
 - **Novidades:** no primeiro acesso depois de uma atualização, uma janela mostra o que mudou (`mobile/src/lib/changelog.ts`); numa instalação nova ela não aparece. Fica também em Configurações → Atualizações → Novidades desta versão.
 - **Notificações:** tocar numa notificação abre a tela dela — méritos, desafios, boost, pedidos recebidos, o jogo do amigo que platinou ou as atualizações.
-- **Login:** abre na Auth Tab do navegador do celular (Chrome, Brave…), com chave de acesso (passkey) e senha salva; sem navegador compatível, na tela da Sony dentro do app. O app nunca guarda a senha. **Sair / trocar de conta** apaga os dados da conta no celular e a próxima entrada pede o login da PSN de novo.
+- **Login:** abre na Auth Tab do navegador do celular (Chrome, Brave…), com chave de acesso (passkey) e senha salva; sem navegador compatível, na tela da Sony dentro do app. O app nunca guarda a senha. **Várias contas:** em Configurações → Conta, "Adicionar outra conta" guarda a conta atual (com os dados dela) e abre o login para outra; troque entre elas com um toque ali, no Perfil ("Trocar de conta") ou na tela de entrada. **Sair desta conta** apaga os dados dela no celular e a próxima entrada pede o login da PSN de novo.
 
 ## Telas e barras do sistema
 
