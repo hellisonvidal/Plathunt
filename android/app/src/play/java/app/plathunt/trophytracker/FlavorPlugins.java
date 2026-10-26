@@ -6,12 +6,13 @@ import java.util.List;
 
 /**
  * Versão da Play Store: as atualizações vêm pela própria loja (a política do
- * Google não deixa o app se atualizar sozinho), então não há plugin extra.
+ * Google não deixa o app se atualizar sozinho); o plugin só pergunta à loja
+ * se há versão nova e abre a tela de atualização dela.
  */
 final class FlavorPlugins {
     private FlavorPlugins() {}
 
     static List<Class<? extends Plugin>> list() {
-        return Collections.emptyList();
+        return Collections.singletonList(PlayUpdatePlugin.class);
     }
 }

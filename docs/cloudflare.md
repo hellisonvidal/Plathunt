@@ -31,11 +31,34 @@ pausa o servidor quando fica alguns dias sem uso.
    `plathunt-api` e gera a chave das sessões. O endereço aparece no resumo da
    execução (`https://plathunt-api.<seu-subdomínio>.workers.dev`).
 7. Rode **Actions → Android APK → Run workflow** (ou mande qualquer mudança
-   para a main): o build descobre o endereço sozinho e grava no app.
+   para a main): o build grava o endereço do servidor no app.
 
 Depois disso, cada mudança na pasta `cloudflare/` publica o servidor de novo
-automaticamente. Se preferir fixar o endereço, crie a variável de repositório
-`PLATHUNT_API_URL` (**Secrets and variables → Actions → Variables**).
+automaticamente.
+
+## Endereço do app: plathunt.mytrophies.app
+
+O app (e os links de convite do WhatsApp) usam `https://plathunt.mytrophies.app`.
+O domínio `mytrophies.app` está em **outra conta** Cloudflare, e o Worker só
+aceita domínio próprio da mesma conta; por isso, na conta do domínio, um
+Worker pequeno (`plathunt-link`, com o domínio próprio `plathunt.mytrophies.app`)
+repassa tudo para o servidor:
+
+```js
+const ORIGIN = "plathunt-api.hellisonvidal.workers.dev";
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    url.hostname = ORIGIN;
+    return fetch(new Request(url, request));
+  },
+};
+```
+
+O endereço `workers.dev` continua valendo (versões antigas do app usam ele).
+Para trocar o endereço gravado no app, crie a variável de repositório
+`PLATHUNT_API_URL` (**Secrets and variables → Actions → Variables**); sem ela,
+o build usa `https://plathunt.mytrophies.app`.
 
 Sem esses passos o app funciona normalmente, só com os recursos online
 indisponíveis (Configurações → Recursos online avisa).

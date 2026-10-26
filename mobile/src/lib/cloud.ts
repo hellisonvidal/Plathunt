@@ -221,6 +221,12 @@ export async function myBoostRequests(): Promise<{ received: CloudBoostRequest[]
   };
 }
 
+/** Guarda o convite no servidor e devolve o código do link curto (https://…/c/<código>). */
+export async function createInvite(payload: Record<string, unknown>): Promise<string> {
+  const { id } = await api<{ id: string }>("/v1/invites", { payload });
+  return id;
+}
+
 export async function answerBoostRequest(id: string, status: "aceito" | "recusado"): Promise<void> {
   await api("/v1/boosts/answer", { id, status });
 }

@@ -17,6 +17,7 @@ import type { PsnClient } from "./psn/types";
 import { CloudNotice } from "./components/CloudNotice";
 import { disconnectCloud } from "./lib/cloud";
 import { WhatsNewOnUpdate } from "./components/WhatsNew";
+import { UpdateBanner } from "./components/UpdateBanner";
 import { ControllerIcon, FriendsIcon, ProfileIcon, StatsIcon, StoreIcon } from "./components/icons";
 import { ActivityPage } from "./pages/Activity";
 import { FriendsPage } from "./pages/Friends";
@@ -120,6 +121,7 @@ export function App() {
               </button>
             </div>
           )}
+          <UpdateBanner />
           <Routes>
             <Route path="/" element={<ProfilePage />} />
             <Route path="/stats" element={<StatsPage />} />
