@@ -23,6 +23,10 @@ import { ActivityPage } from "./pages/Activity";
 import { FriendsPage } from "./pages/Friends";
 import { GamePage } from "./pages/Game";
 import { LoginPage, skipSilentLogin } from "./pages/Login";
+import { forgetSaved, takeFreshLogin } from "./lib/accounts";
+
+// Recarregou para adicionar outra conta: não entra sozinho na conta anterior.
+if (takeFreshLogin()) skipSilentLogin();
 import { ProfilePage } from "./pages/Profile";
 import { SettingsPage, ThemesPage } from "./pages/Settings";
 import { StorePage } from "./pages/Store";
@@ -106,6 +110,7 @@ export function App() {
         <BoostLinks />
         <BackgroundChecks />
         <AccountStoreRegion />
+        <ActiveAccount />
         <StorePreload />
         <NotificationLinks />
         <InAppNotices />
@@ -263,6 +268,19 @@ function StorePreload() {
     }, 8000);
     return () => clearTimeout(timer);
   }, [mode]);
+  return null;
+}
+
+/** Entrou numa conta que estava guardada na lista: ela vira a ativa e sai da lista. */
+function ActiveAccount() {
+  const { mode, client } = useApp();
+  useEffect(() => {
+    if (mode !== "psn") return;
+    void client
+      .me()
+      .then((me) => forgetSaved(me.accountId))
+      .catch(() => {});
+  }, [mode, client]);
   return null;
 }
 

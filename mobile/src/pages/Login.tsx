@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { SavedAccountList } from "../components/AccountSwitcher";
+import { useSavedAccounts } from "../lib/accounts";
 import { t } from "../i18n";
 import { ExitToast, useDoubleBackToExit } from "../lib/backButton";
 import { extractNpsso } from "../lib/npsso";
@@ -31,6 +33,7 @@ export function LoginPage({
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manual, setManual] = useState("");
+  const hasSaved = useSavedAccounts().length > 0;
 
   async function finish(credential: { code?: string; npsso?: string }) {
     setBusy(true);
@@ -99,6 +102,13 @@ export function LoginPage({
         </p>
 
         {notice && <p className="mt-6 w-full rounded-xl border border-gold/40 bg-gold/10 p-3 text-sm">{notice}</p>}
+
+        {native && hasSaved && (
+          <div className="mt-8 w-full overflow-hidden rounded-2xl border border-line bg-surface text-left">
+            <p className="px-4 pt-3 text-xs font-semibold uppercase tracking-wide text-muted">{t("Contas salvas neste celular")}</p>
+            <SavedAccountList me={null} onError={setError} />
+          </div>
+        )}
 
         <div className="mt-10 w-full space-y-3">
           {native ? (

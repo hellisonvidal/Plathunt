@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
 import { WhatsNewDialog } from "../components/WhatsNew";
+import { SavedAccountList } from "../components/AccountSwitcher";
+import { addAccount } from "../lib/accounts";
+import { signOut as signOutPsn } from "../psn/auth";
 import { Avatar, ProgressBar } from "../components/ui";
 import { clearCache } from "../lib/cache";
 import { clearReactions } from "../lib/reactions";
@@ -58,9 +61,22 @@ export function SettingsPage() {
               <p className="text-xs text-muted">{mode === "demo" ? t("Modo demonstração") : t("Conectado à PSN")}</p>
             </div>
           </div>
+          <SavedAccountList me={mode === "psn" ? () => client.me() : null} onError={flash} />
+          {mode === "psn" && (
+            <Row
+              label={t("➕ Adicionar outra conta")}
+              hint={t("Esta conta continua salva no celular; troque entre elas aqui ou no Perfil")}
+              onClick={() => {
+                void addAccount(
+                  () => client.me(),
+                  () => signOutPsn(true),
+                ).then((ok) => !ok && flash(t("Sem conexão para trocar de conta agora. Tente de novo.")));
+              }}
+            />
+          )}
           <Row
-            label={t("Sair / trocar de conta")}
-            hint={t("Na próxima entrada a PSN pede usuário e senha, então dá para usar outra conta")}
+            label={t("Sair desta conta")}
+            hint={t("Apaga os dados desta conta no celular; na próxima entrada a PSN pede usuário e senha")}
             danger
             onClick={() => signOut()}
           />
