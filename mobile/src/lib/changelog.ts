@@ -10,6 +10,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 28,
+    items: [
+      "⬆️ Versão da Play Store: quando sai uma versão nova, a janela de atualização do Google Play abre sozinha, baixa em segundo plano e você reinicia o app com um toque.",
+    ],
+  },
+  {
     id: 27,
     items: [
       "👥 Várias contas da PSN no mesmo celular: adicione outra conta em Configurações → Conta e troque entre elas com um toque, também no Perfil.",

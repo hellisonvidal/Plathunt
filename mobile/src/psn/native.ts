@@ -50,9 +50,16 @@ export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app
 /** Plugin nativo da versão da Play Store (android/app/src/play/.../PlayUpdatePlugin.java). */
 interface PlayUpdatePlugin {
   /** Pergunta à Play Store se há versão mais nova publicada. */
-  check(): Promise<{ available: boolean; versionCode: number }>;
-  /** Abre a tela de atualização do Google Play (false se a loja não deixou). */
-  update(): Promise<{ started: boolean }>;
+  check(): Promise<{ available: boolean; versionCode: number; downloaded: boolean }>;
+  /**
+   * Abre a janela "Atualização disponível" do Google Play: flexível (baixa em
+   * segundo plano) quando a loja deixa, senão a de tela cheia. false se não abriu.
+   */
+  update(options?: { type?: "flexible" | "immediate" }): Promise<{ started: boolean }>;
+  /** Instala a versão já baixada no modo flexível (o app reinicia). */
+  complete(): Promise<void>;
+  /** A versão terminou de baixar no modo flexível. */
+  addListener(event: "downloaded", fn: () => void): Promise<{ remove: () => Promise<void> }>;
 }
 
 export const PlayUpdate = registerPlugin<PlayUpdatePlugin>("PlayUpdate");
