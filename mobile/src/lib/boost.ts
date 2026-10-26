@@ -93,7 +93,7 @@ export function boostMessage(
   }
   // Curto, para caber numa olhada no WhatsApp: jogo, troféus, vagas e horário, recado e o ID da PSN.
   const lines = [
-    t("📣 Boost em {game} ({platform})", { game: b.game.name, platform: b.game.platform }),
+    t("🚀 Boost em {game} ({platform})", { game: b.game.name, platform: b.game.platform }),
     ...(b.trophies.length ? [`🏆 ${b.trophies.join(", ")}`] : []),
     b.players === 1
       ? t("👥 Procuro {n} jogador · 🕒 {when}", { n: b.players, when: t(b.when) })

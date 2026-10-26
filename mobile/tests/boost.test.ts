@@ -20,7 +20,7 @@ describe("convocação de boost", () => {
   it("monta o texto com jogo, vagas, horário e troféus", () => {
     const text = boostMessage({ game, players: 2, when: "Hoje à noite", trophies: ["Online 1", "Online 2"], note: " mic " }, "Kratos_BR");
     expect(text).toBe(
-      ["📣 Boost em Astro Bot (PS5)", "🏆 Online 1, Online 2", "👥 Procuro 2 jogadores · 🕒 Hoje à noite", "📝 mic", "🎮 PSN: Kratos_BR"].join("\n"),
+      ["🚀 Boost em Astro Bot (PS5)", "🏆 Online 1, Online 2", "👥 Procuro 2 jogadores · 🕒 Hoje à noite", "📝 mic", "🎮 PSN: Kratos_BR"].join("\n"),
     );
   });
 

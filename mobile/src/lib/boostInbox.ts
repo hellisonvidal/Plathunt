@@ -63,7 +63,7 @@ export function inviteLines(
   link = inviteLink(b, from),
 ): string {
   return link.startsWith("https://")
-    ? t("👉 Topa? Responda no Plathunt: {link}", { link })
+    ? t("📲 Topa? Responda no Plathunt: {link}", { link })
     : `🔗 ${t("Abrir no Plathunt")}: ${link}\n📲 ${t("Ainda não tem o Plathunt? Instale")}: ${PLAY_STORE_URL}`;
 }
 

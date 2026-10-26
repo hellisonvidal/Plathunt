@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 26,
+    items: [
+      "🚀 Na tela de cada jogo, o botão Convocar boost já abre o pedido com os troféus de multiplayer que faltam.",
+      "💬 Convite pelo WhatsApp vai direto para o app, com os emojis certos.",
+    ],
+  },
+  {
     id: 25,
     items: [
       "✉️ Convite do boost no WhatsApp mais curto, com link curto do Plathunt.",

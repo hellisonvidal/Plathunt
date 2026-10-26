@@ -31,7 +31,7 @@ import { mapLimit } from "../lib/cache";
 import { presenceRank, presenceText } from "../lib/presence";
 import { useBackInterceptor } from "../lib/backButton";
 import { useData } from "../lib/useData";
-import { isNativeApp, openInBrowser, shareText } from "../psn/native";
+import { isNativeApp, shareText, shareToWhatsApp } from "../psn/native";
 import type { Title } from "../psn/types";
 import { GamePicker, TrophyPicker } from "./GamePicker";
 import { StatusDot } from "./StatusDot";
@@ -168,8 +168,15 @@ function ConfirmDialog({
  * convidar (pedido e notificação no app deles) e o convite para o WhatsApp.
  * Sair no meio (✕, tocar fora ou voltar) pede confirmação.
  */
-function BoostSheet({ onClose }: { onClose: () => void }) {
-  const [game, setGame] = useState<BoostCandidate | null>(null);
+export function BoostSheet({
+  onClose,
+  initialGame = null,
+}: {
+  onClose: () => void;
+  /** Aberto pela tela de um jogo: já começa nos troféus dele. */
+  initialGame?: BoostCandidate | null;
+}) {
+  const [game, setGame] = useState<BoostCandidate | null>(initialGame);
   const [players, setPlayers] = useState(1);
   const [when, setWhen] = useState<string>(BOOST_WHEN[0]);
   const [trophyIds, setTrophyIds] = useState<number[]>([]);
@@ -456,7 +463,7 @@ function WhatsAppButton({ text, small = false }: { text: string; small?: boolean
       onClick={(e) => {
         if (!isNativeApp()) return;
         e.preventDefault();
-        void openInBrowser(shareLinks(text).whatsapp);
+        void shareToWhatsApp(text);
       }}
       className={`flex items-center justify-center gap-2 rounded-xl bg-[#25d366] font-semibold text-black ${
         small ? "px-3 py-1.5 text-xs" : "w-full py-2.5 text-sm"
