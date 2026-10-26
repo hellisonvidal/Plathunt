@@ -97,6 +97,42 @@ public class ExternalBrowserPlugin extends Plugin {
         }
     }
 
+    /** Pacotes do WhatsApp (comum e Business), na ordem de preferência. */
+    private static final String[] WHATSAPP = { "com.whatsapp", "com.whatsapp.w4b" };
+
+    /**
+     * Manda o texto direto para o WhatsApp (o usuário escolhe a conversa lá).
+     * Pelo link wa.me o texto passa pelo navegador e o WhatsApp troca alguns
+     * emojis por "�"; entregue assim, chega igual. sent=false se o WhatsApp
+     * não estiver instalado.
+     */
+    @PluginMethod
+    public void shareToWhatsApp(PluginCall call) {
+        String text = call.getString("text");
+        if (text == null || text.isEmpty()) {
+            call.reject("Texto vazio.");
+            return;
+        }
+        JSObject result = new JSObject();
+        for (String pkg : WHATSAPP) {
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType("text/plain");
+            send.putExtra(Intent.EXTRA_TEXT, text);
+            send.setPackage(pkg);
+            send.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                getActivity().startActivity(send);
+                result.put("sent", true);
+                call.resolve(result);
+                return;
+            } catch (ActivityNotFoundException e) {
+                // Tenta o próximo (ex.: só o WhatsApp Business instalado).
+            }
+        }
+        result.put("sent", false);
+        call.resolve(result);
+    }
+
     /**
      * Navegador do aparelho: o padrão, se houver um; senão o Chrome ou o
      * primeiro navegador instalado. Nunca o app da PlayStation.

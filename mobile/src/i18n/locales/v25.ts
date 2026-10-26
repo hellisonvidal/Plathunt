@@ -13,12 +13,12 @@ const translations: Translations = {
       "Update",
     "Depois":
       "Later",
-    "📣 Boost em {game} ({platform})":
-      "📣 Boost in {game} ({platform})",
+    "🚀 Boost em {game} ({platform})":
+      "🚀 Boost in {game} ({platform})",
     "🎮 PSN: {me}":
       "🎮 PSN: {me}",
-    "👉 Topa? Responda no Plathunt: {link}":
-      "👉 In? Reply in Plathunt: {link}",
+    "📲 Topa? Responda no Plathunt: {link}":
+      "📲 In? Reply in Plathunt: {link}",
     "✉️ Convite do boost no WhatsApp mais curto, com link curto do Plathunt.":
       "✉️ Shorter boost invite on WhatsApp, with a short Plathunt link.",
     "⬆️ Aviso de nova versão ao abrir o app, com atalho para atualizar pela Play Store.":
@@ -37,12 +37,12 @@ const translations: Translations = {
       "Actualizar",
     "Depois":
       "Después",
-    "📣 Boost em {game} ({platform})":
-      "📣 Boost en {game} ({platform})",
+    "🚀 Boost em {game} ({platform})":
+      "🚀 Boost en {game} ({platform})",
     "🎮 PSN: {me}":
       "🎮 PSN: {me}",
-    "👉 Topa? Responda no Plathunt: {link}":
-      "👉 ¿Te apuntas? Responde en Plathunt: {link}",
+    "📲 Topa? Responda no Plathunt: {link}":
+      "📲 ¿Te apuntas? Responde en Plathunt: {link}",
     "✉️ Convite do boost no WhatsApp mais curto, com link curto do Plathunt.":
       "✉️ Invitación de boost por WhatsApp más corta, con enlace corto de Plathunt.",
     "⬆️ Aviso de nova versão ao abrir o app, com atalho para atualizar pela Play Store.":
@@ -61,12 +61,12 @@ const translations: Translations = {
       "Mettre à jour",
     "Depois":
       "Plus tard",
-    "📣 Boost em {game} ({platform})":
-      "📣 Boost sur {game} ({platform})",
+    "🚀 Boost em {game} ({platform})":
+      "🚀 Boost sur {game} ({platform})",
     "🎮 PSN: {me}":
       "🎮 PSN : {me}",
-    "👉 Topa? Responda no Plathunt: {link}":
-      "👉 Partant ? Répondez dans Plathunt : {link}",
+    "📲 Topa? Responda no Plathunt: {link}":
+      "📲 Partant ? Répondez dans Plathunt : {link}",
     "✉️ Convite do boost no WhatsApp mais curto, com link curto do Plathunt.":
       "✉️ Invitation boost sur WhatsApp plus courte, avec un lien Plathunt court.",
     "⬆️ Aviso de nova versão ao abrir o app, com atalho para atualizar pela Play Store.":
@@ -85,12 +85,12 @@ const translations: Translations = {
       "Aktualisieren",
     "Depois":
       "Später",
-    "📣 Boost em {game} ({platform})":
-      "📣 Boost in {game} ({platform})",
+    "🚀 Boost em {game} ({platform})":
+      "🚀 Boost in {game} ({platform})",
     "🎮 PSN: {me}":
       "🎮 PSN: {me}",
-    "👉 Topa? Responda no Plathunt: {link}":
-      "👉 Dabei? Antworte in Plathunt: {link}",
+    "📲 Topa? Responda no Plathunt: {link}":
+      "📲 Dabei? Antworte in Plathunt: {link}",
     "✉️ Convite do boost no WhatsApp mais curto, com link curto do Plathunt.":
       "✉️ Kürzere Boost-Einladung auf WhatsApp mit kurzem Plathunt-Link.",
     "⬆️ Aviso de nova versão ao abrir o app, com atalho para atualizar pela Play Store.":
@@ -109,12 +109,12 @@ const translations: Translations = {
       "Aggiorna",
     "Depois":
       "Più tardi",
-    "📣 Boost em {game} ({platform})":
-      "📣 Boost in {game} ({platform})",
+    "🚀 Boost em {game} ({platform})":
+      "🚀 Boost in {game} ({platform})",
     "🎮 PSN: {me}":
       "🎮 PSN: {me}",
-    "👉 Topa? Responda no Plathunt: {link}":
-      "👉 Ci stai? Rispondi su Plathunt: {link}",
+    "📲 Topa? Responda no Plathunt: {link}":
+      "📲 Ci stai? Rispondi su Plathunt: {link}",
     "✉️ Convite do boost no WhatsApp mais curto, com link curto do Plathunt.":
       "✉️ Invito al boost su WhatsApp più corto, con link breve di Plathunt.",
     "⬆️ Aviso de nova versão ao abrir o app, com atalho para atualizar pela Play Store.":
@@ -133,12 +133,12 @@ const translations: Translations = {
       "更新",
     "Depois":
       "あとで",
-    "📣 Boost em {game} ({platform})":
-      "📣 {game}（{platform}）でブースト",
+    "🚀 Boost em {game} ({platform})":
+      "🚀 {game}（{platform}）でブースト",
     "🎮 PSN: {me}":
       "🎮 PSN：{me}",
-    "👉 Topa? Responda no Plathunt: {link}":
-      "👉 参加する？Plathuntで返事：{link}",
+    "📲 Topa? Responda no Plathunt: {link}":
+      "📲 参加する？Plathuntで返事：{link}",
     "✉️ Convite do boost no WhatsApp mais curto, com link curto do Plathunt.":
       "✉️ WhatsAppのブースト招待を短く、Plathuntの短いリンク付きに。",
     "⬆️ Aviso de nova versão ao abrir o app, com atalho para atualizar pela Play Store.":

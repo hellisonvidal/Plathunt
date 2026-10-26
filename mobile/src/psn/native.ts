@@ -65,6 +65,8 @@ interface ExternalBrowserPlugin {
   openInPlayStationApp(options: { url: string }): Promise<{ opened: boolean }>;
   /** Tela de compartilhar do Android com o texto. */
   share(options: { text: string; title?: string }): Promise<void>;
+  /** Manda o texto direto para o WhatsApp (sent=false se não estiver instalado). */
+  shareToWhatsApp(options: { text: string }): Promise<{ sent: boolean }>;
 }
 
 const ExternalBrowser = registerPlugin<ExternalBrowserPlugin>("ExternalBrowser");
@@ -105,6 +107,26 @@ export async function openInPlayStationApp(url: string): Promise<void> {
  * Compartilha um texto pela tela do sistema (WhatsApp, Telegram, Discord...).
  * Devolve false quando não há tela de compartilhar (aí a tela oferece copiar).
  */
+/**
+ * Abre o WhatsApp com o texto pronto. No app vai direto para o WhatsApp (os
+ * emojis chegam certos); sem o método nativo (versão antiga) ou no navegador,
+ * usa o link wa.me.
+ */
+export async function shareToWhatsApp(text: string): Promise<void> {
+  if (isNativeApp()) {
+    try {
+      if ((await ExternalBrowser.shareToWhatsApp({ text })).sent) return;
+      // WhatsApp não instalado: a tela de compartilhar mostra os outros apps.
+      if (await shareText(text)) return;
+    } catch {
+      // Segue para o link.
+    }
+  }
+  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  if (isNativeApp()) await openInBrowser(url);
+  else window.open(url, "_blank", "noopener");
+}
+
 export async function shareText(text: string, title?: string): Promise<boolean> {
   if (isNativeApp()) {
     try {

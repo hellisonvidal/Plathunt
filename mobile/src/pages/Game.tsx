@@ -8,10 +8,13 @@ import { useSettings } from "../lib/settings";
 import { gameWrittenGuideUrl, trophyGuideUrl, trophyWrittenGuideUrl, type GuideSite } from "../lib/tips";
 import { resolveGameGuide, resolveTrophyGuide } from "../lib/guideLinks";
 import { isNativeApp, openInBrowser } from "../psn/native";
-import { chronological, formatDuration, groupTrophies, matchPlaytime } from "../lib/stats";
+import { chronological, formatDuration, groupTrophies, matchPlaytime, parsePlatforms } from "../lib/stats";
 import { useData } from "../lib/useData";
 import type { Title, TrophyRow } from "../psn/types";
 import { QuickChallenge } from "../components/QuickChallenge";
+import { BoostSheet } from "../components/Boost";
+import { isMultiplayerTrophy } from "../lib/multiplayer";
+import type { BoostCandidate } from "../lib/boost";
 import { platinumGoal, type Challenge } from "../lib/challenges";
 
 /** Nomes usados nos links de guias: os oficiais em inglês, como nos sites. */
@@ -105,6 +108,7 @@ export function GamePage() {
   const [filter, setFilter] = useState<Filter>("todos");
   const [mineFilter, setMineFilter] = useState<MineFilter>("todos");
   const [order, setOrder] = useState<Order>("jogo");
+  const [boosting, setBoosting] = useState(false);
   // Tocar de novo na ordem escolhida inverte a lista.
   const [reversed, setReversed] = useState(false);
   const pickOrder = (key: Order) => {
@@ -203,6 +207,26 @@ export function GamePage() {
     { key: "tenho", label: t("Você tem"), count: myCount },
     { key: "naoTenho", label: t("Você não tem"), count: all.length - myCount },
   ];
+  // Boost: troféus de multiplayer deste jogo que você ainda não tem (no jogo
+  // de um amigo, comparando com a sua lista).
+  const mpTrophies = all.filter(isMultiplayerTrophy);
+  const iOwnGame = accountId === "me" || (mine.data ?? []).length > 0;
+  const mpMissing = mpTrophies.filter((tr) => (accountId === "me" ? !tr.earned : !iHave.has(tr.id))).length;
+  const boostGame: BoostCandidate | null =
+    data?.title && mpMissing > 0 && (accountId === "me" || mine.data)
+      ? {
+          key: data.title.id,
+          name: data.title.name,
+          platform: data.title.platform,
+          platforms: parsePlatforms(data.title.platform),
+          iconUrl: data.title.iconUrl,
+          title: data.title,
+          // Com o jogo na sua lista, os troféus que você já tem ficam de fora.
+          myProgress: iOwnGame ? (accountId === "me" ? data.title.progress : 0) : null,
+          friends: 0,
+          inStore: false,
+        }
+      : null;
   const platinumBoth =
     !!data?.title && data.title.earned.platinum > 0 && (mine.data ?? []).some((r) => r.type === "platinum" && r.earned);
 
@@ -273,6 +297,30 @@ export function GamePage() {
                 onClose={() => setChallenge(null)}
               />
             )}
+
+            {/* Convocar boost: só em jogos com troféus de multiplayer que você ainda não tem. */}
+            {boostGame && (
+              <button
+                onClick={() => setBoosting(true)}
+                className="flex w-full items-center gap-3 rounded-2xl border border-ps-blue-2/40 bg-ps-blue-2/10 p-3 text-left active:bg-surface-2"
+              >
+                <span className="text-2xl" aria-hidden>
+                  🚀
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">{t("Convocar boost")}</span>
+                  <span className="block text-xs text-muted">
+                    {mpMissing === 1
+                      ? t("1 troféu de multiplayer que você ainda não tem")
+                      : t("{n} troféus de multiplayer que você ainda não tem", { n: mpMissing })}
+                  </span>
+                </span>
+                <span className="text-muted" aria-hidden>
+                  ›
+                </span>
+              </button>
+            )}
+            {boosting && boostGame && <BoostSheet initialGame={boostGame} onClose={() => setBoosting(false)} />}
 
             {/* Guias completos lado a lado, com o ícone de cada site. */}
             {guide && (
