@@ -140,8 +140,8 @@ export const BUILD_NUMBER: string = import.meta.env.VITE_BUILD_NUMBER ?? "dev";
  */
 export const VERSION_CODE: string = import.meta.env.VITE_VERSION_CODE ?? BUILD_NUMBER;
 /** Versão do app mostrada na tela (o número do build fica só no versionCode e na Release). */
-export const VERSION = "1.1.2";
-const DEV_VERSION = "1.1.2 (desenvolvimento)";
+export const VERSION = "1.2";
+const DEV_VERSION = "1.2 (desenvolvimento)";
 export const APP_VERSION = BUILD_NUMBER === "dev" ? DEV_VERSION : VERSION;
 
 /** APP_VERSION no idioma atual (para mostrar na tela). */

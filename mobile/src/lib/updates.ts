@@ -37,7 +37,7 @@ export function evaluateRelease(release: ReleaseJson, current: string): UpdateRe
     latest,
     apkUrl: apk?.browser_download_url ?? release.html_url ?? RELEASES_PAGE,
     notes: release.body?.trim() || null,
-    // Só a versão ("Plathunt 1.1.2 (build 40)" → "1.1.2"): o build não aparece no app.
+    // Só a versão ("Plathunt 1.1.2 (build 40)" → "1.1.2"; "Plathunt 1.2" → "1.2"): o build não aparece no app.
     label:
       release.name
         ?.replace(/^Plathunt\s*/, "")

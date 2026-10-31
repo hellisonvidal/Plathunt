@@ -39,7 +39,8 @@ jobs:
           echo "VITE_BUILD_NUMBER=$((n + 1))" >> "$GITHUB_ENV"
           echo "VERSION_CODE=$((10000 + n + 1))" >> "$GITHUB_ENV"
           echo "VITE_VERSION_CODE=$((10000 + n + 1))" >> "$GITHUB_ENV"
-          echo "APP_VERSION=$(node -p "require('./mobile/package.json').version")" >> "$GITHUB_ENV"
+          # Versão mostrada (a mesma do app): o versionName do Android, sem o build.
+          echo "APP_VERSION=$(sed -n 's/^ *versionName "\(.*\)"/\1/p' android/app/build.gradle)" >> "$GITHUB_ENV"
 
       # Endereço do servidor dos recursos online (Cloudflare Worker), gravado no
       # app e usado nos links de convite do WhatsApp. Vem da variável
@@ -146,7 +147,7 @@ jobs:
           🔐 Assinado com a chave própria do Plathunt. Se a instalação falhar por conflito de assinatura, desinstale uma vez a versão anterior (assinada com a chave de testes) e instale esta."
           fi
           gh release create "build-$VERSION_CODE" Plathunt.apk \
-            --title "Plathunt $APP_VERSION (build $BUILD_NUMBER)" \
+            --title "Plathunt $APP_VERSION" \
             --notes "${NOTES:-Nova versão}" \
             --target "$GITHUB_SHA"
 
