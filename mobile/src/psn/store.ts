@@ -37,8 +37,6 @@ const PAGE_SIZE = 100;
 const MAX_PAGES = 200;
 /** Páginas buscadas ao mesmo tempo. */
 const PARALLEL = 4;
-/** Complementos: só as primeiras páginas (os 3.000 mais vendidos). */
-const ADDON_PAGES = 30;
 
 /** Recebe os jogos já carregados (em ordem) e o total da categoria, enquanto o resto chega. */
 export type StoreProgress = (products: StoreProduct[], total: number) => void;
@@ -159,6 +157,24 @@ async function fetchDerived(
   return dedupe(found).filter(pick);
 }
 
+/** Tipos que contam como complemento quando a lista é montada a partir do catálogo. */
+const ADDON_KINDS = new Set(["dlc", "moeda"]);
+
+/**
+ * Complementos: a lista inteira da categoria da loja (DLC, passes, moedas…),
+ * como na PlayStation Store. Se a categoria não existir no país, monta a lista
+ * com os complementos que aparecem no catálogo de PS5 e PS4.
+ */
+async function fetchAddons(region: StoreRegion, force: boolean, onProgress?: StoreProgress): Promise<StoreProduct[]> {
+  try {
+    const list = await fetchAll(ADDONS_ID, region, onProgress);
+    if (list.length > 0) return list;
+  } catch {
+    // Categoria indisponível neste país: usa o catálogo.
+  }
+  return fetchDerived([], (p) => ADDON_KINDS.has(kindOf(p)), region, force, onProgress);
+}
+
 const DERIVED: Record<string, [string[], (p: StoreProduct) => boolean]> = {
   [OFFERS_ID]: [OFFER_CATEGORY_IDS, (p) => p.discount > 0],
   [FREE_ID]: [FREE_CATEGORY_IDS, (p) => p.isFree || p.price === 0],
@@ -168,7 +184,9 @@ const DERIVED: Record<string, [string[], (p: StoreProduct) => boolean]> = {
 
 // "Todos" passou a incluir as demos e as avaliações: a chave nova faz a lista salva antes ser buscada de novo.
 export const storeCacheKey = (region: StoreRegion, categoryId: string) =>
-  `store:${region}:${categoryId === ALL_ID ? "todos-com-demos-e-avaliacoes" : categoryId}`;
+  `store:${region}:${
+    categoryId === ALL_ID ? "todos-com-demos-e-avaliacoes" : categoryId === ADDONS_ID ? `${ADDONS_ID}:completa` : categoryId
+  }`;
 
 /**
  * Jogos de uma categoria da loja (todos os que a loja tiver), na ordem de mais
@@ -186,8 +204,7 @@ export async function storeCategory(
     storeRefreshMs(getSettings().storeUpdate),
     () => {
       if (categoryId === ALL_ID) return fetchEverything(region, force, onProgress);
-      // Complementos: dezenas de milhares na loja; ficam os mais vendidos.
-      if (categoryId === ADDONS_ID) return fetchAll(ADDONS_ID, region, onProgress, "sales30", ADDON_PAGES);
+      if (categoryId === ADDONS_ID) return fetchAddons(region, force, onProgress);
       const derived = DERIVED[categoryId];
       return derived
         ? fetchDerived(derived[0], derived[1], region, force, onProgress)
@@ -264,7 +281,7 @@ export async function demoStoreCategory(categoryId: string): Promise<StoreProduc
     [PS5_ID]: (p) => p.platforms.includes("PS5"),
     [PS4_ID]: (p) => p.platforms.includes("PS4"),
     [DEMOS_ID]: (p) => kindOf(p) === "demo",
-    [ADDONS_ID]: (p) => kindOf(p) === "dlc",
+    [ADDONS_ID]: (p) => ADDON_KINDS.has(kindOf(p)),
     [FREE_ID]: (p) => p.isFree,
     [PLUS_ID]: (p) => p.plus,
   };

@@ -53,7 +53,7 @@ describe("numeração 1.1.1 (versionCode = 10000 + build)", () => {
   };
 
   it("o app antigo (build 147) enxerga a versão nova e instala por cima", () => {
-    expect(evaluateRelease(release, "147")).toMatchObject({ status: "available", latest: 10004, label: "1.1.1 (build 4)" });
+    expect(evaluateRelease(release, "147")).toMatchObject({ status: "available", latest: 10004, label: "1.1.1" });
   });
 
   it("a versão nova não se oferece para si mesma", () => {

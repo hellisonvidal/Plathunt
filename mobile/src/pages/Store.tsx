@@ -10,6 +10,7 @@ import {
   filterProducts,
   isReleaseSort,
   formatPrice,
+  historicLowBadge,
   isNewLow,
   kindOf,
   priceRangeKey,
@@ -21,6 +22,11 @@ import {
   recordPrices,
   PLUS_ID,
   ADDONS_ID,
+  ALL_ID,
+  FREE_ID,
+  OFFERS_ID,
+  PS4_ID,
+  PS5_ID,
   STORE_CATEGORIES,
   STORE_KINDS,
   STORE_SORTS,
@@ -32,6 +38,7 @@ import {
   type StoreRegion,
 } from "../lib/store";
 import { useData } from "../lib/useData";
+import { useRevealOnScrollUp } from "../lib/scrollReveal";
 import { openInBrowser, openInPlayStationApp } from "../psn/native";
 import { demoStoreCategory, storeCacheKey, storeCategory, storeReleaseOrder, type StoreProgress } from "../psn/store";
 import { peekCached } from "../lib/cache";
@@ -55,6 +62,15 @@ const STREAM_THROTTLE_MS = 700;
  * Loja: catálogo da PlayStation Store (ofertas, PS5, PS4, grátis, PS Plus)
  * com busca, filtros e ordenação.
  */
+/** Categorias que recebem os complementos ao filtrar por DLC/moeda, e quais deles servem em cada uma. */
+const ADDON_PICK: Partial<Record<string, (p: StoreProduct) => boolean>> = {
+  [ALL_ID]: () => true,
+  [OFFERS_ID]: (p) => p.discount > 0,
+  [PS5_ID]: (p) => p.platforms.includes("PS5"),
+  [PS4_ID]: (p) => p.platforms.includes("PS4"),
+  [FREE_ID]: (p) => p.isFree || p.price === 0,
+};
+
 export function StorePage() {
   const { mode } = useApp();
   const { storeRegion: region } = useSettings();
@@ -100,7 +116,28 @@ export function StorePage() {
   const current = catalog.data?.key === key ? catalog.data.products : null;
   const stale = !current && saved?.key === key ? saved.products : null;
   const streaming = !current && !stale && partial?.key === key ? partial : null;
-  const products = current ?? stale ?? streaming?.products ?? null;
+  const listed = current ?? stale ?? streaming?.products ?? null;
+  // Como na loja original, os complementos ficam numa lista própria; ao escolher
+  // "DLC" ou "Moeda virtual" nas outras categorias, eles entram junto (só os
+  // que servem na categoria: de PS5, em oferta, grátis...).
+  const addonPick: ((p: StoreProduct) => boolean) | undefined = ADDON_PICK[categoryId];
+  const wantsAddons = !!addonPick && selectedKinds(filters).some((k) => k === "dlc" || k === "moeda");
+  const addons = useData(
+    async (force) => {
+      if (!wantsAddons) return null;
+      const list = await load(ADDONS_ID, force);
+      recordPrices(list, region);
+      return list;
+    },
+    [wantsAddons, mode, region],
+  );
+  const products = useMemo(
+    () =>
+      listed && wantsAddons && addons.data
+        ? [...new Map([...listed, ...addons.data.filter(addonPick)].map((p) => [p.id, p])).values()]
+        : listed,
+    [listed, wantsAddons, addonPick, addons.data],
+  );
   // Filtrar milhares de jogos fica em segundo plano: digitar e rolar seguem fluidos.
   const deferredFilters = useDeferredValue(filters);
   const deferredProducts = useDeferredValue(products);
@@ -116,15 +153,28 @@ export function StorePage() {
     [deferredProducts, deferredFilters, releaseOrder, region],
   );
 
+  const revealBar = useRevealOnScrollUp();
+
   return (
     <>
       <PageHeader title={t("Loja")} onRefresh={catalog.refresh} refreshing={catalog.loading} />
       <div className="space-y-4 px-4 pt-4">
+        {/* Depois de rolar bastante para baixo, voltar para cima traz a categoria e os filtros presos no topo. */}
+        <div
+          // Mesma altura nos dois modos (-my-2 compensa o py-2): a lista não pula ao trocar.
+          className={`-mx-4 space-y-4 px-4 ${
+            revealBar
+              ? "sticky top-[calc(var(--sat)+3.375rem)] z-[5] -my-2 max-h-[75dvh] animate-[bar-down_180ms_ease-out] overflow-y-auto bg-bg py-2 shadow-lg"
+              : ""
+          }`}
+        >
         <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm" aria-label={t("Categoria")}>
             {STORE_CATEGORIES.map((c) => (
               <button
                 key={c.id}
-                onClick={() => setCategoryId(c.id)}
+                // Tocar de novo na categoria escolhida desfaz (volta para "Todos").
+                onClick={() => setCategoryId(categoryId === c.id ? STORE_CATEGORIES[0].id : c.id)}
+                aria-pressed={categoryId === c.id}
                 className={`shrink-0 rounded-full px-3 py-1.5 ${
                   categoryId === c.id ? "bg-ps-blue font-semibold" : "border border-line text-muted"
                 }`}
@@ -141,16 +191,7 @@ export function StorePage() {
           </nav>
 
         <FilterBar filters={filters} onChange={setFilters} region={region} products={deferredProducts} />
-        {/* As outras listas quase não têm complementos: a categoria própria tem todos. */}
-        {categoryId !== ADDONS_ID && selectedKinds(filters).includes("dlc") && (
-          <button
-            onClick={() => setCategoryId(ADDONS_ID)}
-            className="flex w-full items-center justify-between gap-2 rounded-xl border border-ps-blue-2/40 bg-ps-blue-2/10 px-3 py-2 text-left text-xs"
-          >
-            <span>{t("Os complementos (DLC, passes, pacotes) estão todos na categoria Complementos.")}</span>
-            <span className="shrink-0 font-semibold text-ps-blue-2">{t("Ver")} ›</span>
-          </button>
-        )}
+        </div>
         {catalog.error ? <ErrorBox error={catalog.error} onRetry={catalog.refresh} /> : null}
 
         {/* Linha de status com altura fixa: o progresso não empurra a lista. */}
@@ -164,6 +205,7 @@ export function StorePage() {
                   : t("Carregando a loja… {n} jogos", { n: streaming.products.length })
                 : t("{n} de {total} jogos", { n: visible?.length ?? 0, total: products.length })}
             {stale && catalog.loading && t(" · atualizando a lista salva…")}
+            {wantsAddons && addons.loading && t(" · buscando os complementos…")}
             {byRelease && releases.loading && !releases.data && t(" · buscando as datas de lançamento…")}
           </p>
           {byRelease && releases.error ? <ErrorBox error={releases.error} onRetry={releases.refresh} /> : null}
@@ -303,6 +345,7 @@ function FilterBar({
             options={STORE_KINDS.map((k) => [k.value, t(k.label)] as const)}
             selected={selectedKinds(filters)}
             onChange={(list) => set({ kind: list as StoreKind[] })}
+            alwaysShow={["dlc", "moeda"]}
           />
           <Chips
             counts={counts?.price}
@@ -442,6 +485,7 @@ function Chips({
   onChange,
   counts,
   allOption,
+  alwaysShow = [],
 }: {
   label: string;
   options: (readonly [string, string])[];
@@ -452,8 +496,12 @@ function Chips({
   counts?: Record<string, number>;
   /** Opção "Todas": fica marcada sem nenhuma escolha e, ao tocar, limpa o filtro. */
   allOption?: readonly [string, string];
+  /** Opções que aparecem mesmo sem jogos na lista (os complementos vêm da categoria própria ao escolher). */
+  alwaysShow?: string[];
 }) {
-  const shown = counts ? options.filter(([v]) => selected.includes(v) || (counts[v] ?? 0) > 0) : options;
+  const shown = counts
+    ? options.filter(([v]) => selected.includes(v) || alwaysShow.includes(v) || (counts[v] ?? 0) > 0)
+    : options;
   const chip = (on: boolean) => `rounded-full px-3 py-1 ${on ? "bg-ps-blue font-semibold" : "border border-line text-muted"}`;
   const count = (v: string) =>
     counts && <span className="ml-1 tabular-nums opacity-70">{(counts[v] ?? 0).toLocaleString(locale())}</span>;
@@ -626,6 +674,16 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
         />
         {p.discount > 0 && (
           <span className="absolute left-2 top-2 rounded-full bg-ps-blue px-2 py-0.5 text-xs font-bold">-{p.discount}%</span>
+        )}
+        {/* No menor preço que o app já registrou para este jogo. */}
+        {historicLowBadge(p, region) && (
+          <span
+            className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-ps-blue-2 px-2 py-0.5 text-[0.625rem] font-bold text-white shadow"
+            title={t("Menor preço já visto")}
+          >
+            <span aria-hidden>📉</span>
+            {t("Menor preço")}
+          </span>
         )}
         {p.plus && (
           <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-surface/90 shadow">

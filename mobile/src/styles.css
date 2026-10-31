@@ -328,6 +328,18 @@ html[data-theme="light"] .text-red-400 {
   }
 }
 
+/* Filtros da loja voltando ao topo da tela ao rolar para cima. */
+@keyframes bar-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 /*
  * Cores do tema com transparência, para qualquer WebView. O Tailwind só usa a
  * cor do tema nelas quando o aparelho tem color-mix(in lab) (Chrome 111+); nos
