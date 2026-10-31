@@ -19,6 +19,7 @@ import {
   inviteLines,
   savedShortLink,
   shortInviteLink,
+  blockSender,
   removeFromInbox,
   setInboxStatus,
   syncCloudInbox,
@@ -746,6 +747,8 @@ function BoostInbox({ focus }: { focus: string | null }) {
 /** Pedido recebido: quem pediu, o jogo, os troféus e o que falta, com aceitar/recusar e a resposta pronta. */
 function ReceivedCard({ request: r, highlight }: { request: ReceivedBoost; highlight: boolean }) {
   const chip = "rounded-full bg-surface-2 px-2 py-0.5";
+  const [dialog, setDialog] = useState<"denunciar" | "bloquear" | null>(null);
+  const [reason, setReason] = useState<"spam" | "ofensivo" | "outro">("spam");
   return (
     <article
       id={`pedido-${r.id}`}
@@ -819,7 +822,74 @@ function ReceivedCard({ request: r, highlight }: { request: ReceivedBoost; highl
             </button>
           </div>
         )}
+
+        {/* O recado é texto de outro usuário: dá para denunciar e bloquear quem enviou. */}
+        <div className="flex justify-end gap-4 text-[0.6875rem] text-muted">
+          <button onClick={() => setDialog("denunciar")} className="underline">
+            {t("🚩 Denunciar")}
+          </button>
+          <button onClick={() => setDialog("bloquear")} className="underline">
+            {t("🚫 Bloquear {name}", { name: r.from })}
+          </button>
+        </div>
       </div>
+
+      {dialog === "bloquear" && (
+        <ConfirmDialog
+          title={t("Bloquear {name}?", { name: r.from })}
+          confirmLabel={t("Bloquear")}
+          cancelLabel={t("Cancelar")}
+          danger
+          onConfirm={() => {
+            setDialog(null);
+            void blockSender(r).catch(() => {});
+          }}
+          onCancel={() => setDialog(null)}
+        >
+          <p className="text-sm text-muted">
+            {t("Os pedidos de {name} somem daqui e você não recebe mais nenhum.", { name: r.from })}
+          </p>
+        </ConfirmDialog>
+      )}
+      {dialog === "denunciar" && (
+        <ConfirmDialog
+          title={t("Denunciar este pedido?")}
+          confirmLabel={t("Denunciar")}
+          cancelLabel={t("Cancelar")}
+          danger
+          onConfirm={() => {
+            setDialog(null);
+            void blockSender(r, reason).catch(() => {});
+          }}
+          onCancel={() => setDialog(null)}
+        >
+          <div className="space-y-1.5 text-sm" role="radiogroup" aria-label={t("Motivo")}>
+            {(
+              [
+                ["spam", t("Spam ou propaganda")],
+                ["ofensivo", t("Ofensivo ou impróprio")],
+                ["outro", t("Outro motivo")],
+              ] as const
+            ).map(([value, label]) => (
+              <label key={value} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name={`motivo-${r.id}`}
+                  checked={reason === value}
+                  onChange={() => setReason(value)}
+                  className="h-4 w-4 accent-[var(--color-ps-blue)]"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <p className="text-[0.6875rem] text-muted">
+            {r.cloudId
+              ? t("A denúncia vai para a equipe do Plathunt e {name} fica bloqueado.", { name: r.from })
+              : t("Este pedido chegou por link: {name} fica bloqueado neste celular.", { name: r.from })}
+          </p>
+        </ConfirmDialog>
+      )}
     </article>
   );
 }

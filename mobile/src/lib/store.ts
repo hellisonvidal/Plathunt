@@ -255,12 +255,19 @@ export const PLUS_CATEGORY_IDS = ["038b4df3-bb4c-48f8-8290-3feb35f0f0fd"];
  * jogos completos, pacotes e edições premium; as demos ficam nesta.
  */
 export const DEMOS_ID = "95601a70-7564-4771-b305-0283fe3593e4";
+/**
+ * Complementos (DLC, passes de temporada, pacotes, moedas…). As categorias de
+ * PS5 e PS4 quase não têm complementos: na lista "Todos" apareciam só uns
+ * poucos. Esta categoria da loja traz todos, dos mais vendidos para os menos.
+ */
+export const ADDONS_ID = "3c49d223-9344-4009-b296-08e168854749";
 export const STORE_CATEGORIES = [
   /** Todos os jogos da loja: catálogo completo de PS5 e PS4 juntos, com as demos. */
   { id: ALL_ID, label: "Todos" },
   { id: OFFERS_ID, label: "Ofertas" },
   { id: PS5_ID, label: "PS5" },
   { id: PS4_ID, label: "PS4" },
+  { id: ADDONS_ID, label: "Complementos" },
   { id: FREE_ID, label: "Grátis" },
   { id: DEMOS_ID, label: "Demos" },
   { id: PLUS_ID, label: "PS Plus" },
@@ -471,6 +478,8 @@ export interface StoreFilters {
   sort: StoreSort;
   /** Tipo de produto ("todos" ou lista vazia = sem filtro). */
   kind: "todos" | StoreKind | StoreKind[];
+  /** Só os que estão no menor preço já visto (em promoção ou mais baratos que antes). */
+  onlyHistoricLow?: boolean;
 }
 
 const asList = <T,>(v: T | T[]): T[] => (Array.isArray(v) ? v : [v]);
@@ -531,13 +540,26 @@ export function inRange(p: StoreProduct, r: PriceRange): boolean {
   return (r.min === null || p.price >= r.min) && (r.max === null || p.price <= r.max);
 }
 
+/**
+ * O produto está no menor preço que o app já viu: o preço atual é o mínimo do
+ * histórico e é uma promoção (ou ficou mais barato que antes). Preço que
+ * nunca mudou não conta: não diz nada sobre ser uma boa hora de comprar.
+ */
+export function atHistoricLow(p: StoreProduct, region: StoreRegion): boolean {
+  if (p.price === null || p.price <= 0 || p.isFree) return false;
+  const h = priceHistory(region, p.id);
+  if (!h || p.price > h.min) return false;
+  return p.discount > 0 || isNewLow(h, p.price);
+}
+
 /** Sem opção escolhida, passa tudo; com várias, basta uma servir. */
 const anyOf = <T,>(list: T[], test: (x: T) => boolean) => list.length === 0 || list.some(test);
 
 /** O produto passa nos filtros (menos o filtro `skip`, para contar as opções dele). */
-function matches(p: StoreProduct, f: StoreFilters, skip?: "platform" | "kind" | "price"): boolean {
+function matches(p: StoreProduct, f: StoreFilters, region: StoreRegion | null, skip?: "platform" | "kind" | "price"): boolean {
   const q = f.query.trim().toLowerCase();
   return (
+    !(f.onlyHistoricLow && region && !atHistoricLow(p, region)) &&
     (!q || p.name.toLowerCase().includes(q)) &&
     (skip === "platform" || anyOf(selectedPlatforms(f), (x) => p.platforms.includes(x))) &&
     (!f.onlyDiscount || p.discount > 0) &&
@@ -558,16 +580,16 @@ export function filterCounts(products: StoreProduct[], f: StoreFilters, region: 
   const price: Record<string, number> = {};
   const ranges = priceRanges(region);
   for (const p of products) {
-    if (matches(p, f, "platform")) {
+    if (matches(p, f, region, "platform")) {
       platform.todas++;
       for (const x of p.platforms) if (x in platform) platform[x]++;
     }
-    if (matches(p, f, "kind")) {
+    if (matches(p, f, region, "kind")) {
       kind.todos++;
       const k = kindOf(p);
       kind[k] = (kind[k] ?? 0) + 1;
     }
-    if (matches(p, f, "price")) for (const r of ranges) if (inRange(p, r.range)) price[r.key] = (price[r.key] ?? 0) + 1;
+    if (matches(p, f, region, "price")) for (const r of ranges) if (inRange(p, r.range)) price[r.key] = (price[r.key] ?? 0) + 1;
   }
   return { platform, kind, price };
 }
@@ -579,8 +601,13 @@ export const isReleaseSort = (sort: StoreSort) => sort === "lancamento-novos" ||
  * `releaseOrder`: ids do mais novo ao mais antigo (storeReleaseOrder), para
  * ordenar por lançamento; sem ela, vale a data das imagens.
  */
-export function filterProducts(products: StoreProduct[], f: StoreFilters, releaseOrder?: string[] | null): StoreProduct[] {
-  const list = products.filter((p) => matches(p, f));
+export function filterProducts(
+  products: StoreProduct[],
+  f: StoreFilters,
+  releaseOrder?: string[] | null,
+  region: StoreRegion | null = null,
+): StoreProduct[] {
+  const list = products.filter((p) => matches(p, f, region));
   const price = (p: StoreProduct) => p.price ?? Number.MAX_SAFE_INTEGER;
   if (isReleaseSort(f.sort)) {
     const rank = new Map((releaseOrder ?? []).map((id, i) => [id, i]));

@@ -109,3 +109,19 @@ describe("convite pelo WhatsApp", () => {
     }
   });
 });
+
+describe("bloquear quem envia pedidos", () => {
+  beforeEach(() => mem.clear());
+
+  it("tira os pedidos da pessoa e não aceita novos dela", async () => {
+    const { blockSender } = await import("../src/lib/boostInbox");
+    const make = (from: string, at: string) =>
+      boostLink({ game: { id: "1", name: "Jogo", platform: "PS5", iconUrl: null }, trophies: [], players: 1, when: "Agora", note: "oi", createdAt: at }, from);
+    importBoost(make("Spammer", "2026-01-01T00:00:00Z"), "Eu");
+    importBoost(make("Amiga", "2026-01-01T00:00:00Z"), "Eu");
+    const spam = getInbox().find((r) => r.from === "Spammer")!;
+    await blockSender(spam);
+    expect(getInbox().map((r) => r.from)).toEqual(["Amiga"]);
+    expect(importBoost(make("spammer", "2026-02-01T00:00:00Z"), "Eu")).toEqual({ ok: false, reason: "bloqueado" });
+  });
+});

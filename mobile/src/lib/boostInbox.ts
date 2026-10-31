@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Boost } from "./boost";
-import { answerBoostRequest, cloudIdentity, cloudUrl, createInvite, myBoostRequests } from "./cloud";
+import { answerBoostRequest, cloudIdentity, cloudUrl, createInvite, myBoostRequests, reportBoostRequest, setBlocked } from "./cloud";
 import { PLAY_STORE_URL } from "../psn/native";
 import { t } from "../i18n";
 import { persistSet } from "./persist";
@@ -24,6 +24,8 @@ export interface ReceivedBoost {
   status: "novo" | "aceito";
   /** Pedido que chegou pelos recursos online (id no servidor). */
   cloudId?: string;
+  /** Conta da PSN de quem pediu (pedidos que chegaram pelo app). */
+  fromAccountId?: string;
 }
 
 type Payload = Pick<ReceivedBoost, "from" | "game" | "trophies" | "players" | "when" | "note" | "createdAt">;
@@ -171,7 +173,43 @@ function save(list: ReceivedBoost[]) {
   listeners.forEach((l) => l());
 }
 
-export type ImportResult = { ok: true; request: ReceivedBoost; duplicate: boolean } | { ok: false; reason: "invalido" | "meu" };
+export type ImportResult =
+  | { ok: true; request: ReceivedBoost; duplicate: boolean }
+  | { ok: false; reason: "invalido" | "meu" | "bloqueado" };
+
+/** Jogadores bloqueados (pelo nome na PSN, em minúsculas, e pela conta). */
+const BLOCKED_KEY = "tm.boostBlocked" as const;
+
+function getBlocked(): string[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(BLOCKED_KEY) ?? "[]");
+    return Array.isArray(list) ? list.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+const isBlocked = (blocked: string[], from: string, accountId?: string) =>
+  blocked.includes(from.toLowerCase()) || (!!accountId && blocked.includes(accountId));
+
+/**
+ * Bloqueia quem enviou o pedido: some do painel tudo o que veio dele, novos
+ * pedidos (pelo app ou por link) não entram e, pelo app, o servidor para de
+ * entregar. `report`: também denuncia o pedido (spam, ofensivo...).
+ */
+export async function blockSender(r: ReceivedBoost, report?: "spam" | "ofensivo" | "outro"): Promise<void> {
+  const keys = [r.from.toLowerCase(), ...(r.fromAccountId ? [r.fromAccountId] : [])];
+  persistSet(BLOCKED_KEY, JSON.stringify([...new Set([...keys, ...getBlocked()])].slice(0, 500)));
+  const list = getInbox();
+  const fromThem = list.filter((x) => isBlocked(keys, x.from, x.fromAccountId));
+  persistSet(
+    DISMISSED_KEY,
+    JSON.stringify([...fromThem.map((x) => x.cloudId).filter((x): x is string => !!x), ...getDismissed()].slice(0, 500)),
+  );
+  save(list.filter((x) => !fromThem.includes(x)));
+  if (r.cloudId && report) await reportBoostRequest(r.cloudId, report);
+  else if (r.fromAccountId) await setBlocked(r.fromAccountId, true);
+}
 
 /**
  * Guarda um pedido recebido. Pedidos seus (mesmo ID da PSN) não entram: o
@@ -181,6 +219,7 @@ export function importBoost(text: string, me: string | null, now = new Date()): 
   const p = parseBoostText(text);
   if (!p) return { ok: false, reason: "invalido" };
   if (me && p.from.toLowerCase() === me.toLowerCase()) return { ok: false, reason: "meu" };
+  if (isBlocked(getBlocked(), p.from)) return { ok: false, reason: "bloqueado" };
   const id = `${p.from}:${p.createdAt}:${p.game.name}`;
   const list = getInbox();
   // Já chegou pelo app (ou pelo mesmo link antes): não duplica.
@@ -228,6 +267,7 @@ export async function syncCloudInbox(now = new Date()): Promise<ReceivedBoost[]>
   const list = getInbox();
   const known = new Set([...list.map((r) => r.cloudId).filter(Boolean), ...getDismissed()]);
   const keys = new Set(list.map(requestKey));
+  const blocked = getBlocked();
   const added: ReceivedBoost[] = [];
   // O mesmo pedido que já chegou pelo link do WhatsApp: liga ao do app (para
   // a resposta sim/não chegar a quem pediu) em vez de duplicar.
@@ -237,6 +277,7 @@ export async function syncCloudInbox(now = new Date()): Promise<ReceivedBoost[]>
     const p = r.payload as Partial<Payload>;
     if (!p.game?.name) continue;
     const from = r.from_online_id ?? String(p.from ?? "");
+    if (isBlocked(blocked, from, r.from_account_id)) continue;
     // A data do pedido (a mesma que vai no link do WhatsApp), não a do envio.
     const createdAt = String(p.createdAt ?? r.created_at);
     const key = requestKey({ from, createdAt, game: { ...p.game, name: String(p.game.name) } as Boost["game"] });
@@ -248,6 +289,7 @@ export async function syncCloudInbox(now = new Date()): Promise<ReceivedBoost[]>
     added.push({
       id: `cloud:${r.id}`,
       cloudId: r.id,
+      fromAccountId: r.from_account_id,
       // O nome vem do perfil confirmado pela PSN, não do texto do pedido (que
       // quem envia poderia trocar para se passar por um amigo).
       from,

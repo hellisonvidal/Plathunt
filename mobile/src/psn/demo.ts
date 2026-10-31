@@ -134,6 +134,8 @@ function demoProgress(detail: string, earned: boolean): TrophyRow["progress"] {
   return { current: earned ? target : Math.floor(target * 0.6), target };
 }
 
+const DEMO_HIDDEN = new Set(["DEMO_GOW:40"]);
+
 function trophiesOf(profileKey: string, gameId: string): TrophyRow[] {
   const play = PLAYS.find((p) => p[0] === profileKey && GAMES[p[1]].id === gameId);
   const earned = new Map((play?.[6] ?? []).map(([id, h, rate]) => [id, { h, rate }]));
@@ -145,7 +147,8 @@ function trophiesOf(profileKey: string, gameId: string): TrophyRow[] {
       name,
       detail,
       iconUrl: null,
-      hidden: false,
+      // Troféu secreto de exemplo (o botão "Revelar troféus secretos" do jogo).
+      hidden: DEMO_HIDDEN.has(`${gameId}:${id}`),
       groupId: groupId ?? "default",
       earned: !!e,
       earnedAt: e ? hoursAgo(e.h) : null,

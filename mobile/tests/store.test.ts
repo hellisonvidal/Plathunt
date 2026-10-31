@@ -398,3 +398,22 @@ describe("ordem de lançamento", () => {
     expect(filterProducts(list, { ...f, sort: "lancamento-antigos" }, order).map((x) => x.id)).toEqual(["b", "a", "c"]);
   });
 });
+
+describe("filtro do menor preço já visto", () => {
+  beforeEach(() => mem.clear());
+
+  it("só entra quem está em promoção no menor preço registrado (ou ficou mais barato que antes)", async () => {
+    const { atHistoricLow } = await import("../src/lib/store");
+    const sale = product("sale", "Promo", "R$ 200,00", "R$ 100,00");
+    const fixed = product("fixed", "Fixo", "R$ 50,00", "R$ 50,00");
+    const wasLower = product("was", "Já foi mais barato", "R$ 200,00", "R$ 150,00");
+    // Antes: "was" a 120; depois sobe para 150 (ainda com desconto, mas acima do menor).
+    recordPrices([{ ...wasLower, price: 12000 }], "pt-BR", new Date("2026-01-01"));
+    recordPrices([sale, fixed, wasLower], "pt-BR", new Date("2026-02-01"));
+    expect(atHistoricLow(sale, "pt-BR")).toBe(true);
+    expect(atHistoricLow(fixed, "pt-BR")).toBe(false);
+    expect(atHistoricLow(wasLower, "pt-BR")).toBe(false);
+    const f: StoreFilters = { query: "", platform: [], onlyDiscount: false, hidePlus: false, hideFree: false, price: [], sort: "relevancia", kind: [], onlyHistoricLow: true };
+    expect(filterProducts([sale, fixed, wasLower], f, null, "pt-BR").map((p) => p.id)).toEqual(["sale"]);
+  });
+});

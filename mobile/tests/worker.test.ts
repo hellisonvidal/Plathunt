@@ -138,3 +138,27 @@ describe("convite com link curto e pedidos sem duplicidade", () => {
     expect(requests).toHaveLength(2);
   });
 });
+
+describe("denúncia e bloqueio (conteúdo gerado pelos usuários)", () => {
+  it("quem recebeu denuncia; o remetente fica bloqueado e não envia mais", async () => {
+    const ana = await login("token-da-ana-xxxxxxxxxxxxxxxx");
+    const bruno = await login("token-do-bruno-xxxxxxxxxxxxxx");
+    const carla = await login("token-da-carla-xxxxxxxxxxxxxx");
+    await call("POST", "/v1/boosts", { to: ["222"], payload: { boostId: "x1", note: "spam!!" } }, ana);
+    const { requests } = (await (await call("GET", "/v1/boosts", undefined, bruno)).json()) as { requests: { id: string }[] };
+    const id = requests[0].id;
+    // Só quem recebeu pode denunciar.
+    expect((await call("POST", "/v1/reports", { request_id: id, reason: "spam" }, carla)).status).toBe(404);
+    expect((await call("POST", "/v1/reports", { request_id: id, reason: "qualquer" }, bruno)).status).toBe(400);
+    expect((await call("POST", "/v1/reports", { request_id: id, reason: "spam" }, bruno)).status).toBe(200);
+    // Bloqueado: some da lista e novos pedidos não chegam.
+    expect(((await (await call("GET", "/v1/boosts", undefined, bruno)).json()) as { requests: unknown[] }).requests).toHaveLength(0);
+    expect(await (await call("POST", "/v1/boosts", { to: ["222"], payload: { boostId: "x2" } }, ana)).json()).toEqual({ count: 0 });
+    // Desbloquear volta a receber.
+    await call("POST", "/v1/blocks", { account_id: "111", on: false }, bruno);
+    expect(await (await call("POST", "/v1/boosts", { to: ["222"], payload: { boostId: "x3" } }, ana)).json()).toEqual({ count: 1 });
+    // Bloquear direto (sem denúncia) também vale.
+    await call("POST", "/v1/blocks", { account_id: "111", on: true }, bruno);
+    expect(await (await call("POST", "/v1/boosts", { to: ["222"], payload: { boostId: "x4" } }, ana)).json()).toEqual({ count: 0 });
+  });
+});

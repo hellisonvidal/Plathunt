@@ -88,7 +88,7 @@ Sem o segredo, o build só avisa e o AAB continua no artefato. Se o envio falhar
 | Política de privacidade | `https://github.com/hellisonvidal/Plathunt/blob/main/docs/privacidade.md` |
 | Acesso ao app | **Parte da funcionalidade é restrita.** Instruções: "Na tela de entrada, toque em *Ver demonstração* para usar o app com dados de exemplo, sem conta. As funções com dados reais exigem uma conta da PlayStation Network do próprio usuário; o login é feito na página oficial da Sony." |
 | Anúncios | Não, o app não contém anúncios |
-| Classificação de conteúdo | Categoria **Outros apps** (utilitário/referência de jogos). Violência, sexo, drogas, palavrões, jogos de azar: **não**. Usuários interagem? **Sim** (curtidas e pedidos de boost entre usuários, sem chat livre). Compartilha a localização? **Não**. Compras digitais? **Não** (a Loja só mostra preços e abre a PlayStation Store) |
+| Classificação de conteúdo | Categoria **Outros apps** (utilitário/referência de jogos). Violência, sexo, drogas, palavrões, jogos de azar: **não**. Usuários interagem? **Sim** (curtidas e pedidos de boost entre usuários, com um recado curto opcional; sem chat livre. Cada pedido recebido tem **Denunciar** e **Bloquear**). Compartilha a localização? **Não**. Compras digitais? **Não** (a Loja só mostra preços e abre a PlayStation Store) |
 | Público-alvo | **13 a 15, 16 a 17 e 18+** (não marque menores de 13). O app não foi feito para crianças |
 | App de notícias | Não |
 | ID de publicidade | Não usa |
@@ -106,7 +106,7 @@ Sem o segredo, o build só avisa e o AAB continua no artefato. Se o envio falhar
 | Tipo de dado | Coletado | Obrigatório? | Finalidade |
 | --- | --- | --- | --- |
 | Informações pessoais → **IDs do usuário** (accountId e ID online da PSN, URL do avatar) | Sim | Opcional (recursos online podem ser desligados) | Funcionalidade do app; gerenciamento da conta |
-| Atividade no app → **Outros conteúdos gerados pelo usuário** (curtidas e pedidos de boost) | Sim | Opcional | Funcionalidade do app |
+| Atividade no app → **Outros conteúdos gerados pelo usuário** (curtidas, pedidos e convites de boost, denúncias e bloqueios) | Sim | Opcional | Funcionalidade do app; segurança, conformidade e prevenção de fraudes (denúncias) |
 
 Não declarar: senha (o login é na página da Sony e o app nunca vê a senha), localização, contatos, fotos, dados financeiros, identificadores do aparelho, diagnóstico ou analytics (não há). O token da sessão PSN vai uma vez ao servidor só para confirmar a identidade e não é guardado (processamento temporário). Troféus, amigos e configurações ficam só no celular e não contam como coletados.
 
@@ -202,6 +202,24 @@ Free, no ads, no purchases.
 - **Título:** `Plathunt: Trophy Tracker` (24 de 30 caracteres). Nome embaixo do ícone: `Plathunt`.
 - O nome não usa "PlayStation", "PSN" nem "PS" (marcas da Sony). Citar na descrição que o app funciona com os troféus da PSN é permitido, junto do aviso de app não oficial (a política de propriedade intelectual da Play pede que fique claro que não há vínculo com a marca).
 - **Ícone:** troféu de platina dentro de uma mira, sem os símbolos dos botões da PlayStation (`assets/app-icon.svg`).
+
+## Políticas da Google Play (revisado em outubro de 2026)
+
+O que o app já cumpre:
+
+- **Target API 36 (Android 16):** obrigatório para enviar atualizações desde 31/08/2026. O app usa `targetSdkVersion = 36` (`android/variables.gradle`).
+- **Páginas de memória de 16 KB** (exigido a partir de 01/02/2027 para apps com código nativo): o app não tem bibliotecas nativas próprias e usa o Android Gradle Plugin 8.13, que já gera o pacote alinhado.
+- **Conteúdo gerado por usuários:** o recado dos pedidos de boost é texto de outro usuário, então cada pedido recebido tem **Denunciar** (vai para o servidor e bloqueia quem enviou) e **Bloquear**. Quem foi bloqueado não consegue mais enviar pedidos.
+- **Exclusão de conta e dados:** no app (Configurações → Recursos online → Apagar meus dados do servidor) e pela página `docs/excluir-dados.md`.
+- **Permissões:** só internet e notificações; a de instalar pacotes fica só na versão do GitHub (a da Play Store atualiza pela própria loja, com In-App Updates).
+- **Localização e serviços em primeiro plano** (mudanças de 27/01/2027): o app não usa.
+
+O que só você faz na Play Console:
+
+- **Status de comerciante (trader status):** a partir de novembro de 2026 a Play pede a declaração em **Configurações da conta**. Um app gratuito, sem vendas, normalmente se declara como **não comerciante**.
+- **Verificação de desenvolvedor no Brasil:** a verificação de identidade do desenvolvedor começou em setembro de 2026 no Brasil; confira em **Play Console → Configurações da conta** se a conta está verificada.
+- **Segurança dos dados:** a tabela acima já inclui os convites, as denúncias e os bloqueios como "outros conteúdos gerados pelo usuário"; confira se o formulário está igual.
+- **Qualidade do app** (limites de memória e código, prazo 02/2027): acompanhe em **Qualidade → Android vitals**.
 
 ## Se a revisão recusar
 

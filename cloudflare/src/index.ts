@@ -191,6 +191,13 @@ async function sendBoosts(request: Request, env: Env, me: Session) {
     .first<{ n: number }>();
   if ((recent?.n ?? 0) + recipients.length > BOOST_LIMIT_PER_HOUR) throw new HttpError(429, "limit");
 
+  // Quem bloqueou o remetente não recebe mais pedidos dele.
+  const blockedBy = await env.DB.prepare("select blocker_account_id from blocks where blocked_account_id = ?1")
+    .bind(me.sub)
+    .all<{ blocker_account_id: string }>();
+  const blockers = new Set(blockedBy.results.map((r) => r.blocker_account_id));
+  for (let i = recipients.length - 1; i >= 0; i--) if (blockers.has(recipients[i])) recipients.splice(i, 1);
+
   // O mesmo pedido (boostId) não vai duas vezes para a mesma pessoa (toque
   // duplo, nova tentativa depois de falha de rede, os dois seletores da tela).
   const boostId = typeof (payload as { boostId?: unknown }).boostId === "string" ? (payload as { boostId: string }).boostId : null;
@@ -217,7 +224,8 @@ async function myBoosts(env: Env, me: Session) {
   const { results } = await env.DB.prepare(
     `select b.id, b.from_account_id, b.to_account_id, b.payload, b.status, b.created_at, p.online_id as from_online_id
      from boost_requests b left join profiles p on p.account_id = b.from_account_id
-     where b.from_account_id = ?1 or b.to_account_id = ?1
+     where (b.from_account_id = ?1 or b.to_account_id = ?1)
+       and not exists (select 1 from blocks k where k.blocker_account_id = ?1 and k.blocked_account_id = b.from_account_id)
      order by b.created_at desc limit 100`,
   )
     .bind(me.sub)
@@ -244,12 +252,59 @@ async function answerBoost(request: Request, env: Env, me: Session) {
   return json({ ok: true });
 }
 
+const REPORT_REASONS = ["spam", "ofensivo", "outro"];
+
+/**
+ * POST /v1/reports: denúncia de um pedido de boost recebido (o recado é texto
+ * livre de outro usuário). Só quem recebeu o pedido denuncia; o remetente
+ * fica bloqueado para quem denunciou.
+ */
+async function reportBoost(request: Request, env: Env, me: Session) {
+  const { request_id, reason } = await readBody(request);
+  if (typeof request_id !== "string" || typeof reason !== "string" || !REPORT_REASONS.includes(reason)) {
+    throw new HttpError(400, "report");
+  }
+  const row = await env.DB.prepare("select from_account_id from boost_requests where id = ?1 and to_account_id = ?2")
+    .bind(request_id, me.sub)
+    .first<{ from_account_id: string }>();
+  if (!row) throw new HttpError(404, "request");
+  const now = new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare(
+      "insert into reports (id, reporter_account_id, reported_account_id, request_id, reason, created_at) values (?1, ?2, ?3, ?4, ?5, ?6)",
+    ).bind(crypto.randomUUID(), me.sub, row.from_account_id, request_id, reason, now),
+    env.DB.prepare(
+      "insert or ignore into blocks (blocker_account_id, blocked_account_id, created_at) values (?1, ?2, ?3)",
+    ).bind(me.sub, row.from_account_id, now),
+    env.DB.prepare("update boost_requests set status = 'recusado' where id = ?1").bind(request_id),
+  ]);
+  return json({ ok: true });
+}
+
+/** POST /v1/blocks: bloqueia (ou desbloqueia) um jogador para não receber mais pedidos dele. */
+async function setBlock(request: Request, env: Env, me: Session) {
+  const { account_id, on } = await readBody(request);
+  if (!isAccountId(account_id) || account_id === me.sub) throw new HttpError(400, "account_id");
+  if (on === false) {
+    await env.DB.prepare("delete from blocks where blocker_account_id = ?1 and blocked_account_id = ?2")
+      .bind(me.sub, account_id)
+      .run();
+  } else {
+    await env.DB.prepare("insert or ignore into blocks (blocker_account_id, blocked_account_id, created_at) values (?1, ?2, ?3)")
+      .bind(me.sub, account_id, new Date().toISOString())
+      .run();
+  }
+  return json({ ok: true });
+}
+
 /** Apaga tudo o que o servidor guarda sobre o jogador (perfil, curtidas e pedidos). */
 async function deleteAccount(env: Env, me: Session) {
   await env.DB.batch([
     env.DB.prepare("delete from likes where liker_account_id = ?1 or owner_account_id = ?1").bind(me.sub),
     env.DB.prepare("delete from boost_requests where from_account_id = ?1 or to_account_id = ?1").bind(me.sub),
     env.DB.prepare("delete from invites where from_account_id = ?1").bind(me.sub),
+    env.DB.prepare("delete from reports where reporter_account_id = ?1").bind(me.sub),
+    env.DB.prepare("delete from blocks where blocker_account_id = ?1 or blocked_account_id = ?1").bind(me.sub),
     env.DB.prepare("delete from profiles where account_id = ?1").bind(me.sub),
   ]);
   return json({ ok: true });
@@ -382,6 +437,10 @@ export async function handle(request: Request, env: Env, fetcher: typeof fetch =
         return await myBoosts(env, me);
       case "POST /v1/boosts/answer":
         return await answerBoost(request, env, me);
+      case "POST /v1/reports":
+        return await reportBoost(request, env, me);
+      case "POST /v1/blocks":
+        return await setBlock(request, env, me);
       case "POST /v1/account/delete":
         return await deleteAccount(env, me);
     }
