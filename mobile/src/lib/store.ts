@@ -552,6 +552,23 @@ export function atHistoricLow(p: StoreProduct, region: StoreRegion): boolean {
   return p.discount > 0 || isNewLow(h, p.price);
 }
 
+/** Dias de acompanhamento antes de o selo da capa confiar no "menor preço". */
+export const LOW_BADGE_DAYS = 14;
+
+/**
+ * Selo de menor preço na capa: como `atHistoricLow`, mas só com histórico de
+ * verdade (o preço caiu enquanto o app acompanhava, ou o jogo é acompanhado há
+ * pelo menos LOW_BADGE_DAYS dias). Sem isso, toda promoção vista pela
+ * primeira vez ganharia o selo.
+ */
+export function historicLowBadge(p: StoreProduct, region: StoreRegion, now = Date.now()): boolean {
+  if (!atHistoricLow(p, region)) return false;
+  const h = priceHistory(region, p.id)!;
+  if (isNewLow(h, p.price)) return true;
+  const since = new Date(h.firstAt ?? h.minAt).getTime();
+  return now - since >= LOW_BADGE_DAYS * 24 * 60 * 60 * 1000;
+}
+
 /** Sem opção escolhida, passa tudo; com várias, basta uma servir. */
 const anyOf = <T,>(list: T[], test: (x: T) => boolean) => list.length === 0 || list.some(test);
 

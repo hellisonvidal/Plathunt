@@ -10,6 +10,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 30,
+    items: [
+      "📉 Loja: selo de menor preço na capa dos jogos que estão no menor preço já visto.",
+      "🧩 Complementos: a lista completa da loja; ao filtrar por DLC nas outras categorias, eles aparecem junto.",
+      "🔎 Loja: depois de rolar bastante, basta voltar um pouco para cima e os filtros reaparecem.",
+      "👆 Tocar de novo no filtro escolhido desfaz a escolha.",
+      "👁️ Novo interruptor de troféus secretos na tela do jogo.",
+    ],
+  },
+  {
     id: 29,
     items: [
       "⏱️ Tempo de jogo certo nos jogos de PS3 (o tempo de PS4/PS5 não cai mais na versão de PS3).",

@@ -353,7 +353,8 @@ export function GamePage() {
                     key={f.key}
                     role="tab"
                     aria-selected={filter === f.key}
-                    onClick={() => setFilter(f.key)}
+                    // Tocar de novo no filtro escolhido desfaz (volta para "Todos").
+                    onClick={() => setFilter(filter === f.key ? "todos" : f.key)}
                     className={`rounded-full py-1.5 ${filter === f.key ? "bg-ps-blue font-semibold" : "text-muted"}`}
                   >
                     {f.label} <span className="opacity-70">{f.count}</span>
@@ -372,7 +373,7 @@ export function GamePage() {
                       key={f.key}
                       role="tab"
                       aria-selected={mineFilter === f.key}
-                      onClick={() => setMineFilter(f.key)}
+                      onClick={() => setMineFilter(mineFilter === f.key ? "todos" : f.key)}
                       className={`truncate rounded-full px-1 py-1.5 ${mineFilter === f.key ? "bg-ps-blue font-semibold" : "text-muted"}`}
                     >
                       {f.label} <span className="opacity-70">{f.count}</span>
@@ -384,29 +385,33 @@ export function GamePage() {
 
             {/* Troféus secretos ainda bloqueados: revelar nome e descrição (vale para todos os jogos). */}
             {hiddenLocked > 0 && (
-              <button
-                onClick={() => updateSettings({ revealSecrets: !revealSecrets })}
-                aria-pressed={revealSecrets}
-                className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left ${
-                  revealSecrets ? "border-gold/40 bg-gold/10" : "border-line bg-surface"
-                }`}
-              >
-                <span className="text-xl" aria-hidden>
-                  {revealSecrets ? "🙉" : "🙈"}
+              <label className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-line bg-surface p-3">
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                    revealSecrets ? "bg-ps-blue/20 text-ps-blue" : "bg-surface-2 text-muted"
+                  }`}
+                  aria-hidden
+                >
+                  <EyeIcon open={revealSecrets} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">
-                    {revealSecrets
-                      ? t("Ocultar troféus secretos")
-                      : hiddenLocked === 1
-                        ? t("Revelar 1 troféu secreto")
-                        : t("Revelar {n} troféus secretos", { n: hiddenLocked })}
+                    {t("Mostrar troféus secretos")}{" "}
+                    <span className="rounded-full bg-surface-2 px-1.5 text-xs font-normal text-muted">{hiddenLocked}</span>
                   </span>
                   <span className="block text-xs text-muted">
                     {revealSecrets ? t("Os nomes e descrições estão visíveis.") : t("Mostra nome e descrição (pode conter spoilers).")}
                   </span>
                 </span>
-              </button>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={revealSecrets}
+                  onChange={(e) => updateSettings({ revealSecrets: e.target.checked })}
+                  className="peer sr-only"
+                />
+                <span className="relative h-6 w-11 shrink-0 rounded-full bg-surface-2 transition peer-checked:bg-ps-blue after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-ink after:transition peer-checked:after:translate-x-5" />
+              </label>
             )}
 
             {/* Ordem da lista: a do jogo ou a cronológica das conquistas. */}
@@ -748,5 +753,16 @@ function TrophyItem({
           ))}
       </div>
     </li>
+  );
+}
+
+/** Olho aberto (secretos visíveis) ou riscado (ocultos). */
+function EyeIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {!open && <path d="M3 3l18 18" />}
+    </svg>
   );
 }

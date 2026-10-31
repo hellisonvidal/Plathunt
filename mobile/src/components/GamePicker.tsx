@@ -194,7 +194,7 @@ export function GamePicker({
             {[null, ...platforms].map((p) => (
               <button
                 key={p ?? "todas"}
-                onClick={() => setPlatform(p)}
+                onClick={() => setPlatform(platform === p ? null : p)}
                 className={chip(platform === p)}
                 aria-pressed={platform === p}
               >
@@ -366,7 +366,7 @@ export function TrophyPicker({
             ["bronze", t("Bronze")],
           ] as const
         ).map(([k, label]) => (
-          <button key={k} onClick={() => setType(k)} className={chip(type === k)} aria-pressed={type === k}>
+          <button key={k} onClick={() => setType(type === k ? "todos" : k)} className={chip(type === k)} aria-pressed={type === k}>
             {label}
           </button>
         ))}

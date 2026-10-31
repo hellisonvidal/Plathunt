@@ -416,4 +416,16 @@ describe("filtro do menor preço já visto", () => {
     const f: StoreFilters = { query: "", platform: [], onlyDiscount: false, hidePlus: false, hideFree: false, price: [], sort: "relevancia", kind: [], onlyHistoricLow: true };
     expect(filterProducts([sale, fixed, wasLower], f, null, "pt-BR").map((p) => p.id)).toEqual(["sale"]);
   });
+
+  it("selo da capa: só com o preço caindo ou depois de 14 dias acompanhando", async () => {
+    const { historicLowBadge } = await import("../src/lib/store");
+    const sale = product("sale", "Promo", "R$ 200,00", "R$ 100,00");
+    const drop = product("drop", "Caiu", "R$ 200,00", "R$ 80,00");
+    recordPrices([{ ...drop, price: 10000 }], "pt-BR", new Date("2026-02-01"));
+    recordPrices([sale, drop], "pt-BR", new Date("2026-02-02"));
+    const day3 = new Date("2026-02-03").getTime();
+    expect(historicLowBadge(sale, "pt-BR", day3)).toBe(false);
+    expect(historicLowBadge(drop, "pt-BR", day3)).toBe(true);
+    expect(historicLowBadge(sale, "pt-BR", new Date("2026-02-20").getTime())).toBe(true);
+  });
 });
