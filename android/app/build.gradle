@@ -12,7 +12,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // 10000 + build (VERSION_CODE do GitHub Actions): sempre acima dos APKs antigos.
         versionCode((System.getenv("VERSION_CODE") ?: String.valueOf(buildNumber)) as Integer)
-        versionName "1.1.2"
+        versionName "1.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

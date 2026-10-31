@@ -1,6 +1,6 @@
 {
   "name": "plathunt-mobile",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "App Android do Plathunt: fala direto com a PSN, sem servidor.",
