@@ -113,12 +113,6 @@ export function SettingsPage() {
             checked={settings.autoTranslate}
             onChange={(autoTranslate) => updateSettings({ autoTranslate })}
           />
-          <Toggle
-            label={t("Revelar troféus secretos")}
-            hint={t("Mostra nome e descrição de troféus ocultos ainda bloqueados (pode conter spoilers)")}
-            checked={settings.revealSecrets}
-            onChange={(revealSecrets) => updateSettings({ revealSecrets })}
-          />
         </Section>
 
         <Section title={t("Loja")}>

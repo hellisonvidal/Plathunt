@@ -10,6 +10,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 29,
+    items: [
+      "⏱️ Tempo de jogo certo nos jogos de PS3 (o tempo de PS4/PS5 não cai mais na versão de PS3).",
+      "🙈 Revelar troféus secretos agora fica na tela de cada jogo.",
+      "🛒 Loja: nova categoria Complementos (DLC, passes e pacotes) e filtro do menor preço já visto.",
+      "🚩 Pedidos de boost recebidos podem ser denunciados e quem enviou, bloqueado.",
+    ],
+  },
+  {
     id: 28,
     items: [
       "⬆️ Versão da Play Store: quando sai uma versão nova, a janela de atualização do Google Play abre sozinha, baixa em segundo plano e você reinicia o app com um toque.",

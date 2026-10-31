@@ -69,14 +69,13 @@ export function matchPlayed(titles: Title[], played: PlayedGame[]): Map<string, 
     byName.set(key, [...(byName.get(key) ?? []), t]);
   }
 
+  // Nome igual; sem ele, nomes que começam um com o outro (todos, para o
+  // filtro de plataforma abaixo escolher entre eles).
   const candidatesFor = (key: string): Title[] => {
     const exact = byName.get(key);
     if (exact) return exact;
     if (key.length < 6) return [];
-    for (const [k, ts] of byName) {
-      if (k.length >= 6 && (k.startsWith(key) || key.startsWith(k))) return ts;
-    }
-    return [];
+    return [...byName].filter(([k]) => k.length >= 6 && (k.startsWith(key) || key.startsWith(k))).flatMap(([, ts]) => ts);
   };
 
   const out = new Map<string, PlayInfo & { best: number }>();
@@ -86,7 +85,12 @@ export function matchPlayed(titles: Title[], played: PlayedGame[]): Map<string, 
     if (p.playSeconds <= 0) continue;
     const key = normalizeName(p.name);
     if (!key) continue;
-    const candidates = candidatesFor(key);
+    // A PSN só registra tempo de jogo de PS4 e PS5: esse tempo nunca vai para
+    // uma lista de troféus só de PS3 ou Vita (ex.: "God of War" de PS4 caía no
+    // "God of War III", e a remasterização de PS4 caía na versão de PS3).
+    const candidates = candidatesFor(key).filter((t) =>
+      parsePlatforms(t.platform).some((pl) => pl === "PS4" || pl === "PS5"),
+    );
     if (!candidates.length) continue;
     const score = (t: Title) =>
       (p.platform && parsePlatforms(t.platform).includes(p.platform) ? 1_000_000 : 0) + earnedTotal(t);

@@ -227,6 +227,16 @@ export async function createInvite(payload: Record<string, unknown>): Promise<st
   return id;
 }
 
+/** Denuncia um pedido recebido (o servidor também bloqueia quem enviou). */
+export async function reportBoostRequest(id: string, reason: "spam" | "ofensivo" | "outro"): Promise<void> {
+  await api("/v1/reports", { request_id: id, reason });
+}
+
+/** Bloqueia (ou desbloqueia) um jogador: o servidor não entrega mais pedidos dele. */
+export async function setBlocked(accountId: string, on: boolean): Promise<void> {
+  await api("/v1/blocks", { account_id: accountId, on });
+}
+
 export async function answerBoostRequest(id: string, status: "aceito" | "recusado"): Promise<void> {
   await api("/v1/boosts/answer", { id, status });
 }

@@ -4,7 +4,7 @@ import { useApp } from "../app";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBox, GameIcon, ProgressBar, RemoteImage, Spinner, TrophyBadge, rarityLabel } from "../components/ui";
 import type { GroupSection } from "../lib/stats";
-import { useSettings } from "../lib/settings";
+import { updateSettings, useSettings } from "../lib/settings";
 import { gameWrittenGuideUrl, trophyGuideUrl, trophyWrittenGuideUrl, type GuideSite } from "../lib/tips";
 import { resolveGameGuide, resolveTrophyGuide } from "../lib/guideLinks";
 import { isNativeApp, openInBrowser } from "../psn/native";
@@ -227,6 +227,9 @@ export function GamePage() {
           inStore: false,
         }
       : null;
+  // Troféus secretos ainda bloqueados (o botão de revelar só aparece com eles).
+  const { revealSecrets } = useSettings();
+  const hiddenLocked = all.filter((tr) => tr.hidden && !tr.earned).length;
   const platinumBoth =
     !!data?.title && data.title.earned.platinum > 0 && (mine.data ?? []).some((r) => r.type === "platinum" && r.earned);
 
@@ -377,6 +380,33 @@ export function GamePage() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Troféus secretos ainda bloqueados: revelar nome e descrição (vale para todos os jogos). */}
+            {hiddenLocked > 0 && (
+              <button
+                onClick={() => updateSettings({ revealSecrets: !revealSecrets })}
+                aria-pressed={revealSecrets}
+                className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left ${
+                  revealSecrets ? "border-gold/40 bg-gold/10" : "border-line bg-surface"
+                }`}
+              >
+                <span className="text-xl" aria-hidden>
+                  {revealSecrets ? "🙉" : "🙈"}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">
+                    {revealSecrets
+                      ? t("Ocultar troféus secretos")
+                      : hiddenLocked === 1
+                        ? t("Revelar 1 troféu secreto")
+                        : t("Revelar {n} troféus secretos", { n: hiddenLocked })}
+                  </span>
+                  <span className="block text-xs text-muted">
+                    {revealSecrets ? t("Os nomes e descrições estão visíveis.") : t("Mostra nome e descrição (pode conter spoilers).")}
+                  </span>
+                </span>
+              </button>
             )}
 
             {/* Ordem da lista: a do jogo ou a cronológica das conquistas. */}

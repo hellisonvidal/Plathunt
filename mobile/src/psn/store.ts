@@ -2,6 +2,7 @@ import { t } from "../i18n";
 import { cached } from "../lib/cache";
 import { getSettings } from "../lib/settings";
 import {
+  ADDONS_ID,
   ALL_ID,
   DEMOS_ID,
   mergeReleaseOrders,
@@ -36,6 +37,8 @@ const PAGE_SIZE = 100;
 const MAX_PAGES = 200;
 /** Páginas buscadas ao mesmo tempo. */
 const PARALLEL = 4;
+/** Complementos: só as primeiras páginas (os 3.000 mais vendidos). */
+const ADDON_PAGES = 30;
 
 /** Recebe os jogos já carregados (em ordem) e o total da categoria, enquanto o resto chega. */
 export type StoreProgress = (products: StoreProduct[], total: number) => void;
@@ -77,10 +80,11 @@ async function fetchAll(
   region: StoreRegion,
   onProgress?: StoreProgress,
   sort: GridSort = "sales30",
+  maxPages = MAX_PAGES,
 ): Promise<StoreProduct[]> {
   const first = await fetchPage(categoryId, region, 0, sort);
   const pages: StoreProduct[][] = [first.products];
-  const count = Math.min(MAX_PAGES, Math.ceil(first.total / PAGE_SIZE));
+  const count = Math.min(maxPages, Math.ceil(first.total / PAGE_SIZE));
   onProgress?.(first.products, first.total);
   for (let start = 1; start < count; start += PARALLEL) {
     const batch = Array.from({ length: Math.min(PARALLEL, count - start) }, (_, i) => start + i);
@@ -182,6 +186,8 @@ export async function storeCategory(
     storeRefreshMs(getSettings().storeUpdate),
     () => {
       if (categoryId === ALL_ID) return fetchEverything(region, force, onProgress);
+      // Complementos: dezenas de milhares na loja; ficam os mais vendidos.
+      if (categoryId === ADDONS_ID) return fetchAll(ADDONS_ID, region, onProgress, "sales30", ADDON_PAGES);
       const derived = DERIVED[categoryId];
       return derived
         ? fetchDerived(derived[0], derived[1], region, force, onProgress)
@@ -258,6 +264,7 @@ export async function demoStoreCategory(categoryId: string): Promise<StoreProduc
     [PS5_ID]: (p) => p.platforms.includes("PS5"),
     [PS4_ID]: (p) => p.platforms.includes("PS4"),
     [DEMOS_ID]: (p) => kindOf(p) === "demo",
+    [ADDONS_ID]: (p) => kindOf(p) === "dlc",
     [FREE_ID]: (p) => p.isFree,
     [PLUS_ID]: (p) => p.plus,
   };

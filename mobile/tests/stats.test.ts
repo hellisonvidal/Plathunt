@@ -335,3 +335,21 @@ describe("ordem das conquistas", () => {
     expect(chronological(list, true).map((t) => t.id)).toEqual([0, 3, 2, 1, 4]);
   });
 });
+
+describe("tempo de jogo de PS3", () => {
+  it("o tempo de PS4/PS5 não vai para listas só de PS3 ou Vita", () => {
+    const gow3 = title("GOW3", "God of War III", "PS3", 100, c(1, 5, 10, 20));
+    const ds = title("DS", "Dark Souls", "PS3", 40, c(0, 1, 2, 3));
+    const gow = title("GOW", "God of War", "PS4", 60, c(0, 2, 5, 9));
+    const played = [
+      { titleId: "1", name: "God of War", imageUrl: null, playSeconds: 90_000, lastPlayed: null, platform: "PS4", firstPlayed: null },
+      { titleId: "2", name: "Dark Souls", imageUrl: null, playSeconds: 30_000, lastPlayed: null, platform: "PS4", firstPlayed: null },
+    ];
+    const m = matchPlayed([gow3, ds, gow], played);
+    expect(m.get("GOW")?.seconds).toBe(90_000);
+    expect(m.has("GOW3")).toBe(false);
+    expect(m.has("DS")).toBe(false);
+    // Sem a lista de PS4, "God of War" de PS4 não cai no "God of War III".
+    expect(matchPlayed([gow3], played).size).toBe(0);
+  });
+});

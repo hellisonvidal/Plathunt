@@ -20,6 +20,7 @@ import {
   priceHistory,
   recordPrices,
   PLUS_ID,
+  ADDONS_ID,
   STORE_CATEGORIES,
   STORE_KINDS,
   STORE_SORTS,
@@ -111,8 +112,8 @@ export function StorePage() {
   );
   const releaseOrder = byRelease ? (releases.data ?? null) : null;
   const visible = useMemo(
-    () => (deferredProducts ? filterProducts(deferredProducts, deferredFilters, releaseOrder) : null),
-    [deferredProducts, deferredFilters, releaseOrder],
+    () => (deferredProducts ? filterProducts(deferredProducts, deferredFilters, releaseOrder, region) : null),
+    [deferredProducts, deferredFilters, releaseOrder, region],
   );
 
   return (
@@ -140,6 +141,16 @@ export function StorePage() {
           </nav>
 
         <FilterBar filters={filters} onChange={setFilters} region={region} products={deferredProducts} />
+        {/* As outras listas quase não têm complementos: a categoria própria tem todos. */}
+        {categoryId !== ADDONS_ID && selectedKinds(filters).includes("dlc") && (
+          <button
+            onClick={() => setCategoryId(ADDONS_ID)}
+            className="flex w-full items-center justify-between gap-2 rounded-xl border border-ps-blue-2/40 bg-ps-blue-2/10 px-3 py-2 text-left text-xs"
+          >
+            <span>{t("Os complementos (DLC, passes, pacotes) estão todos na categoria Complementos.")}</span>
+            <span className="shrink-0 font-semibold text-ps-blue-2">{t("Ver")} ›</span>
+          </button>
+        )}
         {catalog.error ? <ErrorBox error={catalog.error} onRetry={catalog.refresh} /> : null}
 
         {/* Linha de status com altura fixa: o progresso não empurra a lista. */}
@@ -217,6 +228,7 @@ function FilterBar({
     (filters.onlyDiscount ? 1 : 0) +
     (filters.hidePlus ? 1 : 0) +
     (filters.hideFree ? 1 : 0) +
+    (filters.onlyHistoricLow ? 1 : 0) +
     selectedPrices(filters).length +
     selectedKinds(filters).length;
 
@@ -305,6 +317,20 @@ function FilterBar({
             // Digitar uma faixa tira as faixas prontas escolhidas.
             onChange={(customPrice) => set({ customPrice, price: [] })}
           />
+          <label className="flex items-center justify-between gap-3">
+            <span>
+              {t("📉 Só no menor preço já visto")}
+              <span className="block text-xs text-muted">
+                {t("Em promoção pelo menor preço que o app já registrou neste celular")}
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              checked={!!filters.onlyHistoricLow}
+              onChange={(e) => set({ onlyHistoricLow: e.target.checked })}
+              className="h-5 w-5 shrink-0 accent-[var(--color-ps-blue)]"
+            />
+          </label>
           <label className="flex items-center justify-between">
             <span>{t("Só jogos com desconto")}</span>
             <input
