@@ -1,4 +1,5 @@
 import { getSettings, onSettingsChange, type Settings } from "./settings";
+import { onProChange, proLocked } from "./pro";
 
 /**
  * Temas (Configurações → Aparência), inspirados nas cores de jogos famosos.
@@ -93,7 +94,9 @@ export function resolveTheme(theme: Settings["theme"], systemDark = typeof windo
 
 /** Aplica o tema no <html> e na cor da barra do sistema. */
 export function applyTheme(chosen: Settings["theme"] = getSettings().theme) {
-  const theme = resolveTheme(chosen);
+  // Temas de jogos são do Plathunt Pro: sem ele, vale o automático (a escolha fica salva).
+  const allowed = proLocked() && !THEMES.find((t) => t.value === chosen)?.standard ? "auto" : chosen;
+  const theme = resolveTheme(allowed);
   const root = document.documentElement;
   if (theme === "playstation") root.removeAttribute("data-theme");
   else root.setAttribute("data-theme", theme);
@@ -119,6 +122,8 @@ export function initTheme() {
     }
   };
   onSettingsChange(safeApply);
+  // Comprou (ou o Pro passou a valer): o tema escolhido volta na hora.
+  onProChange(safeApply);
   // No automático, acompanha a troca de claro/escuro do sistema com o app aberto.
   const onSystemChange = () => {
     if (getSettings().theme === "auto") safeApply();

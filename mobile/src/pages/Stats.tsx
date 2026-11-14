@@ -27,6 +27,7 @@ import {
 import { useData } from "../lib/useData";
 import { peekCached, untilRefresh } from "../lib/cache";
 import type { Title } from "../psn/types";
+import { useProGate } from "../components/Pro";
 
 const TYPES = ["platinum", "gold", "silver", "bronze"] as const;
 
@@ -194,7 +195,10 @@ export function PlayerStats({
   const external = compareId !== undefined;
   const friendId = (external ? compareId : localFriendId) === accountId ? "" : external ? compareId : localFriendId;
   // Categoria tocada nos quadros: abre o mural de jogos em um pop-up.
-  const [mural, setMural] = useState<MuralKind | null>(null);
+  const [mural, setMuralNow] = useState<MuralKind | null>(null);
+  // O mural é do Plathunt Pro: sem ele, o toque abre a compra.
+  const muralPro = useProGate("mural");
+  const setMural = (kind: MuralKind | null) => (kind === null ? setMuralNow(null) : muralPro.guard(() => setMuralNow(kind)));
 
   const mine = useData(
     async (force) => {
@@ -392,6 +396,7 @@ export function PlayerStats({
           {/* Situação dos jogos logo abaixo dos quadros. */}
           <GamesBreakdown stats={all} names={names} selected={mural} onSelect={setMural} />
 
+          {muralPro.sheet}
           {mural && (
             <Mural
               key={`${typeof mural === "object" ? mural.year : mural}:${friendId}`}

@@ -15,6 +15,8 @@ import { appVersion, updateSettings, useSettings, type Settings } from "../lib/s
 import { STORE_REFRESH, STORE_REGIONS } from "../lib/store";
 import { LANGUAGES, locale, t } from "../i18n";
 import { applyTheme, THEMES } from "../lib/theme";
+import { usePro } from "../lib/pro";
+import { ProBadge, ProSheet, useProGate } from "../components/Pro";
 import { checkForUpdate, RELEASES_PAGE, type UpdateResult } from "../lib/updates";
 import { useData } from "../lib/useData";
 import { AppUpdater, isNativeApp, isPlayStoreBuild, openInBrowser, PLAY_STORE_URL } from "../psn/native";
@@ -36,6 +38,9 @@ export function SettingsPage() {
   const [update, setUpdate] = useState<UpdateResult | null>(null);
   const [checking, setChecking] = useState(false);
   const [showNews, setShowNews] = useState(false);
+  const accountsPro = useProGate("contas");
+  const pro = usePro();
+  const [showPro, setShowPro] = useState(false);
 
   const flash = (msg: string) => {
     setToast(msg);
@@ -53,6 +58,22 @@ export function SettingsPage() {
       <PageHeader title={t("Configurações")} back />
       <div className="space-y-6 px-4 pb-8 pt-4">
         {showNews && <WhatsNewDialog onClose={() => setShowNews(false)} />}
+        {accountsPro.sheet}
+        {showPro && <ProSheet onClose={() => setShowPro(false)} />}
+        {/* Só aparece quando o Pro está à venda na Play Store (ou já foi comprado). */}
+        {(pro.available || pro.owned) && (
+          <Section title="Plathunt Pro">
+            <Row
+              label={pro.owned ? t("⭐ Plathunt Pro ativo") : t("⭐ Conheça o Plathunt Pro")}
+              hint={
+                pro.owned
+                  ? t("Obrigado pelo apoio! Todos os recursos estão liberados.")
+                  : t("Loja avançada, temas de jogos, mural e várias contas, com uma compra única")
+              }
+              onClick={() => setShowPro(true)}
+            />
+          </Section>
+        )}
         <Section title={t("Conta")}>
           <div className="flex items-center gap-3 p-4">
             <Avatar src={me?.avatarUrl ?? null} name={me?.onlineId ?? "?"} size={44} />
@@ -64,14 +85,16 @@ export function SettingsPage() {
           <SavedAccountList me={mode === "psn" ? () => client.me() : null} onError={flash} />
           {mode === "psn" && (
             <Row
-              label={t("➕ Adicionar outra conta")}
+              label={accountsPro.locked ? t("➕ Adicionar outra conta (Pro)") : t("➕ Adicionar outra conta")}
               hint={t("Esta conta continua salva no celular; troque entre elas aqui ou no Perfil")}
-              onClick={() => {
-                void addAccount(
-                  () => client.me(),
-                  () => signOutPsn(true),
-                ).then((ok) => !ok && flash(t("Sem conexão para trocar de conta agora. Tente de novo.")));
-              }}
+              onClick={() =>
+                accountsPro.guard(() => {
+                  void addAccount(
+                    () => client.me(),
+                    () => signOutPsn(true),
+                  ).then((ok) => !ok && flash(t("Sem conexão para trocar de conta agora. Tente de novo.")));
+                })
+              }
             />
           )}
           <Row
@@ -300,8 +323,12 @@ function selectTheme(theme: Settings["theme"]) {
 /** Tela de temas (Configurações → Temas). A escolha vale na hora. */
 export function ThemesPage() {
   const settings = useSettings();
+  // Temas de jogos são do Plathunt Pro: sem ele, vale o automático.
+  const pro = useProGate("temas");
+  const current = pro.locked && !THEMES.find((th) => th.value === settings.theme)?.standard ? "auto" : settings.theme;
   return (
     <>
+      {pro.sheet}
       <PageHeader title={t("Temas")} back />
       <div className="px-4 pb-8 pt-4">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t("Padrão")}</h2>
@@ -310,7 +337,7 @@ export function ThemesPage() {
             <ThemeCard
               key={th.value}
               theme={th}
-              selected={settings.theme === th.value}
+              selected={current === th.value}
               onSelect={() => selectTheme(th.value)}
             />
           ))}
@@ -324,8 +351,9 @@ export function ThemesPage() {
             <ThemeCard
               key={th.value}
               theme={th}
-              selected={settings.theme === th.value}
-              onSelect={() => selectTheme(th.value)}
+              selected={current === th.value}
+              locked={pro.locked}
+              onSelect={() => pro.guard(() => selectTheme(th.value))}
             />
           ))}
         </div>
@@ -398,10 +426,13 @@ function ThemeCard({
   theme,
   selected,
   onSelect,
+  locked = false,
 }: {
   theme: (typeof THEMES)[number];
   selected: boolean;
   onSelect: () => void;
+  /** Tema do Plathunt Pro sem a compra: mostra o selo e abre a compra. */
+  locked?: boolean;
 }) {
   return (
     <button
@@ -414,6 +445,7 @@ function ThemeCard({
       <span className="mt-1.5 flex items-center justify-between gap-1">
         <span className="text-sm font-semibold">{t(theme.label)}</span>
         {selected && <span className="text-ps-blue-2">✓</span>}
+        {locked && !selected && <ProBadge />}
       </span>
       <span className="block text-[0.6875rem] leading-tight text-muted">{t(theme.description)}</span>
     </button>

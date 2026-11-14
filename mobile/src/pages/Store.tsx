@@ -42,6 +42,8 @@ import { useRevealOnScrollUp } from "../lib/scrollReveal";
 import { openInBrowser, openInPlayStationApp } from "../psn/native";
 import { demoStoreCategory, storeCacheKey, storeCategory, storeReleaseOrder, type StoreProgress } from "../psn/store";
 import { peekCached } from "../lib/cache";
+import { usePro } from "../lib/pro";
+import { ProBadge, useProGate } from "../components/Pro";
 
 /** Quantos jogos entram na tela de cada vez (mais aparecem sozinhos ao rolar). */
 const PAGE = 40;
@@ -139,7 +141,9 @@ export function StorePage() {
     [listed, wantsAddons, addonPick, addons.data],
   );
   // Filtrar milhares de jogos fica em segundo plano: digitar e rolar seguem fluidos.
-  const deferredFilters = useDeferredValue(filters);
+  // Sem o Plathunt Pro, o filtro de menor preço não vale (a opção abre a compra).
+  const { locked: proLocked } = usePro();
+  const deferredFilters = useDeferredValue(proLocked && filters.onlyHistoricLow ? { ...filters, onlyHistoricLow: false } : filters);
   const deferredProducts = useDeferredValue(products);
   // Ordem de lançamento: só carrega quando essa ordenação é escolhida (no demo, vale a ordem da lista).
   const byRelease = isReleaseSort(filters.sort);
@@ -256,6 +260,7 @@ function FilterBar({
   products: StoreProduct[] | null;
 }) {
   const [open, setOpen] = useState(false);
+  const pro = useProGate("lojaAvancada");
   // Faixas de preço em chips (sem "Qualquer": nenhuma escolhida = qualquer preço).
   const chipRanges = priceRanges(region).filter((r) => r.key !== "todas");
   const chipKeys = new Set(chipRanges.map((r) => r.key));
@@ -270,12 +275,13 @@ function FilterBar({
     (filters.onlyDiscount ? 1 : 0) +
     (filters.hidePlus ? 1 : 0) +
     (filters.hideFree ? 1 : 0) +
-    (filters.onlyHistoricLow ? 1 : 0) +
+    (filters.onlyHistoricLow && !pro.locked ? 1 : 0) +
     selectedPrices(filters).length +
     selectedKinds(filters).length;
 
   return (
     <div className="space-y-2">
+      {pro.sheet}
       <div className="flex gap-2">
         <input
           value={filters.query}
@@ -360,16 +366,25 @@ function FilterBar({
             // Digitar uma faixa tira as faixas prontas escolhidas.
             onChange={(customPrice) => set({ customPrice, price: [] })}
           />
-          <label className="flex items-center justify-between gap-3">
+          <label
+            className="flex items-center justify-between gap-3"
+            onClick={(e) => {
+              if (!pro.locked) return;
+              e.preventDefault();
+              pro.openSheet();
+            }}
+          >
             <span>
-              {t("📉 Só no menor preço já visto")}
+              <span className="inline-flex items-center gap-1.5">
+                {t("📉 Só no menor preço já visto")} {pro.locked && <ProBadge />}
+              </span>
               <span className="block text-xs text-muted">
                 {t("Em promoção pelo menor preço que o app já registrou neste celular")}
               </span>
             </span>
             <input
               type="checkbox"
-              checked={!!filters.onlyHistoricLow}
+              checked={!pro.locked && !!filters.onlyHistoricLow}
               onChange={(e) => set({ onlyHistoricLow: e.target.checked })}
               className="h-5 w-5 shrink-0 accent-[var(--color-ps-blue)]"
             />
@@ -609,8 +624,9 @@ function SkeletonGrid({ count = 6 }: { count?: number }) {
 }
 
 /** Preço atual, preço cheio riscado e o menor preço já visto. */
-function PriceInfo({ product: p, region }: { product: StoreProduct; region: StoreRegion }) {
-  const history = useMemo(() => priceHistory(region, p.id), [region, p.id, p.price]);
+function PriceInfo({ product: p, region, pro }: { product: StoreProduct; region: StoreRegion; pro: boolean }) {
+  // O histórico é gravado sempre; mostrar o menor preço é do Plathunt Pro.
+  const history = useMemo(() => (pro ? priceHistory(region, p.id) : null), [pro, region, p.id, p.price]);
   const lowestSeen = history && p.price !== null && history.min < p.price;
   const atLowest = p.price !== null && p.price > 0 && isNewLow(history, p.price);
   // Frase inteira traduzida; o preço em destaque entra no lugar de "{price}".
@@ -645,6 +661,7 @@ function PriceInfo({ product: p, region }: { product: StoreProduct; region: Stor
 /** Cartão memorizado: enquanto a loja carrega, só os jogos novos são desenhados. */
 const ProductCard = memo(function ProductCard({ product: p, region }: { product: StoreProduct; region: StoreRegion }) {
   const [loaded, setLoaded] = useState(false);
+  const { locked } = usePro();
   return (
     <a
       href={productLink(p, region)}
@@ -676,7 +693,7 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
           <span className="absolute left-2 top-2 rounded-full bg-ps-blue px-2 py-0.5 text-xs font-bold">-{p.discount}%</span>
         )}
         {/* No menor preço que o app já registrou para este jogo. */}
-        {historicLowBadge(p, region) && (
+        {!locked && historicLowBadge(p, region) && (
           <span
             className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-ps-blue-2 px-2 py-0.5 text-[0.625rem] font-bold text-white shadow"
             title={t("Menor preço já visto")}
@@ -704,7 +721,7 @@ const ProductCard = memo(function ProductCard({ product: p, region }: { product:
           </span>
           <span className="truncate">{p.platforms.join(" · ")}</span>
         </p>
-        <PriceInfo product={p} region={region} />
+        <PriceInfo product={p} region={region} pro={!locked} />
       </div>
     </a>
   );

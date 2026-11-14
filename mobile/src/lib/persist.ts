@@ -7,7 +7,7 @@ import { Capacitor } from "@capacitor/core";
  * numa cópia no armazenamento nativo do Android (SharedPreferences), que
  * sobrevive mesmo se o WebView limpar os dados dele.
  */
-export const PERSISTED_KEYS = ["tm.session", "tm.mode", "tm.settings", "tm.reactions", "tm.prices", "tm.boosts", "tm.challenges", "tm.merits", "tm.boostInbox", "tm.boostInboxDismissed", "tm.boostAnswersSeen", "tm.boostBlocked", "tm.cloud", "tm.accounts"] as const;
+export const PERSISTED_KEYS = ["tm.session", "tm.mode", "tm.settings", "tm.reactions", "tm.prices", "tm.boosts", "tm.challenges", "tm.merits", "tm.boostInbox", "tm.boostInboxDismissed", "tm.boostAnswersSeen", "tm.boostBlocked", "tm.cloud", "tm.accounts", "tm.pro"] as const;
 type Key = (typeof PERSISTED_KEYS)[number];
 
 const native = () => Capacitor.isNativePlatform();
