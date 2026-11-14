@@ -216,6 +216,13 @@ Para ativar (depois de liberada a produção):
 4. **Segurança dos dados:** pagamentos pelo Google Play não precisam ser declarados como coleta (o app
    não recebe dados de pagamento; o Google é quem processa).
 
+**Códigos para testers (Pro de graça):** Monetizar → **Códigos promocionais** (ou Promoções) →
+Criar promoção → tipo "Produto no app", produto `plathunt_pro`, quantidade de códigos (limite do
+Google: 500 por trimestre) e validade. Baixe a lista (CSV) e mande um código para cada pessoa. Para usar:
+Play Store → foto do perfil → **Pagamentos e assinaturas → Resgatar código** (ou "Resgatar código" na
+própria tela de compra do Pro). Ao abrir o app, ele encontra a compra e libera o Pro; se não liberar na
+hora, "Restaurar compra" na tela do Pro. Cada código vale uma vez, numa conta do Google.
+
 Como funciona no app: Configurações mostra a seção "Plathunt Pro" quando o produto está à venda; tocar
 num recurso bloqueado (🔒 Pro) abre a tela de compra, com "Restaurar compra". Toda compra é
 confirmada (acknowledge) na hora; o estado fica salvo no celular, então quem comprou continua com tudo
