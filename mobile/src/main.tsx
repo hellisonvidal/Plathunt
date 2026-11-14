@@ -5,6 +5,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { restorePersisted } from "./lib/persist";
 import { initLanguage } from "./lib/settings";
 import { initTheme } from "./lib/theme";
+import { initPro } from "./lib/pro";
 import { useLanguage } from "./i18n";
 import "./styles.css";
 
@@ -17,6 +18,11 @@ let started = false;
 function start() {
   if (started) return;
   started = true;
+  try {
+    initPro();
+  } catch (e) {
+    console.error("Pro:", e);
+  }
   try {
     initTheme();
   } catch (e) {

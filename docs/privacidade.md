@@ -42,6 +42,7 @@ O app fala direto, do celular, com estes serviços. Nenhum deles recebe a sua se
 - **playstation.com (Sony):** a lista de avaliações da PS Plus, na página pública de jogos da PS Plus (sem login).
 - **Google Tradutor:** só com "Traduzir nomes e descrições" ligado em Configurações, os nomes e descrições de troféus que a Sony não traduziu (nenhum dado da conta).
 - **Ícones de sites (Google):** os ícones do PlayStationTrophies.org e do PSNProfiles nos botões de guias.
+- **Google Play (só na versão da Play Store):** a compra do Plathunt Pro é feita e cobrada pelo Google Play. O app só pergunta ao Google Play se a compra existe; o pagamento e os dados dele ficam com o Google e nunca passam pelo app nem pelo servidor do Plathunt.
 - **Links externos que você toca** (vídeos de dicas, guias, página do jogo na loja) abrem no navegador ou no app do serviço, com as políticas deles.
 
 ## Idade

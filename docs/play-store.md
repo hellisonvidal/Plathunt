@@ -197,6 +197,30 @@ Track your PlayStation Network trophies on your phone:
 Free, no ads, no purchases.
 ```
 
+## Plathunt Pro (compra única)
+
+O app já tem a compra do **Plathunt Pro** (Google Play Billing, só na versão da Play Store). Ele libera:
+a loja avançada (selo, filtro e linha de menor preço), os temas de jogos, o mural das Estatísticas e
+adicionar mais contas da PSN. Trocar entre contas já salvas continua livre.
+
+**Nada fica bloqueado até o produto existir e estar ativo na Play Console.** Dá para publicar esta
+versão em produção antes e ativar o Pro depois, sem mandar outra versão.
+
+Para ativar (depois de liberada a produção):
+1. Play Console → **Configuração → Perfil de pagamentos**: crie a conta de comerciante (dados bancários e fiscais).
+2. **Monetizar → Produtos → Produtos únicos → Criar produto**, com o ID **`plathunt_pro`** (exatamente
+   esse; é o que o app procura em `mobile/src/lib/pro.ts`). Nome "Plathunt Pro", descrição com os
+   quatro benefícios, preço (ex.: R$ 14,90) e **Ativar**.
+3. **Testar sem pagar:** Configuração → **Teste de licença**, adicione o seu e-mail do Google. Instale
+   pelo teste interno/fechado: a compra aparece como "Pedido de teste" e não cobra.
+4. **Segurança dos dados:** pagamentos pelo Google Play não precisam ser declarados como coleta (o app
+   não recebe dados de pagamento; o Google é quem processa).
+
+Como funciona no app: Configurações mostra a seção "Plathunt Pro" quando o produto está à venda; tocar
+num recurso bloqueado (🔒 Pro) abre a tela de compra, com "Restaurar compra". Toda compra é
+confirmada (acknowledge) na hora; o estado fica salvo no celular, então quem comprou continua com tudo
+liberado sem internet. A conferência é feita no aparelho (sem servidor de validação).
+
 ## Nome e marca
 
 - **Título:** `Plathunt: Trophy Tracker` (24 de 30 caracteres). Nome embaixo do ícone: `Plathunt`.

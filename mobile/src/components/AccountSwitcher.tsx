@@ -3,6 +3,7 @@ import { t } from "../i18n";
 import { forgetSaved, switchAccount, useSavedAccounts } from "../lib/accounts";
 import type { Profile } from "../psn/types";
 import { Avatar } from "./ui";
+import { ProBadge, useProGate } from "./Pro";
 
 /**
  * Contas da PSN guardadas no celular (além da ativa): tocar troca de conta na
@@ -70,6 +71,8 @@ export function AccountSwitcherDialog({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  // Mais de uma conta é do Plathunt Pro (trocar entre as já salvas continua livre).
+  const pro = useProGate("contas");
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 px-4 pb-[calc(1rem+var(--sab))] pt-4 sm:items-center"
@@ -88,6 +91,10 @@ export function AccountSwitcherDialog({
         <button
           disabled={adding}
           onClick={() => {
+            if (pro.locked) {
+              pro.openSheet();
+              return;
+            }
             setAdding(true);
             void onAdd().then((ok) => {
               if (!ok) {
@@ -98,10 +105,14 @@ export function AccountSwitcherDialog({
           }}
           className="w-full border-t border-line px-4 py-3 text-left text-sm font-semibold text-ps-blue-2 active:bg-surface-2 disabled:opacity-60"
         >
-          {t("➕ Adicionar outra conta")}
+          <span className="inline-flex items-center gap-1.5">
+            {t("➕ Adicionar outra conta")} {pro.locked && <ProBadge />}
+          </span>
         </button>
         {error && <p className="px-4 pb-3 text-sm text-red-400">{error}</p>}
       </section>
+      {/* Fora do cartão: o toque fora do cartão fecha a troca de conta. */}
+      <div onClick={(e) => e.stopPropagation()}>{pro.sheet}</div>
     </div>
   );
 }
